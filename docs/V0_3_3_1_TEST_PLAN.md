@@ -7,13 +7,13 @@
 ## Issue tracker (priority order)
 | Priority | Issue | Required behavior |
 |---|---|---|
-| P0 | [#1 Idle stack-overflow](../issues/1) | Diagnose safely and instrument without expensive logs or invented root cause |
-| P0 | [#2 Keyboard enter/back](../issues/2) | One action per press, correct parent menu and cursor restoration |
-| P1 | [#3 Warehouse pallet and package](../issues/3) | Pickup shipment visible when ready, independently of assigned vehicle range |
-| P1 | [#4 Parking outline heading](../issues/4) | Geometry aligns with saved player heading, visible front arrow |
-| P1 | [#5 Driver handoff routing](../issues/5) | Direct route to player for handoff, saved stops for standard delivery |
-| P1 | [#6 Shop box grounding](../issues/6) | Pallet-top boxes aligned to real support surfaces; screenshot pending |
-| P2 | [#7 Break-to-bay mechanic paths](../issues/7) | Simpler default routes, preserved settings and optional advanced paths |
+| P0 | [#1 Idle stack-overflow](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/1) | Diagnose safely and instrument without expensive logs or invented root cause |
+| P0 | [#2 Keyboard enter/back](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/2) | One action per press, correct parent menu and cursor restoration |
+| P1 | [#3 Warehouse pallet and package](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/3) | Pickup shipment visible when ready, independently of assigned vehicle range |
+| P1 | [#4 Parking outline heading](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/4) | Geometry aligns with saved player heading, visible front arrow |
+| P1 | [#5 Driver handoff routing](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/5) | Direct route to player for handoff, saved stops for standard delivery |
+| P1 | [#6 Shop box grounding](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/6) | Pallet-top boxes aligned to real support surfaces; screenshot pending |
+| P2 | [#7 Break-to-bay mechanic paths](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/7) | Simpler default routes, preserved settings and optional advanced paths |
 
 Direct issue URLs use `https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/NUMBER`.
 
