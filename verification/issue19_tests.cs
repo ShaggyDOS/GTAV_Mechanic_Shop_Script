@@ -9,11 +9,11 @@ static class Game { internal static PlayerState Player=new PlayerState();interna
 enum BlipSprite { Package }
 enum BlipColor { Orange,Yellow }
 class Blip {
-    internal bool alive=true;internal int writes,removes;internal bool failName,failRemove;
+    internal bool alive=true;internal int writes,removes,removeAttempts;internal bool failName,failRemove;
     internal Vector3 pos;internal Vector3 Position {get=>pos;set{pos=value;writes++;}}
     internal BlipSprite Sprite;internal BlipColor Color;internal float Scale;internal bool IsShortRange=true;
     string name;internal string Name {get=>name;set{if(failName){failName=false;throw new Exception("name");}name=value;}}
-    internal bool Exists()=>alive;internal void Remove(){if(failRemove)throw new Exception("remove");alive=false;removes++;}
+    internal bool Exists()=>alive;internal void Remove(){removeAttempts++;if(failRemove)throw new Exception("remove");alive=false;removes++;}
 }
 static class World {
     internal static List<Blip> blips=new List<Blip>();internal static bool failCreate,failName;
@@ -29,7 +29,7 @@ class Harness {
     Blip _wholesalePackageBlip;bool _wholesalePackageBlipConfigured,_wholesalePackageHasPosition;
     Vector3 _wholesalePackageLastPosition;long _wholesalePackageOrderIdentity;
     Vehicle _wholesaleBlipVehicle,_cachedWholesaleVehicle;
-    DateTime _nextWholesaleBlipVehicleCheck=DateTime.MinValue,_nextWholesaleBlipRetry=DateTime.MinValue;
+    DateTime _nextWholesaleBlipVehicleCheck=DateTime.MinValue,_nextWholesaleBlipRetry=DateTime.MinValue,_nextWholesaleBlipCleanupRetry=DateTime.MinValue;
     int _deliveryKind=0,_deliverySupplier=0,_deliveryQuantity=5;long _deliveryDueUtcTicks=1;
     double _deliveryRemainingGameSeconds;bool _supplierPlayerCarrying,_wholesaleCargoLoaded,_wholesaleCargoUnloaded;
     int _wholesaleVehicleModel=42;string _wholesaleVehiclePlate="ASSIGNED";
@@ -71,7 +71,37 @@ class Harness {
         Test("externally lost owned handle reconstructs one active icon",()=>{var h=new Harness();h.Update();h._wholesalePackageBlip.alive=false;h.Update(1);h.Update(2);Check(World.calls==2&&World.blips.FindAll(b=>b.alive).Count==1,"lost handle");});
         Test("blip creation failure backs off without order changes",()=>{World.failCreate=true;var h=new Harness();for(int i=0;i<10;i++)h.Update(i);Check(World.calls==1&&h._deliveryKind==0&&h._deliveryQuantity==5&&h.errors==1,"create flood/business");World.failCreate=false;h.Update(10);Check(World.calls==2&&h._wholesalePackageBlip.alive,"create recovery");});
         Test("setter failure retains owned handle and completes configuration",()=>{World.failName=true;var h=new Harness();h.Update();Check(World.calls==1&&!h._wholesalePackageBlipConfigured,"failed setter");World.failName=false;h.Update(10);Check(World.calls==1&&h._wholesalePackageBlipConfigured&&h._wholesalePackageBlip.Name=="WHOLESALE package","leak");});
-        Test("failed cleanup retains ownership until retry succeeds",()=>{var h=new Harness();h.Update();var b=h._wholesalePackageBlip;b.failRemove=true;h._deliveryKind=-2;h.Update(1);Check(h._wholesalePackageBlip==b&&b.alive,"orphan reference");b.failRemove=false;h._nextWholesaleBlipRetry=DateTime.MinValue;h.Update(20);Check(!b.alive&&h._wholesalePackageBlip==null,"cleanup recovery");});
+        Test("failed cleanup retains ownership until retry succeeds",()=>{var h=new Harness();h.Update();var b=h._wholesalePackageBlip;b.failRemove=true;h._deliveryKind=-2;h.Update(1);Check(h._wholesalePackageBlip==b&&b.alive,"orphan reference");b.failRemove=false;h.Update(20);Check(!b.alive&&h._wholesalePackageBlip==null,"cleanup recovery");});
+        Test("setter failure then cancel removes owned blip immediately despite visual backoff",()=>{
+            World.failName=true;var h=new Harness();h.Update();var blip=h._wholesalePackageBlip;
+            Check(blip!=null&&blip.alive&&!h._wholesalePackageBlipConfigured,"setup failure");
+            h._deliveryKind=-2;h.Update(1);
+            Check(h._wholesalePackageBlip==null&&!blip.alive&&blip.removes==1,"cleanup delayed by visual retry");
+        });
+        Test("create failure then cancel clears transient retry and next order can create",()=>{
+            World.failCreate=true;var h=new Harness();h.Update();
+            Check(h._wholesalePackageBlip==null&&h.errors==1,"create should fail once");
+            h._deliveryKind=-2;h.Update(1);
+            Check(h._nextWholesaleBlipRetry==DateTime.MinValue&&!h._wholesalePackageHasPosition,"stale failed order");
+            h._deliveryKind=0;h._deliveryDueUtcTicks=2;World.failCreate=false;h.Update(2);
+            At(h._wholesalePackageBlip,h._wholesaleWarehousePickup.Position);
+        });
+        Test("new order resets prior setter backoff and preserves single handle",()=>{
+            World.failName=true;var h=new Harness();h.Update();var b=h._wholesalePackageBlip;
+            h._deliveryDueUtcTicks=2;h._deliveryRemainingGameSeconds=10;
+            h.Update(1);
+            Check(h._wholesalePackageBlip==b&&h._wholesalePackageBlipConfigured&&World.calls==1,"old order retry carried over");
+        });
+        Test("failed cleanup retries at most every ten seconds without leaking blips",()=>{
+            var h=new Harness();h.Update();var b=h._wholesalePackageBlip;b.failRemove=true;
+            h._deliveryKind=-2;h.Update(1);
+            for(int t=2;t<11;t++)h.Update(t);
+            Check(b.removeAttempts==1&&h._wholesalePackageBlip==b,"cleanup failure spam");
+            h.Update(11);h.Update(12);
+            Check(b.removeAttempts==2,"retry interval");
+            b.failRemove=false;h.Update(21);
+            Check(b.removeAttempts==3&&!b.alive&&h._wholesalePackageBlip==null,"cleanup recovery");
+        });
         Test("invalid order and non-wholesale supplier remove only own icon",()=>{foreach(int invalid in new[]{-2,3}){var h=new Harness();h.Update();h._deliveryKind=invalid;h.Update(1);Check(h._wholesalePackageBlip==null,"invalid retained");}var local=new Harness();local.Update();local._deliverySupplier=1;local.Update(1);Check(local._wholesalePackageBlip==null,"local retained");});
         Console.WriteLine($"#19 {passed}/{passed} PASS; GTA testing NOT RUN");
     }
