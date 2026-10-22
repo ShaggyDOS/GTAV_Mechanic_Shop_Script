@@ -29,7 +29,7 @@ These instructions apply to all folders unless a more specific `AGENTS.md` exist
 ## Debugging v0.3.3.1
 - P0: [stack overflow while idle](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/1). Oct 22 2026 at 00:34:33 local, 18m06s into session; code `0xC00000FD`, `clr.dll+0x19E9DD`. **No minidump saved**. Do not attribute to the last archive, PSRP, or a method without proof.
 - P0: [keyboard double Enter/Back](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/2). Review both `OnKeyDown` and `PollController` for duplicate actions.
-- Other tracked release issues #3–#7 include warehouse cargo visibility, heading-aligned parking outlines, delivery driver handoff, grounded stockroom boxes, and simplifying mechanic paths.
+- Other tracked release issues #3–#7 include warehouse cargo visibility, heading-aligned parking outlines, delivery driver handoff, removing floating legacy stockroom pallet-box visuals while retaining successfully delivered packages, and simplifying mechanic paths.
 - Record diagnostic checkpoints **at transitions only**, rate-limit repeated errors, and keep frame overhead tiny.
 
 ## Documentation contract — MANDATORY for every code change
@@ -51,5 +51,5 @@ Each change must include:
 ## v0.3.3.1 priority
 1. Crash investigation/instrumentation (#1), and keyboard input fixes (#2), as **separate changes**.
 2. Warehouse visibility (#3), heading markers (#4), handoff routing (#5).
-3. Box/pallet exact offsets when screenshot is provided (#6); mechanic route simplification (#7).
+3. Suppress legacy floating stockroom pallet-box visuals without touching correct new package deliveries or warehouse pickup (#6); mechanic route simplification (#7). A pallet screenshot is no longer required.
 See `docs/V0_3_3_1_TEST_PLAN.md`.
