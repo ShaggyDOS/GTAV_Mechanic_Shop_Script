@@ -1,0 +1,16 @@
+/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Program.cs(5,78): warning CS0649: Field 'Prop.Handle' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Program.cs(9,87): warning CS0649: Field 'Harness.WorkBay.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Program.cs(148,49): warning CS0414: The field 'Harness._wholesaleCargoUnloaded' is assigned but its value is never used [/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Program.cs(149,42): warning CS0414: The field 'Harness._supplierTimerSaveSeconds' is assigned but its value is never used [/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Program.cs(149,12): warning CS0414: The field 'Harness._deliveryRemainingGameSeconds' is assigned but its value is never used [/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Program.cs(147,80): warning CS0414: The field 'Harness._deliveryDueUtcTicks' is assigned but its value is never used [/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Program.cs(148,27): warning CS0414: The field 'Harness._wholesaleCargoLoaded' is assigned but its value is never used [/workspace/.cloud-setup/tmp/glassheroes-issue6-7j30astn/Tests.csproj]
+PASS #6 legacy BoxCount does not recreate display boxes or erase stock
+PASS #6 only recorded delivered parcels reconstruct on actual grounded support
+PASS #6 obsolete cleanup preserves live delivered cargo and warehouse ownership
+PASS #6 successful deposit records provenance and credits ledger once
+PASS #6 dirty refresh preserves an existing real delivered parcel
+PASS #6 save-mask migration is additive bounded and defaults to hidden legacy
+PASS #6 stream-out and reload keep provenance and stock while respawning only real parcels
+PASS #6 missing models have finite attempts and preserve masks/counters
+#6 8/8 PASS; GTA testing NOT RUN
