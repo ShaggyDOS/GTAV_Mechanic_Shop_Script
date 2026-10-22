@@ -1,0 +1,334 @@
+diff --git a/Install/scripts/GlassHeroesBusiness.2.cs b/Install/scripts/GlassHeroesBusiness.2.cs
+index 909d05f..4038a4a 100644
+--- a/Install/scripts/GlassHeroesBusiness.2.cs
++++ b/Install/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,4 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.1 QA R2 / EXPERIMENTAL (#1 diagnostics + #2-#7)
++﻿// Glass Heroes Business Manager - v0.3.3.1 PR19 WHOLESALE BLIP / EXPERIMENTAL (QA R2 base)
+ // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+@@ -423,6 +423,15 @@ public class GlassHeroesBusiness : Script
+     private bool _palletVisualDirty = true;
+     private readonly WorkBay _wholesaleWarehousePickup = new WorkBay();
+     private Prop _wholesaleWarehousePallet; // visual-only, never counted as shop storage
++    // PR19: one coordinate blip, independent of streamed props and business state.
++    private Blip _wholesalePackageBlip;
++    private bool _wholesalePackageBlipConfigured;
++    private Vector3 _wholesalePackageLastPosition;
++    private bool _wholesalePackageHasPosition;
++    private long _wholesalePackageOrderIdentity;
++    private Vehicle _wholesaleBlipVehicle;
++    private DateTime _nextWholesaleBlipVehicleCheck = DateTime.MinValue;
++    private DateTime _nextWholesaleBlipRetry = DateTime.MinValue;
+     private const float WholesalePickupX = -164.2800f;
+     private const float WholesalePickupY = -2676.5900f;
+     private const float WholesalePickupZ = 6.0141f;
+@@ -519,7 +528,7 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.3.1 QA R2 EXPERIMENTAL (#1 diagnostics + #2-#7) / constructor entered", null);
++            Log("BOOT v0.3.3.1 PR19 WHOLESALE BLIP EXPERIMENTAL (QA R2 base) / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -928,6 +937,7 @@ public class GlassHeroesBusiness : Script
+                 UpdateSupplierPalletVisual();
+                 _diagnosticTickStage = "warehouse visuals";
+                 UpdateWholesalePalletVisual();
++                UpdateWholesalePackageBlip(now);
+                 _diagnosticLog.RecordTransition(_clockedIn, _remoteMode,
+                     _workersPreviouslyInRange, _showMenu, _supplierVisualStage,
+                     _activeCustomerOrders.Count, _remoteJobs.Count);
+@@ -6307,6 +6317,115 @@ public class GlassHeroesBusiness : Script
+             AttachWholesaleBoxToVehicle(vehicle);
+     }
+ 
++    // PR19: invoked only by the existing once-per-second visual refresh after
++    // the gameplay gate. Never edits ETA, stock, invoices, saves or waypoints.
++    private void UpdateWholesalePackageBlip(DateTime now)
++    {
++        if (now < _nextWholesaleBlipRetry) return;
++        try
++        {
++            if (_deliverySupplier != 0 || _deliveryKind < -1 || _deliveryKind > 2 ||
++                _deliveryQuantity <= 0 || !_wholesaleWarehousePickup.IsSet)
++            { DeleteWholesalePackageBlip(); return; }
++            if (!_wholesalePackageHasPosition || _wholesalePackageOrderIdentity != _deliveryDueUtcTicks)
++            {
++                _wholesalePackageOrderIdentity = _deliveryDueUtcTicks;
++                _wholesalePackageLastPosition = _wholesaleWarehousePickup.Position;
++                _wholesalePackageHasPosition = true;
++                _wholesaleBlipVehicle = null;
++                _nextWholesaleBlipVehicleCheck = DateTime.MinValue;
++            }
++            Vector3 position = WholesalePackageBlipPosition(now);
++            _wholesalePackageLastPosition = position;
++            if (_wholesalePackageBlip == null || !_wholesalePackageBlip.Exists())
++            {
++                _wholesalePackageBlipConfigured = false;
++                _wholesalePackageBlip = World.CreateBlip(position);
++                if (_wholesalePackageBlip == null || !_wholesalePackageBlip.Exists())
++                    throw new InvalidOperationException("Wholesale package blip unavailable");
++            }
++            // Retain the handle if a setter fails: retry configuring that same
++            // owned blip after backoff instead of leaking duplicate handles.
++            if (!_wholesalePackageBlipConfigured)
++            {
++                _wholesalePackageBlip.Sprite = BlipSprite.Package;
++                _wholesalePackageBlip.Color = BlipColor.Orange;
++                _wholesalePackageBlip.Scale = 0.85f;
++                _wholesalePackageBlip.IsShortRange = false;
++                _wholesalePackageBlip.Name = "WHOLESALE package";
++                _wholesalePackageBlipConfigured = true;
++            }
++            _wholesalePackageBlip.Position = position;
++        }
++        catch (Exception ex)
++        {
++            _nextWholesaleBlipRetry = now.AddSeconds(10);
++            Log("Wholesale package blip (order preserved)", ex);
++        }
++    }
++
++    private Vector3 WholesalePackageBlipPosition(DateTime now)
++    {
++        // Both ETA and ready pickup remain actionable at the fixed warehouse,
++        // including missing models or a recovery that resets cargo flags.
++        if (_deliveryRemainingGameSeconds > 0 ||
++            (!_supplierPlayerCarrying && !_wholesaleCargoLoaded && !_wholesaleCargoUnloaded))
++        {
++            _wholesaleBlipVehicle = null;
++            _nextWholesaleBlipVehicleCheck = DateTime.MinValue;
++            return _wholesaleWarehousePickup.Position;
++        }
++        Ped player = Game.Player.Character;
++        if (_supplierPlayerCarrying || _wholesaleCargoUnloaded)
++        {
++            if (player != null && player.Exists()) return player.Position;
++        }
++        else if (_wholesaleCargoLoaded)
++        {
++            // Keep an independent last validated reference when the existing
++            // nearby-cargo visual cache streams out. No new vehicle scans.
++            if (now >= _nextWholesaleBlipVehicleCheck)
++            {
++                _nextWholesaleBlipVehicleCheck = now.AddSeconds(3);
++                if (!MatchesWholesaleVehicle(_wholesaleBlipVehicle))
++                {
++                    _wholesaleBlipVehicle = MatchesWholesaleVehicle(_cachedWholesaleVehicle)
++                        ? _cachedWholesaleVehicle : null;
++                    if (_wholesaleBlipVehicle == null && player != null && player.Exists() &&
++                        player.IsInVehicle() && MatchesWholesaleVehicle(player.CurrentVehicle))
++                        _wholesaleBlipVehicle = player.CurrentVehicle;
++                }
++            }
++            if (_wholesaleBlipVehicle != null && _wholesaleBlipVehicle.Exists() &&
++                _wholesaleBlipVehicle.Model.Hash == _wholesaleVehicleModel)
++                return _wholesaleBlipVehicle.Position;
++            if (_supplierCrate != null && _supplierCrate.Exists()) return _supplierCrate.Position;
++        }
++        // Missing entity: leave the owned icon at the last observed actionable
++        // location. Fresh reloads start with warehouse until cargo is resolved.
++        return _wholesalePackageLastPosition;
++    }
++
++    private void DeleteWholesalePackageBlip()
++    {
++        try
++        {
++            if (_wholesalePackageBlip != null && _wholesalePackageBlip.Exists())
++                _wholesalePackageBlip.Remove();
++            _wholesalePackageBlip = null;
++            _wholesalePackageBlipConfigured = false;
++            _wholesalePackageHasPosition = false;
++            _wholesaleBlipVehicle = null;
++        }
++        catch (Exception ex)
++        {
++            // Preserve ownership for the next cleanup attempt; never remove an
++            // arbitrary marker, customer icon or user-created waypoint.
++            _nextWholesaleBlipRetry = DateTime.UtcNow.AddSeconds(10);
++            Log("Wholesale package blip cleanup", ex);
++        }
++    }
++
+     private Vector3 WarehousePackagePosition()
+     {
+         Vector3 floor = _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists() ?
+@@ -7905,6 +8024,7 @@ public class GlassHeroesBusiness : Script
+ 
+     private void OnAborted(object sender, EventArgs e)
+     {
++        DeleteWholesalePackageBlip();
+         Log("LIFECYCLE abort requested; last tick phase=" + _diagnosticTickStage, null);
+         // Nothing has been spawned or billed before activation. Do not write
+         // partially initialized defaults over the user's existing Save.ini.
+diff --git a/VisualStudio/scripts/GlassHeroesBusiness.2.cs b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+index 909d05f..4038a4a 100644
+--- a/VisualStudio/scripts/GlassHeroesBusiness.2.cs
++++ b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,4 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.1 QA R2 / EXPERIMENTAL (#1 diagnostics + #2-#7)
++﻿// Glass Heroes Business Manager - v0.3.3.1 PR19 WHOLESALE BLIP / EXPERIMENTAL (QA R2 base)
+ // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+@@ -423,6 +423,15 @@ public class GlassHeroesBusiness : Script
+     private bool _palletVisualDirty = true;
+     private readonly WorkBay _wholesaleWarehousePickup = new WorkBay();
+     private Prop _wholesaleWarehousePallet; // visual-only, never counted as shop storage
++    // PR19: one coordinate blip, independent of streamed props and business state.
++    private Blip _wholesalePackageBlip;
++    private bool _wholesalePackageBlipConfigured;
++    private Vector3 _wholesalePackageLastPosition;
++    private bool _wholesalePackageHasPosition;
++    private long _wholesalePackageOrderIdentity;
++    private Vehicle _wholesaleBlipVehicle;
++    private DateTime _nextWholesaleBlipVehicleCheck = DateTime.MinValue;
++    private DateTime _nextWholesaleBlipRetry = DateTime.MinValue;
+     private const float WholesalePickupX = -164.2800f;
+     private const float WholesalePickupY = -2676.5900f;
+     private const float WholesalePickupZ = 6.0141f;
+@@ -519,7 +528,7 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.3.1 QA R2 EXPERIMENTAL (#1 diagnostics + #2-#7) / constructor entered", null);
++            Log("BOOT v0.3.3.1 PR19 WHOLESALE BLIP EXPERIMENTAL (QA R2 base) / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -928,6 +937,7 @@ public class GlassHeroesBusiness : Script
+                 UpdateSupplierPalletVisual();
+                 _diagnosticTickStage = "warehouse visuals";
+                 UpdateWholesalePalletVisual();
++                UpdateWholesalePackageBlip(now);
+                 _diagnosticLog.RecordTransition(_clockedIn, _remoteMode,
+                     _workersPreviouslyInRange, _showMenu, _supplierVisualStage,
+                     _activeCustomerOrders.Count, _remoteJobs.Count);
+@@ -6307,6 +6317,115 @@ public class GlassHeroesBusiness : Script
+             AttachWholesaleBoxToVehicle(vehicle);
+     }
+ 
++    // PR19: invoked only by the existing once-per-second visual refresh after
++    // the gameplay gate. Never edits ETA, stock, invoices, saves or waypoints.
++    private void UpdateWholesalePackageBlip(DateTime now)
++    {
++        if (now < _nextWholesaleBlipRetry) return;
++        try
++        {
++            if (_deliverySupplier != 0 || _deliveryKind < -1 || _deliveryKind > 2 ||
++                _deliveryQuantity <= 0 || !_wholesaleWarehousePickup.IsSet)
++            { DeleteWholesalePackageBlip(); return; }
++            if (!_wholesalePackageHasPosition || _wholesalePackageOrderIdentity != _deliveryDueUtcTicks)
++            {
++                _wholesalePackageOrderIdentity = _deliveryDueUtcTicks;
++                _wholesalePackageLastPosition = _wholesaleWarehousePickup.Position;
++                _wholesalePackageHasPosition = true;
++                _wholesaleBlipVehicle = null;
++                _nextWholesaleBlipVehicleCheck = DateTime.MinValue;
++            }
++            Vector3 position = WholesalePackageBlipPosition(now);
++            _wholesalePackageLastPosition = position;
++            if (_wholesalePackageBlip == null || !_wholesalePackageBlip.Exists())
++            {
++                _wholesalePackageBlipConfigured = false;
++                _wholesalePackageBlip = World.CreateBlip(position);
++                if (_wholesalePackageBlip == null || !_wholesalePackageBlip.Exists())
++                    throw new InvalidOperationException("Wholesale package blip unavailable");
++            }
++            // Retain the handle if a setter fails: retry configuring that same
++            // owned blip after backoff instead of leaking duplicate handles.
++            if (!_wholesalePackageBlipConfigured)
++            {
++                _wholesalePackageBlip.Sprite = BlipSprite.Package;
++                _wholesalePackageBlip.Color = BlipColor.Orange;
++                _wholesalePackageBlip.Scale = 0.85f;
++                _wholesalePackageBlip.IsShortRange = false;
++                _wholesalePackageBlip.Name = "WHOLESALE package";
++                _wholesalePackageBlipConfigured = true;
++            }
++            _wholesalePackageBlip.Position = position;
++        }
++        catch (Exception ex)
++        {
++            _nextWholesaleBlipRetry = now.AddSeconds(10);
++            Log("Wholesale package blip (order preserved)", ex);
++        }
++    }
++
++    private Vector3 WholesalePackageBlipPosition(DateTime now)
++    {
++        // Both ETA and ready pickup remain actionable at the fixed warehouse,
++        // including missing models or a recovery that resets cargo flags.
++        if (_deliveryRemainingGameSeconds > 0 ||
++            (!_supplierPlayerCarrying && !_wholesaleCargoLoaded && !_wholesaleCargoUnloaded))
++        {
++            _wholesaleBlipVehicle = null;
++            _nextWholesaleBlipVehicleCheck = DateTime.MinValue;
++            return _wholesaleWarehousePickup.Position;
++        }
++        Ped player = Game.Player.Character;
++        if (_supplierPlayerCarrying || _wholesaleCargoUnloaded)
++        {
++            if (player != null && player.Exists()) return player.Position;
++        }
++        else if (_wholesaleCargoLoaded)
++        {
++            // Keep an independent last validated reference when the existing
++            // nearby-cargo visual cache streams out. No new vehicle scans.
++            if (now >= _nextWholesaleBlipVehicleCheck)
++            {
++                _nextWholesaleBlipVehicleCheck = now.AddSeconds(3);
++                if (!MatchesWholesaleVehicle(_wholesaleBlipVehicle))
++                {
++                    _wholesaleBlipVehicle = MatchesWholesaleVehicle(_cachedWholesaleVehicle)
++                        ? _cachedWholesaleVehicle : null;
++                    if (_wholesaleBlipVehicle == null && player != null && player.Exists() &&
++                        player.IsInVehicle() && MatchesWholesaleVehicle(player.CurrentVehicle))
++                        _wholesaleBlipVehicle = player.CurrentVehicle;
++                }
++            }
++            if (_wholesaleBlipVehicle != null && _wholesaleBlipVehicle.Exists() &&
++                _wholesaleBlipVehicle.Model.Hash == _wholesaleVehicleModel)
++                return _wholesaleBlipVehicle.Position;
++            if (_supplierCrate != null && _supplierCrate.Exists()) return _supplierCrate.Position;
++        }
++        // Missing entity: leave the owned icon at the last observed actionable
++        // location. Fresh reloads start with warehouse until cargo is resolved.
++        return _wholesalePackageLastPosition;
++    }
++
++    private void DeleteWholesalePackageBlip()
++    {
++        try
++        {
++            if (_wholesalePackageBlip != null && _wholesalePackageBlip.Exists())
++                _wholesalePackageBlip.Remove();
++            _wholesalePackageBlip = null;
++            _wholesalePackageBlipConfigured = false;
++            _wholesalePackageHasPosition = false;
++            _wholesaleBlipVehicle = null;
++        }
++        catch (Exception ex)
++        {
++            // Preserve ownership for the next cleanup attempt; never remove an
++            // arbitrary marker, customer icon or user-created waypoint.
++            _nextWholesaleBlipRetry = DateTime.UtcNow.AddSeconds(10);
++            Log("Wholesale package blip cleanup", ex);
++        }
++    }
++
+     private Vector3 WarehousePackagePosition()
+     {
+         Vector3 floor = _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists() ?
+@@ -7905,6 +8024,7 @@ public class GlassHeroesBusiness : Script
+ 
+     private void OnAborted(object sender, EventArgs e)
+     {
++        DeleteWholesalePackageBlip();
+         Log("LIFECYCLE abort requested; last tick phase=" + _diagnosticTickStage, null);
+         // Nothing has been spawned or billed before activation. Do not write
+         // partially initialized defaults over the user's existing Save.ini.

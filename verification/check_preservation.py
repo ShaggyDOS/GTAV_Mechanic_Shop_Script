@@ -16,8 +16,10 @@ assert hashlib.sha256(baseline.read_bytes()).hexdigest()=='030a44cfe4afc199c7865
 base=baseline.read_text(encoding='utf-8-sig')
 lexer=next(n for n in ast.parse((repo/'Verification/static_verify.py').read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='strip_literals')
 ns={};exec(compile(ast.Module(body=[lexer],type_ignores=[]),'lexer','exec'),ns)
+_clean_cache={}
 def method(text,name):
-    clean,_=ns['strip_literals'](text)
+    if text not in _clean_cache: _clean_cache[text]=ns['strip_literals'](text)[0]
+    clean=_clean_cache[text]
     match=re.search(r'^    private\s+(?:static\s+)?[^\n]+\b'+name+r'\(',clean,re.M)
     assert match, name
     opening=clean.index('{',match.start());depth=1;end=opening+1
@@ -28,6 +30,20 @@ unchanged=['ProcessEconomy','ProcessRemoteOperations','EnterRemoteOperations',
  'LeaveRemoteOperations','TransferPlayerMoney','CancelSupplierOrderWithConfirmation','RecoverSupplierShipment',
  'MatchesWholesaleVehicle','FindAssignedWholesaleVehicle']
 for name in unchanged:assert method(base,name)==method(current,name),name+' changed unexpectedly'
+# Only these two visual-lifecycle hooks are approved beyond the R2 methods.
+# Remove exact statements, then compare every private R2 method hash.
+for snippet in ['                UpdateWholesalePackageBlip(now);\n',
+                '        DeleteWholesalePackageBlip();\n']:
+    assert current.count(snippet)==1, 'Missing/duplicated approved blip hook'
+    current=current.replace(snippet,'')
+r2_reference=json.loads((repo/'verification/r2_method_reference.json').read_text())
+for name,expected in r2_reference['methods'].items():
+    assert hashlib.sha256(method(current,name).encode()).hexdigest()==expected, name+' differs from protected QA R2 beyond approved visual hooks'
+for name in ['UpdateWholesalePackageBlip','WholesalePackageBlipPosition','DeleteWholesalePackageBlip']:
+    body=method(current,name)
+    for forbidden in ['Save(', 'SET_NEW_WAYPOINT', 'GetNearbyVehicles(', '.Request(', 'CommitSupplierDelivery(', 'CustomerBlip']:
+        assert forbidden not in body, name+' contains unexpected side effect '+forbidden
+assert 'ForensicProbe' not in current and 'ForensicsEnabled' not in current, 'PR18 code mixed into independent PR19'
 reference=json.loads((repo/'verification/pr9_diagnostics_reference.json').read_text())
 a=current.index('    // BEGIN ISSUE1 DIAGNOSTIC LOG'); b=current.index('    // END ISSUE1 DIAGNOSTIC LOG',a)
 assert hashlib.sha256(current[a:b].encode()).hexdigest()==reference['diagnostic_region_sha256'], 'Logger differs from PR9'
@@ -62,7 +78,7 @@ for op in ['GetValue','SetValue']:
     delta=present-previous
     assert delta=={('Storage','DeliveredPackageMask'),('EmployeeSettings','CustomJobRoutes')},(op,delta)
     added[op]=sorted(delta)
-result={'unchanged_production_methods':unchanged,'diagnostic_only_methods_normalized_to_base':['OnTick','OnAborted'],'diagnostics_match_pr9':True,'pr9_commit':reference['commit'],'ledger_change':'visual slot provenance only; all financial operations identical',
+result={'r2_methods_verified':len(r2_reference['methods']),'unchanged_production_methods':unchanged,'approved_visual_and_diagnostic_methods_normalized_to_base':['OnTick','OnAborted'],'diagnostics_match_pr9_after_explicit_blip_hook_removal':True,'pr9_commit':reference['commit'],'ledger_change':'visual slot provenance only; all financial operations identical',
  'old_literal_save_config_keys_preserved':True,'added_literal_key_prefixes':added,
  'native_constructor_count':'covered by original static suite',
  'scope':'source preservation guard; does not execute GTA or prove file persistence','gta_testing':'NOT RUN'}

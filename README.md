@@ -1,3 +1,7 @@
+# PR19 wholesale package blip — EXPERIMENTAL
+
+Draft PR #19 adds one persistent WHOLESALE package map icon on QA R2. Physical first and second wholesale deliveries were owner-confirmed on R2. This new candidate has GTA testing NOT RUN; crash cause UNPROVEN. No PR18 code, save/settings changes, merge or deployment. See [developer guide](docs/releases/v0.3.3.1-qa-wholesale-blip-pr19/DEVELOPER_GUIDE.md).
+
 # GlassHeroes Business Script
 
 Current final-review candidate: **v0.3.3.1 QA R2 EXPERIMENTAL**, combining PR #9 diagnostics, PR #16 corrections and bounded warehouse retry renewal. See [R2 developer guide](docs/releases/v0.3.3.1-qa-r2-final-review/DEVELOPER_GUIDE.md) and [final review handoff](docs/releases/v0.3.3.1-qa-r2-final-review/FINAL_REVIEW_HANDOFF.md). All automated checks pass; GTA testing NOT RUN and crash cause UNPROVEN. Use the single R2 source ZIP for review; earlier QA links below are historical and do not include this follow-up.

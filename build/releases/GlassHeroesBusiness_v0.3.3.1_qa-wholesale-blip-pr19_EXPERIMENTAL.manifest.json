@@ -1,0 +1,19 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_qa-wholesale-blip-pr19_EXPERIMENTAL.zip",
+  "sha256": "346c3023b0278eb3d5360858a137f879e09ad423fa4902ee0e9b6436c7f024ad",
+  "zip_crc": "PASS",
+  "sources_match": "PASS",
+  "guide_formats": "MD, DOCX, PDF verified",
+  "included_issues": [
+    "1",
+    "2",
+    "3",
+    "5",
+    "6",
+    "4",
+    "7"
+  ],
+  "behavior_test_total": 90,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}
