@@ -1,0 +1,13 @@
+/workspace/.cloud-setup/tmp/glassheroes-issue3-5zirx1cs/Program.cs(5,93): warning CS0649: Field 'Prop.Handle' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue3-5zirx1cs/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue3-5zirx1cs/Program.cs(84,32): warning CS0649: Field 'Harness._wholesaleCargoUnloaded' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue3-5zirx1cs/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue3-5zirx1cs/Program.cs(12,62): warning CS0649: Field 'Harness.WorkBay.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue3-5zirx1cs/Tests.csproj]
+PASS #3 ready shipment spawns without any vehicle API or nearby assigned vehicle
+PASS #3 box rests on actual grounded pallet rather than saved Z
+PASS #3 refresh does not duplicate live cargo
+PASS #3 stream out deletes warehouse-owned visuals and re-entry recreates one pair
+PASS #3 carried and loaded cargo are never deleted by warehouse streaming
+PASS #3 failed model requests stop after five attempts and reset on re-entry
+PASS #3 failed requests respect three-second cooldown
+PASS #3 pending ETA prevents spawning and ready marker is vehicle-independent
+PASS #3 non-wholesale shipment crate is not removed
+#3 9/9 PASS; GTA testing NOT RUN
