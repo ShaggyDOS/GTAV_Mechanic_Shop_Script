@@ -432,6 +432,7 @@ public class GlassHeroesBusiness : Script
     private Vehicle _wholesaleBlipVehicle;
     private DateTime _nextWholesaleBlipVehicleCheck = DateTime.MinValue;
     private DateTime _nextWholesaleBlipRetry = DateTime.MinValue;
+    private DateTime _nextWholesaleBlipCleanupRetry = DateTime.MinValue;
     private const float WholesalePickupX = -164.2800f;
     private const float WholesalePickupY = -2676.5900f;
     private const float WholesalePickupZ = 6.0141f;
@@ -6321,20 +6322,29 @@ public class GlassHeroesBusiness : Script
     // the gameplay gate. Never edits ETA, stock, invoices, saves or waypoints.
     private void UpdateWholesalePackageBlip(DateTime now)
     {
+        // Order completion/cancellation is authoritative: visual-create retry must
+        // never suppress owned-marker cleanup. Failed removes have a separate cooldown.
+        if (_deliverySupplier != 0 || _deliveryKind < -1 || _deliveryKind > 2 ||
+            _deliveryQuantity <= 0 || !_wholesaleWarehousePickup.IsSet)
+        {
+            if (now >= _nextWholesaleBlipCleanupRetry)
+                DeleteWholesalePackageBlip(now);
+            return;
+        }
+        // A new order must not inherit the previous order's visual retry delay.
+        if (!_wholesalePackageHasPosition || _wholesalePackageOrderIdentity != _deliveryDueUtcTicks)
+        {
+            _wholesalePackageOrderIdentity = _deliveryDueUtcTicks;
+            _wholesalePackageLastPosition = _wholesaleWarehousePickup.Position;
+            _wholesalePackageHasPosition = true;
+            _wholesaleBlipVehicle = null;
+            _nextWholesaleBlipVehicleCheck = DateTime.MinValue;
+            _nextWholesaleBlipRetry = DateTime.MinValue;
+            _nextWholesaleBlipCleanupRetry = DateTime.MinValue;
+        }
         if (now < _nextWholesaleBlipRetry) return;
         try
         {
-            if (_deliverySupplier != 0 || _deliveryKind < -1 || _deliveryKind > 2 ||
-                _deliveryQuantity <= 0 || !_wholesaleWarehousePickup.IsSet)
-            { DeleteWholesalePackageBlip(); return; }
-            if (!_wholesalePackageHasPosition || _wholesalePackageOrderIdentity != _deliveryDueUtcTicks)
-            {
-                _wholesalePackageOrderIdentity = _deliveryDueUtcTicks;
-                _wholesalePackageLastPosition = _wholesaleWarehousePickup.Position;
-                _wholesalePackageHasPosition = true;
-                _wholesaleBlipVehicle = null;
-                _nextWholesaleBlipVehicleCheck = DateTime.MinValue;
-            }
             Vector3 position = WholesalePackageBlipPosition(now);
             _wholesalePackageLastPosition = position;
             if (_wholesalePackageBlip == null || !_wholesalePackageBlip.Exists())
@@ -6406,8 +6416,9 @@ public class GlassHeroesBusiness : Script
         return _wholesalePackageLastPosition;
     }
 
-    private void DeleteWholesalePackageBlip()
+    private void DeleteWholesalePackageBlip(DateTime now = default(DateTime))
     {
+        if (now == default(DateTime)) now = DateTime.UtcNow;
         try
         {
             if (_wholesalePackageBlip != null && _wholesalePackageBlip.Exists())
@@ -6416,12 +6427,14 @@ public class GlassHeroesBusiness : Script
             _wholesalePackageBlipConfigured = false;
             _wholesalePackageHasPosition = false;
             _wholesaleBlipVehicle = null;
+            _nextWholesaleBlipRetry = DateTime.MinValue;
+            _nextWholesaleBlipCleanupRetry = DateTime.MinValue;
         }
         catch (Exception ex)
         {
-            // Preserve ownership for the next cleanup attempt; never remove an
-            // arbitrary marker, customer icon or user-created waypoint.
-            _nextWholesaleBlipRetry = DateTime.UtcNow.AddSeconds(10);
+            // Keep the owned reference and bound failed removal attempts.
+            // Never remove a customer marker, other mod's blip or user waypoint.
+            _nextWholesaleBlipCleanupRetry = now.AddSeconds(10);
             Log("Wholesale package blip cleanup", ex);
         }
     }
