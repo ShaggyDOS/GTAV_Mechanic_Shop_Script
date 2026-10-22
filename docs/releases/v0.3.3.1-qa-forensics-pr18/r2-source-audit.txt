@@ -2,7 +2,7 @@ Parsed 288 methods; local unqualified/this/class call cycles (syntax only, no na
 Unique cycle sets: 0
 Manually reviewed same-name external calls: UI.Notify and data.Save are not local recursion.
 Constructor GlassHeroesBusiness calls: Directory.CreateDirectory, Log, ScriptSettings.Load, _configuration.GetValue, Math.Max, Math.Min, Enum.TryParse<Keys>, keySetting.Trim, ReadPadControl, data.GetValue, LoadPoint, CompatiblePackageVisualMask, SupplierDeliverySeconds, _mechanics.Add, DateTime.UtcNow.AddSeconds
-Constructor DiagnosticLog calls: 
+Constructor DiagnosticLog calls: <none>
 Review line 2556: ScheduleCustomerRequest()
 Review line 2615: ScheduleCustomerRequest()
 Review line 3642: _mechanicModel.Request()

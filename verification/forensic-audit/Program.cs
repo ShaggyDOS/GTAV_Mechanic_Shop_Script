@@ -24,7 +24,7 @@ class Program {
   Console.WriteLine($"Unique cycle sets: {found.Count}");
   Console.WriteLine("Manually reviewed same-name external calls: UI.Notify and data.Save are not local recursion.");
   foreach(var ctor in root.DescendantNodes().OfType<ConstructorDeclarationSyntax>())
-    Console.WriteLine("Constructor " + ctor.Identifier + " calls: " + string.Join(", ",ctor.DescendantNodes().OfType<InvocationExpressionSyntax>().Select(x=>x.Expression.ToString()).Distinct()));
+    Console.WriteLine("Constructor " + ctor.Identifier + " calls: " + string.Join(", ",ctor.DescendantNodes().OfType<InvocationExpressionSyntax>().Select(x=>x.Expression.ToString()).Distinct().DefaultIfEmpty("<none>")));
   foreach(var node in root.DescendantNodes().OfType<InvocationExpressionSyntax>().Where(x=>x.Expression.ToString().Contains("Request") || x.Expression.ToString().Contains("World.Create") || x.Expression.ToString().Contains("World.GetNearby") || x.Expression.ToString().Contains("OnTick") || x.Expression.ToString().Contains("OnAborted")))
     Console.WriteLine("Review line " + (node.GetLocation().GetLineSpan().StartLinePosition.Line+1) + ": " + node.ToString().Replace("\n", " "));
   Console.WriteLine("Limits: no semantic/native/other-script/dynamic event/delegate analysis; cycles absent is not proof of no recursion.");
