@@ -3455,25 +3455,34 @@ public class GlassHeroesBusiness : Script
         }
     }
 
+    private static Vector3[] ParkingOutlineVertices(Vector3 position, float heading)
+    {
+        // SHVDN/GTA: forward at 0 degrees is +Y, at 90 degrees is -X.
+        // This is the inverse of Vector3.ToHeading, not a mirrored +X rotation.
+        float radians = heading * (float)Math.PI / 180f;
+        float sin = (float)Math.Sin(radians), cos = (float)Math.Cos(radians);
+        Vector3[] points = new Vector3[7];
+        for (int i = 0; i < points.Length; i++)
+        {
+            float length = i < 4 ? (i < 2 ? -2.55f : 2.55f) : (i == 4 ? 2.15f : 0.85f);
+            float width = i < 4 ? (i == 0 || i == 3 ? -1.18f : 1.18f) :
+                (i == 4 ? 0f : (i == 5 ? -0.60f : 0.60f));
+            points[i] = new Vector3(position.X - length * sin + width * cos,
+                position.Y + length * cos + width * sin, position.Z + 0.025f);
+        }
+        return points;
+    }
+
     private static void MarkParkingSquare(WorkBay point, Color color)
     {
         if (point == null || !point.IsSet) return;
-        // A flat car-length rectangular outline, rotated by saved heading.
-        float radians = point.Heading * (float)Math.PI / 180f;
-        float sin = (float)Math.Sin(radians), cos = (float)Math.Cos(radians);
-        Vector3[] corners = new Vector3[4];
-        float[] length = { -2.55f, -2.55f, 2.55f, 2.55f };
-        float[] width = { -1.18f, 1.18f, 1.18f, -1.18f };
-        for (int i = 0; i < 4; i++)
+        Vector3[] points = ParkingOutlineVertices(point.Position, point.Heading);
+        // Four outline edges, then two arms of a clear forward-facing arrow.
+        // Existing placement-preview distance/toggles remain in the caller.
+        for (int i = 0; i < 6; i++)
         {
-            float x = length[i] * sin + width[i] * cos;
-            float y = length[i] * cos - width[i] * sin;
-            corners[i] = new Vector3(point.Position.X + x, point.Position.Y + y,
-                point.Position.Z + 0.025f);
-        }
-        for (int i = 0; i < 4; i++)
-        {
-            Vector3 a = corners[i], b = corners[(i + 1) % 4];
+            Vector3 a = i < 4 ? points[i] : points[4];
+            Vector3 b = i < 4 ? points[(i + 1) % 4] : points[i + 1];
             GTA.Native.Function.Call(GTA.Native.Hash.DRAW_LINE,
                 a.X, a.Y, a.Z, b.X, b.Y, b.Z, (int)color.R, (int)color.G, (int)color.B, (int)color.A);
         }

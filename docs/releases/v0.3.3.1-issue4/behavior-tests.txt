@@ -1,0 +1,8 @@
+PASS #4 heading 0 follows actual GTA front axis
+PASS #4 heading 90 follows actual GTA front axis
+PASS #4 heading 180 follows actual GTA front axis
+PASS #4 heading 270 follows actual GTA front axis
+PASS #4 diagonal geometry inverts vendor Vector3.ToHeading
+PASS #4 draw emits exactly four edges and two front-arrow arms without mutating placement
+PASS #4 unset or null placement produces no natives
+#4 7/7 PASS; GTA testing NOT RUN
