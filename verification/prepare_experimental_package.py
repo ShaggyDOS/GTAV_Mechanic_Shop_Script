@@ -77,7 +77,8 @@ with tempfile.TemporaryDirectory(prefix='glassheroes-patch-') as tmp:
     assert all((root/p).read_bytes()==(repo/p).read_bytes() for p in sources)
 run(['git','diff','--check',args.base],'whitespace-check.txt')
 validation={
- 'version':'v0.3.3.1 EXPERIMENTAL / QA ONLY','label':args.label,'included_issues':(['1'] if args.include_diagnostics else [])+args.issues,
+ 'version':'v0.3.3.1 EXPERIMENTAL / QA ONLY','label':args.label,'included_issues':(['1'] if args.include_diagnostics else [])+[i for i in args.issues if i in {'2','3','4','5','6','7'}],
+ 'additional_pr_test_suites':[i for i in args.issues if i not in {'2','3','4','5','6','7'}],
  'created_utc':previous_validation['created_utc'] if previous_validation else datetime.now(timezone.utc).isoformat(),
  'base_commit':subprocess.check_output(['git','rev-parse',args.base],cwd=repo,text=True).strip(),
  'sdk':subprocess.check_output(['dotnet','--version'],text=True).strip(),
