@@ -1,0 +1,1996 @@
+diff --git a/Install/scripts/GlassHeroesBusiness.2.cs b/Install/scripts/GlassHeroesBusiness.2.cs
+index 73f8043..909d05f 100644
+--- a/Install/scripts/GlassHeroesBusiness.2.cs
++++ b/Install/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,5 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
++﻿// Glass Heroes Business Manager - v0.3.3.1 QA R2 / EXPERIMENTAL (#1 diagnostics + #2-#7)
++// Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+ 
+@@ -259,6 +260,7 @@ public class GlassHeroesBusiness : Script
+     // When true, newly arriving staff and mechanic bay travel may follow optional points.
+     // Customer-car pickup is ALWAYS direct, whichever walking mode is selected.
+     private bool _customEmployeeWalkingPaths;
++    private bool _customMechanicJobRoutes; // opt-in; saved route points stay intact
+     private bool _pickupUsesArrivalExit = true;
+     private bool _smoothMechanicWaypoints = true;
+     private bool _safeTeleportOnStall = true;
+@@ -295,6 +297,7 @@ public class GlassHeroesBusiness : Script
+     // never for earnings, worker wages, remote jobs or supplier progress.
+     private DateTime _bootGateUntilUtc = DateTime.MinValue;
+     private bool _bootGameplayActivated;
++    private string _diagnosticTickStage = "startup gate";
+     private bool _diagnosticHoldGameplayTick;
+     private int _diagnosticDelaySeconds = 30;
+     private bool _showMenu;
+@@ -356,8 +359,6 @@ public class GlassHeroesBusiness : Script
+     private DateTime _nextManagerSpawn = DateTime.MinValue;
+     private DateTime _nextManagerTask = DateTime.MinValue;
+     private bool _managerAtPost;
+-    private DateTime _lastKeyboardMenuAt = DateTime.MinValue;
+-    private Keys _lastKeyboardMenuKey = Keys.None;
+     private long _managerWagesDue;
+     private double _managerWageAgeSeconds;
+     private long _managerSavings;
+@@ -414,7 +415,11 @@ public class GlassHeroesBusiness : Script
+     private readonly WorkBay[] _extraStoragePallets = { new WorkBay(), new WorkBay(), new WorkBay() };
+     private readonly int[] _storedDeliveryCrates = new int[MaxStoragePallets];
+     private readonly Prop[] _storagePalletProps = new Prop[MaxStoragePallets];
+-    private readonly List<Prop> _storedCrateProps = new List<Prop>();
++    private readonly List<Prop> _storedCrateProps = new List<Prop>(); // obsolete display ownership only
++    private readonly Prop[] _deliveredPackageProps = new Prop[MaxStoragePallets * CratesPerPallet];
++    private readonly int[] _deliveredPackageMasks = new int[MaxStoragePallets];
++    private DateTime _nextStorageVisualAttempt = DateTime.MinValue;
++    private int _storageVisualAttempts;
+     private bool _palletVisualDirty = true;
+     private readonly WorkBay _wholesaleWarehousePickup = new WorkBay();
+     private Prop _wholesaleWarehousePallet; // visual-only, never counted as shop storage
+@@ -434,6 +439,8 @@ public class GlassHeroesBusiness : Script
+     private Vector3 _lastWholesaleLookupCenter;
+     private DateTime _nextSupplierInteractionHint = DateTime.MinValue;
+     private DateTime _lastSupplierCheckpoint = DateTime.MinValue;
++    private DateTime _nextWarehouseVisualAttempt = DateTime.MinValue;
++    private int _warehouseVisualAttempts;
+     private long _supplierInvoicesDue; // Earned at stocking, paid only in Expenses.
+     private bool _deliveryPrepaid; // Legacy pending orders were paid up-front; no second charge.
+     private Prop _supplierPalletProp; // legacy field retained for cleanup compatibility
+@@ -447,6 +454,11 @@ public class GlassHeroesBusiness : Script
+     private Prop _supplierCrate;
+     private int _supplierVisualStage; // 0 absent, 1 drive, 2 exit, 3 walk, 4 await handoff, 5 depart, 6 player carrying
+     private int _supplierRouteIndex;
++    private bool _supplierDirectToPlayer;
++    private DateTime _supplierPlayerApproachDeadline = DateTime.MinValue;
++    private DateTime _nextSupplierPlayerRepath = DateTime.MinValue;
++    private DateTime _nextSupplierVisualRetryUtc = DateTime.MinValue;
++    private int _supplierPlayerRepaths;
+     private bool _supplierExitIssued, _supplierDepartIssued;
+     private DateTime _supplierStageAt = DateTime.MinValue;
+     private long _supplierVisualOrderTicks;
+@@ -486,6 +498,7 @@ public class GlassHeroesBusiness : Script
+     private DateTime _lastControllerAction = DateTime.MinValue;
+     private DateTime _lastControllerToggle = DateTime.MinValue;
+     private readonly HashSet<Keys> _heldKeys = new HashSet<Keys>();
++    private readonly MenuInputGate _menuInput = new MenuInputGate();
+     private string _lastPadDetected = "NONE";
+     private DateTime _lastPadDetectedAt = DateTime.MinValue;
+     private DateTime _lastPadReadErrorAt = DateTime.MinValue;
+@@ -506,7 +519,7 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.2.9a / constructor entered", null);
++            Log("BOOT v0.3.3.1 QA R2 EXPERIMENTAL (#1 diagnostics + #2-#7) / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -667,6 +680,8 @@ public class GlassHeroesBusiness : Script
+                 if (pallet > 0) LoadPoint(data, "SupplierStoragePallet" + (pallet + 1), _extraStoragePallets[pallet - 1]);
+                 _storedDeliveryCrates[pallet] = Math.Max(0, Math.Min(CratesPerPallet,
+                     data.GetValue("Storage", "BoxCount" + (pallet + 1), 0)));
++                _deliveredPackageMasks[pallet] = CompatiblePackageVisualMask(_storedDeliveryCrates[pallet],
++                    data.GetValue("Storage", "DeliveredPackageMask" + (pallet + 1), 0));
+             }
+             _palletVisualDirty = true;
+             _deliveryDueUtcTicks = data.GetValue("Purchasing", "DeliveryDueUtcTicks", 0L);
+@@ -736,6 +751,7 @@ public class GlassHeroesBusiness : Script
+             _routeRecoveryEnabled = data.GetValue("EmployeeSettings", "TeleportOnBlockedRoute",
+                 _configuration.GetValue("Visuals", "TeleportOnBlockedRoute", true));
+             _customEmployeeWalkingPaths = data.GetValue("EmployeeSettings", "CustomWalkingPaths", false);
++            _customMechanicJobRoutes = data.GetValue("EmployeeSettings", "CustomJobRoutes", false);
+             _pickupUsesArrivalExit = data.GetValue("EmployeeSettings", "PickupUseReverseArrivalWaypoints",
+                 _configuration.GetValue("EmployeeSettings", "PickupUseReverseArrivalWaypoints", true));
+             _smoothMechanicWaypoints = data.GetValue("EmployeeSettings", "SmoothWaypointTransitions",
+@@ -846,6 +862,7 @@ public class GlassHeroesBusiness : Script
+                 Notify("Loaded. Press " + MenuKeyLabel() + " for business management. Stand at your shop to set its location.");
+                 return;
+             }
++            _diagnosticTickStage = "game clock";
+             DateTime now = DateTime.UtcNow;
+             double seconds = (now - _lastTick).TotalSeconds;
+             _lastTick = now;
+@@ -859,6 +876,7 @@ public class GlassHeroesBusiness : Script
+             // Clamp game-clock jumps from loading, cutscenes and script reloads.
+             double activeGameSeconds = !Game.IsPaused && elapsedGameMs > 0 && elapsedGameMs <= 30000L
+                 ? Math.Min(2d, elapsedGameMs / 1000d) : 0d;
++            _diagnosticTickStage = "remote mode transition";
+             if (_clockedIn && _managerTier >= 0 && Game.Player.Character != null && _placed &&
+                 DistanceSquared(Game.Player.Character.Position, _location) >
+                 _remoteDistanceMeters * _remoteDistanceMeters)
+@@ -866,9 +884,11 @@ public class GlassHeroesBusiness : Script
+                 if (!_remoteMode) EnterRemoteOperations();
+             }
+             else if (_remoteMode) LeaveRemoteOperations();
++            _diagnosticTickStage = "economy";
+             if (_clockedIn && seconds > 0) ProcessEconomy(seconds);
+             // Advance supplier ETA only while GTA is actively running and unpaused.
+             // Persist every 15 seconds of gameplay to avoid per-frame disk writes.
++            _diagnosticTickStage = "supplier timer";
+             if (_deliveryKind != -2 && activeGameSeconds > 0 && _deliveryRemainingGameSeconds > 0)
+             {
+                 _deliveryRemainingGameSeconds = Math.Max(0, _deliveryRemainingGameSeconds - activeGameSeconds);
+@@ -876,30 +896,45 @@ public class GlassHeroesBusiness : Script
+                 if (_deliveryRemainingGameSeconds <= 0 || _supplierTimerSaveSeconds >= 15)
+                 { _supplierTimerSaveSeconds = 0; Save(); }
+             }
++            _diagnosticTickStage = "remote operations";
+             if (_clockedIn && activeGameSeconds > 0 && (_remoteMode || _remoteJobs.Count > 0))
+                 ProcessRemoteOperations(activeGameSeconds);
++            _diagnosticTickStage = "controller input";
+             if (_showMenu && _controllerEnabled) DisableControllerControlsWhileMenuOpen();
+             PollController();
++            _diagnosticTickStage = "supplier interaction";
+             HandleSupplierPackageInteraction();
+             DrawWholesalePackageMarker();
++            _diagnosticTickStage = "office interaction";
+             HandleOfficeInteraction();
+             // NPC lifecycle is throttled to once a second, never on every draw frame.
+             _visualRefreshClock += seconds;
+             if (_visualRefreshClock >= 1.0)
+             {
+                 _visualRefreshClock = 0;
++                _diagnosticTickStage = "staff visuals";
+                 UpdateVisualMechanics();
++                _diagnosticTickStage = "supplier delivery visuals";
+                 try { ProcessSupplierDelivery(now); }
+                 catch (Exception deliveryError)
+                 { Log("Mule delivery visual (order preserved)", deliveryError); DeleteSupplierVisuals(); }
++                _diagnosticTickStage = "customer visuals";
+                 UpdateCustomerVisuals();
++                _diagnosticTickStage = "office visuals";
+                 UpdateOfficeDeskVisuals();
++                _diagnosticTickStage = "equipment visuals";
+                 UpdateEquipmentVisuals();
++                _diagnosticTickStage = "stockroom visuals";
+                 UpdateSupplierPalletVisual();
++                _diagnosticTickStage = "warehouse visuals";
+                 UpdateWholesalePalletVisual();
++                _diagnosticLog.RecordTransition(_clockedIn, _remoteMode,
++                    _workersPreviouslyInRange, _showMenu, _supplierVisualStage,
++                    _activeCustomerOrders.Count, _remoteJobs.Count);
+             }
+             // GTA help text is transient. Render it each game tick while the menu is open.
+             // This affects UI presentation only; ProcessEconomy still uses elapsed seconds.
++            _diagnosticTickStage = "menu rendering";
+             if (_showMenu)
+             {
+                 DisablePhoneWhileMenuOpen(); // GTA control disabling lasts one frame.
+@@ -907,18 +942,21 @@ public class GlassHeroesBusiness : Script
+             }
+             // Placement preview can remain on after F2 closes so you can WALK
+             // around the custom MLO and inspect every marker from different angles.
++            _diagnosticTickStage = "placement rendering";
+             if (_showPlacementMarkers || _autoLotPreview) DrawPlacementMarkers();
++            _diagnosticTickStage = "idle between ticks";
+         }
+         catch (Exception ex)
+         {
+-            Log("Tick", ex);
++            Log("Tick / " + _diagnosticTickStage, ex);
+             _clockedIn = false; // Fail safely instead of repeatedly charging payroll.
+         }
+     }
+ 
+     private void OnKeyUp(object sender, KeyEventArgs e)
+     {
+-        _heldKeys.Remove(e.KeyCode);
++        if (_heldKeys.Remove(e.KeyCode))
++            _menuInput.ReleaseKeyboard(MenuActionForKey(e.KeyCode), DateTime.UtcNow.Ticks);
+     }
+ 
+     private void OnKeyDown(object sender, KeyEventArgs e)
+@@ -930,6 +968,8 @@ public class GlassHeroesBusiness : Script
+             // The game's key callback may auto-repeat while Enter is held.
+             // A single physical press must cause only one menu selection.
+             if (!_heldKeys.Add(e.KeyCode)) return;
++            int action = MenuActionForKey(e.KeyCode);
++            if (action >= 0 && !_menuInput.TryKeyboard(action, DateTime.UtcNow.Ticks)) return;
+             // Test KeyCode (not KeyData), since KeyData also contains Shift/Ctrl/Alt flags.
+             // When RequireCtrl=false, F2 and Ctrl+F2 both toggle the menu.
+             // When true, ordinary F2 is ignored; Ctrl+F2 is required.
+@@ -953,14 +993,8 @@ public class GlassHeroesBusiness : Script
+             int menuCount = GetMenuItems().Length;
+             if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down)
+             {
+-                DateTime time = DateTime.UtcNow;
+-                bool handledByPad = (time - _lastControllerAction).TotalMilliseconds < 210 &&
+-                    _lastPadDetected == (e.KeyCode == Keys.Up ? "UP" : "DOWN");
+-                _lastKeyboardMenuAt = time;
+-                _lastKeyboardMenuKey = e.KeyCode;
+-                if (!handledByPad)
+-                    _selection = (e.KeyCode == Keys.Up ?
+-                        _selection + menuCount - 1 : _selection + 1) % menuCount;
++                _selection = (e.KeyCode == Keys.Up ?
++                    _selection + menuCount - 1 : _selection + 1) % menuCount;
+             }
+             else if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Return)
+                 ExecuteSelection();
+@@ -968,6 +1002,58 @@ public class GlassHeroesBusiness : Script
+         catch (Exception ex) { Log("Key press", ex); }
+     }
+ 
++    // ISSUE2: semantic input arbitration; no gameplay clock or disk access.
++    private sealed class MenuInputGate
++    {
++        private readonly int[] _keyboardHeld = new int[5];
++        private readonly long[] _keyboardAt = { -1, -1, -1, -1, -1 };
++        private readonly long[] _controllerAt = { -1, -1, -1, -1, -1 };
++        private const long EchoTicks = 250 * TimeSpan.TicksPerMillisecond;
++
++        internal bool TryKeyboard(int action, long now)
++        {
++            if (++_keyboardHeld[action] > 1) return false;
++            _keyboardAt[action] = now;
++            return !Recent(_controllerAt[action], now);
++        }
++
++        internal void ReleaseKeyboard(int action, long now)
++        {
++            if (action < 0) return;
++            if (_keyboardHeld[action] > 0) _keyboardHeld[action]--;
++            _keyboardAt[action] = now; // suppress a frontend edge delayed until release
++        }
++
++        internal bool TryController(int action, long now)
++        {
++            if (_keyboardHeld[action] > 0 || Recent(_keyboardAt[action], now)) return false;
++            _controllerAt[action] = now;
++            return true; // controller-only timing remains in PollController
++        }
++
++        private static bool Recent(long last, long now)
++        {
++            return last >= 0 && now >= last && now - last < EchoTicks;
++        }
++    }
++
++    private int MenuActionForKey(Keys key)
++    {
++        if (key == Keys.Up) return 0;
++        if (key == Keys.Down) return 1;
++        if (key == Keys.Enter || key == Keys.Return) return 2;
++        if (key == Keys.Escape || key == Keys.Back) return 3;
++        return key == _menuKey ? 4 : -1;
++    }
++
++    private static string PointEditorActionLabel(int index, bool isSet, bool markers)
++    {
++        if (index == 0) return isSet ? "UPDATE / SAVE" : "SET / SAVE";
++        if (index == 1) return isSet ? "CLEAR" : "NOT SET";
++        if (index == 2) return markers ? "ON" : "OFF";
++        return ">";
++    }
++
+     private string MenuKeyLabel()
+     {
+         return (_requireCtrlForMenu ? "CTRL+" : "") + _menuKey.ToString().ToUpperInvariant();
+@@ -1015,14 +1101,14 @@ public class GlassHeroesBusiness : Script
+                 _menuPage = _editorReturnPage; _selection = _editorReturnSelection; break;
+             case MenuPage.MechanicBays: _menuPage = MenuPage.EmployeePlacements; _selection = 1; break;
+             case MenuPage.EmployeePaths: _menuPage = MenuPage.EmployeeSettings; _selection = 1; break;
+-            case MenuPage.ArrivalWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 1; break;
+-            case MenuPage.ServiceWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 2; break;
+-            case MenuPage.BayApproaches: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 3; break;
++            case MenuPage.ArrivalWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 2; break;
++            case MenuPage.ServiceWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 3; break;
++            case MenuPage.BayApproaches: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 4; break;
+             case MenuPage.RouteRecovery: _menuPage = MenuPage.EmployeeSettings; _selection = 2; break;
+             case MenuPage.PlacementMarkers: _menuPage = MenuPage.EmployeeSettings; _selection = 3; break;
+             case MenuPage.ServiceVehicleBays: _menuPage = _customCarBaysFromDriveOptions ?
+                 MenuPage.VehicleDriveOptions : MenuPage.CustomerPlacements;
+-                _selection = 4; break;
++                _selection = _customCarBaysFromDriveOptions ? 4 : 6; break;
+             case MenuPage.VehicleDriveOptions: _menuPage = MenuPage.Customers; _selection = 3; break;
+             case MenuPage.VehicleAutoLotOptions: _menuPage = MenuPage.VehicleDriveOptions; _selection = 3; break;
+             case MenuPage.Customers: _menuPage = MenuPage.BusinessManagement; _selection = 1; break;
+@@ -1156,7 +1242,7 @@ public class GlassHeroesBusiness : Script
+                     "Spawn -> Break Waypoints >", "Break -> Bay Waypoints >",
+                     "Final Bay Approaches >", "Legacy Staff Checkpoint (MLO) >",
+                     "Choose Job Waypoints by Mechanic >", "Smooth Through-Waypoints",
+-                    "Teleport Stuck Pedestrians", "< Back to Walking Paths" };
++                    "Teleport Stuck Pedestrians", "Advanced Break <-> Bay Routes", "< Back to Walking Paths" };
+             case MenuPage.ReceptionWalkingPaths:
+                 return new string[] { "Receptionist Walking Mode", "Spawn -> Desk Waypoints >",
+                     "Final Desk Approach >", "< Back to Walking Paths" };
+@@ -1189,7 +1275,7 @@ public class GlassHeroesBusiness : Script
+                 return new string[] { "Bay 1 Final Turn >", "Bay 2 Final Turn >",
+                     "Bay 3 Final Turn >", "< Back to Walking Paths" };
+             case MenuPage.PointEditor:
+-                return new string[] { "Set / Update Position + Facing", "Clear Saved Position",
++                return new string[] { "Set / Save Position + Facing", "Clear Saved Position",
+                     "Marker Preview", "Show Saved Coordinates", "< Back" };
+             case MenuPage.RouteRecovery:
+                 return new string[] { "Blocked-Route Teleport", "Recovery Status", "< Back" };
+@@ -1447,6 +1533,7 @@ public class GlassHeroesBusiness : Script
+                 index == 1 ? (_customReceptionWalkingPaths ? "CUSTOM" : "DIRECT") :
+                 index == 2 ? (_customManagerWalkingPaths ? "CUSTOM" : "DIRECT") : ">";
+             case MenuPage.MechanicWalkingPaths:
++                if (index == 9) return _customMechanicJobRoutes ? "SAVED WAYPOINTS" : "DIRECT";
+                 if (index == 7) return _smoothMechanicWaypoints ? "ON" : "OFF";
+                 if (index == 8) return _safeTeleportOnStall ? "ON" : "OFF";
+                 switch (index)
+@@ -1477,9 +1564,8 @@ public class GlassHeroesBusiness : Script
+             case MenuPage.BayApproaches:
+                 return ">";
+             case MenuPage.PointEditor:
+-                if (index == 0 || index == 1) return Status(_editingPoint);
+-                if (index == 2) return _showPlacementMarkers ? "ON" : "OFF";
+-                return ">";
++                return PointEditorActionLabel(index,
++                    _editingPoint != null && _editingPoint.IsSet, _showPlacementMarkers);
+             case MenuPage.RouteRecovery:
+                 return index == 0 ? (_routeRecoveryEnabled ? "ON" : "OFF") : ">";
+             case MenuPage.Finances:
+@@ -1655,6 +1741,7 @@ public class GlassHeroesBusiness : Script
+                     case 6: return "Choose a separate set of existing job-route stops for each mechanic.";
+                     case 7: return "Advance ~1.9m before intermediate waypoints; final target unchanged.";
+                     case 8: return "Recover stuck workers beside saved points rather than cancelling jobs.";
++                    case 9: return "Default DIRECT Break <-> Bay; opt in to existing saved job stops and approaches.";
+                     default: return "Return to separate employee walking settings.";
+                 }
+             case MenuPage.MechanicRouteRoster:
+@@ -2930,6 +3017,13 @@ public class GlassHeroesBusiness : Script
+                 Notify("Smooth mechanic route transitions " + (_smoothMechanicWaypoints ? "ON" : "OFF") + "."); break;
+             case 8: _safeTeleportOnStall = !_safeTeleportOnStall; Save();
+                 Notify("Safe stuck-ped teleport " + (_safeTeleportOnStall ? "ON" : "OFF") + "."); break;
++            case 9:
++                if (_clockedIn) { Notify("Close shop before changing job routes."); break; }
++                _customMechanicJobRoutes = !_customMechanicJobRoutes;
++                Save();
++                Notify("Break / Bay routes: " + (_customMechanicJobRoutes ?
++                    "SAVED WAYPOINTS" : "DIRECT") + ". Existing points and masks are preserved.");
++                break;
+             default: NavigateBack(); break;
+         }
+     }
+@@ -3395,25 +3489,34 @@ public class GlassHeroesBusiness : Script
+         }
+     }
+ 
+-    private static void MarkParkingSquare(WorkBay point, Color color)
++    private static Vector3[] ParkingOutlineVertices(Vector3 position, float heading)
+     {
+-        if (point == null || !point.IsSet) return;
+-        // A flat car-length rectangular outline, rotated by saved heading.
+-        float radians = point.Heading * (float)Math.PI / 180f;
++        // SHVDN/GTA: forward at 0 degrees is +Y, at 90 degrees is -X.
++        // This is the inverse of Vector3.ToHeading, not a mirrored +X rotation.
++        float radians = heading * (float)Math.PI / 180f;
+         float sin = (float)Math.Sin(radians), cos = (float)Math.Cos(radians);
+-        Vector3[] corners = new Vector3[4];
+-        float[] length = { -2.55f, -2.55f, 2.55f, 2.55f };
+-        float[] width = { -1.18f, 1.18f, 1.18f, -1.18f };
+-        for (int i = 0; i < 4; i++)
++        Vector3[] points = new Vector3[7];
++        for (int i = 0; i < points.Length; i++)
+         {
+-            float x = length[i] * sin + width[i] * cos;
+-            float y = length[i] * cos - width[i] * sin;
+-            corners[i] = new Vector3(point.Position.X + x, point.Position.Y + y,
+-                point.Position.Z + 0.025f);
++            float length = i < 4 ? (i < 2 ? -2.55f : 2.55f) : (i == 4 ? 2.15f : 0.85f);
++            float width = i < 4 ? (i == 0 || i == 3 ? -1.18f : 1.18f) :
++                (i == 4 ? 0f : (i == 5 ? -0.60f : 0.60f));
++            points[i] = new Vector3(position.X - length * sin + width * cos,
++                position.Y + length * cos + width * sin, position.Z + 0.025f);
+         }
+-        for (int i = 0; i < 4; i++)
++        return points;
++    }
++
++    private static void MarkParkingSquare(WorkBay point, Color color)
++    {
++        if (point == null || !point.IsSet) return;
++        Vector3[] points = ParkingOutlineVertices(point.Position, point.Heading);
++        // Four outline edges, then two arms of a clear forward-facing arrow.
++        // Existing placement-preview distance/toggles remain in the caller.
++        for (int i = 0; i < 6; i++)
+         {
+-            Vector3 a = corners[i], b = corners[(i + 1) % 4];
++            Vector3 a = i < 4 ? points[i] : points[4];
++            Vector3 b = i < 4 ? points[(i + 1) % 4] : points[i + 1];
+             GTA.Native.Function.Call(GTA.Native.Hash.DRAW_LINE,
+                 a.X, a.Y, a.Z, b.X, b.Y, b.Z, (int)color.R, (int)color.G, (int)color.B, (int)color.A);
+         }
+@@ -3637,15 +3740,17 @@ public class GlassHeroesBusiness : Script
+             if (_customEmployeeWalkingPaths)
+             {
+                 if (CountSet(_arrivalRoute) > 0)
++                {
+                     foreach (WorkBay step in _arrivalRoute)
+                         if (step.IsSet) result.Add(step.Position);
++                }
+                 else if (_walkCheckpoint.IsSet) result.Add(_walkCheckpoint.Position);
+             }
+         }
+         else if (phase == PhaseToBreak) result.Add(GetBreakSpot(slot));
+         else if (phase == PhaseToBay)
+         {
+-            if (_customEmployeeWalkingPaths)
++            if (_customMechanicJobRoutes)
+             {
+                 int routeMask = slot < _mechanics.Count ? _mechanics[slot].JobOutboundMask : 31;
+                 for (int i = 0; i < _serviceRoute.Length; i++)
+@@ -3657,7 +3762,7 @@ public class GlassHeroesBusiness : Script
+         }
+         else if (phase == PhaseReturningToBreak)
+         {
+-            if (_customEmployeeWalkingPaths)
++            if (_customMechanicJobRoutes)
+             {
+                 if (_bayApproaches[slot].IsSet) result.Add(_bayApproaches[slot].Position);
+                 int routeMask = slot < _mechanics.Count ? _mechanics[slot].JobReturnMask : 31;
+@@ -3670,10 +3775,10 @@ public class GlassHeroesBusiness : Script
+         return result;
+     }
+ 
+-    private void IssueEmployeeWalkTask(Ped worker, Vector3 target, float heading, bool forceStraight = false)
++    private void IssueEmployeeWalkTask(Ped worker, Vector3 target, float heading, bool forceStraight = false, bool directJob = false)
+     {
+         if (worker == null || !worker.Exists()) return;
+-        if (_customEmployeeWalkingPaths || forceStraight)
++        if ((_customEmployeeWalkingPaths && !directJob) || forceStraight)
+             GTA.Native.Function.Call(GTA.Native.Hash.TASK_GO_STRAIGHT_TO_COORD,
+                 worker.Handle, target.X, target.Y, target.Z,
+                 _walkSpeed, -1, heading, 0.3f);
+@@ -3695,7 +3800,8 @@ public class GlassHeroesBusiness : Script
+             _walkCheckpoint.Heading : _breakArea.Heading;
+         GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, employee.Worker.Handle);
+         IssueEmployeeWalkTask(employee.Worker, target, heading,
+-            employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0);
++            employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0,
++            !_customMechanicJobRoutes && (employee.ArrivalPhase == PhaseToBay || employee.ArrivalPhase == PhaseReturningToBreak));
+         employee.RouteSince = now;
+         employee.LastProgressAt = now;
+         employee.LastDistanceSquared = DistanceSquared(employee.Worker.Position, target);
+@@ -3882,7 +3988,8 @@ public class GlassHeroesBusiness : Script
+             }
+             // Reissue the current node, NOT a direct route to the final bay.
+             IssueEmployeeWalkTask(employee.Worker, target, employee.Worker.Heading,
+-                employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0);
++                employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0,
++            !_customMechanicJobRoutes && (employee.ArrivalPhase == PhaseToBay || employee.ArrivalPhase == PhaseReturningToBreak));
+             employee.LastProgressAt = now;
+             employee.RouteRetries++;
+         }
+@@ -6212,22 +6319,64 @@ public class GlassHeroesBusiness : Script
+     {
+         Ped player = Game.Player.Character;
+         bool show = _deliveryKind != -2 && _deliverySupplier == 0 &&
++            _deliveryRemainingGameSeconds <= 0 && _wholesaleWarehousePickup.IsSet &&
+             _supplierVisualStage == 7 && !_wholesaleCargoLoaded && !_supplierPlayerCarrying &&
+             player != null && player.Exists() &&
+             DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 6400f;
+         if (!show)
+-        { DeleteOwnedProp(ref _wholesaleWarehousePallet); return; }
+-        if (_wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists()) return;
+-        _wholesaleWarehousePallet = CreateFixedEquipmentProp("prop_pallet_02a",
++        {
++            DeleteOwnedProp(ref _wholesaleWarehousePallet);
++            // This crate belongs to this pickup only; never delete carried,
++            // vehicle-attached or non-wholesale delivery cargo here.
++            if (_deliverySupplier == 0 && _supplierVisualStage == 7 &&
++                !_wholesaleCargoLoaded && !_supplierPlayerCarrying)
++                DeleteOwnedProp(ref _supplierCrate);
++            _warehouseVisualAttempts = 0;
++            _nextWarehouseVisualAttempt = DateTime.MinValue;
++            return;
++        }
++        bool palletExists = _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists();
++        bool boxExists = _supplierCrate != null && _supplierCrate.Exists();
++        if (palletExists && boxExists) return;
++        if (!TryBeginWarehouseVisualAttempt(DateTime.UtcNow)) return;
++        if (!palletExists) _wholesaleWarehousePallet = CreateWarehousePallet();
++        if (!boxExists && _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists())
++        {
++            _supplierCrate = CreateFixedEquipmentProp("prop_cs_cardbox_01",
++                WarehousePackagePosition(), _wholesaleWarehousePickup.Heading, false);
++            if (_supplierCrate != null && _supplierCrate.Exists())
++            {
++                GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
++                    _supplierCrate.Handle, false, false);
++                _supplierCrate.FreezePosition = true;
++            }
++        }
++    }
++
++    private bool TryBeginWarehouseVisualAttempt(DateTime now)
++    {
++        if (now < _nextWarehouseVisualAttempt) return false;
++        // Five attempts per batch, then a longer cooldown. A transient model
++        // failure must not permanently hide a ready package until stream-out.
++        if (_warehouseVisualAttempts >= 5) _warehouseVisualAttempts = 0;
++        _warehouseVisualAttempts++;
++        _nextWarehouseVisualAttempt = now.AddSeconds(_warehouseVisualAttempts >= 5 ? 30 : 3);
++        return true;
++    }
++
++    private Prop CreateWarehousePallet()
++    {
++        Prop pallet = CreateFixedEquipmentProp("prop_pallet_02a",
+             _wholesaleWarehousePickup.Position, _wholesaleWarehousePickup.Heading, true);
+-        if (_wholesaleWarehousePallet == null)
+-            _wholesaleWarehousePallet = CreateFixedEquipmentProp("prop_pallet_01a",
++        if (pallet == null)
++            pallet = CreateFixedEquipmentProp("prop_pallet_01a",
+                 _wholesaleWarehousePickup.Position, _wholesaleWarehousePickup.Heading, true);
++        return pallet;
+     }
+ 
+     private void DrawWholesalePackageMarker()
+     {
+-        if (_deliveryKind == -2 || _deliverySupplier != 0 ||
++        if (_deliveryKind == -2 || _deliverySupplier != 0 || _deliveryRemainingGameSeconds > 0 ||
+             _supplierPlayerCarrying || _wholesaleCargoLoaded || _wholesaleCargoUnloaded ||
+             !_wholesaleWarehousePickup.IsSet || _supplierVisualStage != 7) return;
+         Ped player = Game.Player.Character;
+@@ -6314,6 +6463,7 @@ public class GlassHeroesBusiness : Script
+             {
+                 if (pallet > 0) SavePoint(data, "SupplierStoragePallet" + (pallet + 1), _extraStoragePallets[pallet - 1]);
+                 data.SetValue("Storage", "BoxCount" + (pallet + 1), _storedDeliveryCrates[pallet]);
++                data.SetValue("Storage", "DeliveredPackageMask" + (pallet + 1), _deliveredPackageMasks[pallet]);
+             }
+             data.SetValue("Purchasing", "DeliveryDueUtcTicks", _deliveryDueUtcTicks);
+             data.SetValue("Purchasing", "DeliveryRemainingGameSeconds", _deliveryRemainingGameSeconds);
+@@ -6372,6 +6522,7 @@ public class GlassHeroesBusiness : Script
+             data.SetValue("EmployeeSettings", "TeleportOnBlockedRoute", _routeRecoveryEnabled);
+             data.SetValue("EmployeeSettings", "BreakAnimationsEnabled", _breakAnimationsEnabled);
+             data.SetValue("EmployeeSettings", "CustomWalkingPaths", _customEmployeeWalkingPaths);
++            data.SetValue("EmployeeSettings", "CustomJobRoutes", _customMechanicJobRoutes);
+             data.SetValue("EmployeeSettings", "PickupUseReverseArrivalWaypoints", _pickupUsesArrivalExit);
+             data.SetValue("EmployeeSettings", "SmoothWaypointTransitions", _smoothMechanicWaypoints);
+             data.SetValue("EmployeeSettings", "SafeTeleportOnStall", _safeTeleportOnStall);
+@@ -6486,7 +6637,8 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+         if ((now - _lastControllerAction).TotalMilliseconds < 180) return;
+-        if (PadPressed(_controllerOpenModifier) && PadJustPressed(_controllerOpenButton))
++        if (PadPressed(_controllerOpenModifier) && PadJustPressed(_controllerOpenButton) &&
++            _menuInput.TryController(4, now.Ticks))
+         {
+             _lastPadDetected = "OPEN COMBO";
+             _lastPadDetectedAt = now;
+@@ -6498,14 +6650,12 @@ public class GlassHeroesBusiness : Script
+         if (!_showMenu) return;
+         // Unlike keyboard KeyDown, gamepad edges must be polled during Tick.
+         // Some frontend controls are used elsewhere, so suppress only when menu active.
+-        if (PadJustPressed(_controllerBack)) { _lastPadDetected = "BACK"; NavigateBack(); _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerUp) &&
+-            !(_lastKeyboardMenuKey == Keys.Up && (now - _lastKeyboardMenuAt).TotalMilliseconds < 250))
++        if (PadJustPressed(_controllerBack) && _menuInput.TryController(3, now.Ticks)) { _lastPadDetected = "BACK"; NavigateBack(); _lastControllerAction = now; }
++        else if (PadJustPressed(_controllerUp) && _menuInput.TryController(0, now.Ticks))
+         { _lastPadDetected = "UP"; _selection = (_selection - 1 + GetMenuItems().Length) % GetMenuItems().Length; _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerDown) &&
+-            !(_lastKeyboardMenuKey == Keys.Down && (now - _lastKeyboardMenuAt).TotalMilliseconds < 250))
++        else if (PadJustPressed(_controllerDown) && _menuInput.TryController(1, now.Ticks))
+         { _lastPadDetected = "DOWN"; _selection = (_selection + 1) % GetMenuItems().Length; _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerAccept))
++        else if (PadJustPressed(_controllerAccept) && _menuInput.TryController(2, now.Ticks))
+         { _lastPadDetected = "SELECT"; ExecuteSelection(); _lastControllerAction = now; }
+         if (_lastPadDetected != "NONE") _lastPadDetectedAt = now;
+         }
+@@ -6590,6 +6740,8 @@ public class GlassHeroesBusiness : Script
+         try { if (_supplierDriver != null && _supplierDriver.Exists()) _supplierDriver.Delete(); } catch { }
+         try { if (_supplierTruck != null && _supplierTruck.Exists()) _supplierTruck.Delete(); } catch { }
+         _supplierCrate = null;
++        _warehouseVisualAttempts = 0;
++        _nextWarehouseVisualAttempt = DateTime.MinValue;
+         DeleteOwnedProp(ref _wholesaleWarehousePallet);
+         _supplierPlayerCarrying = false;
+         _supplierDriver = null;
+@@ -6599,6 +6751,8 @@ public class GlassHeroesBusiness : Script
+         _supplierDepartIssued = false;
+         _supplierRouteIndex = 0;
+         _supplierWalkingNodes.Clear();
++        _supplierDirectToPlayer = false;
++        _supplierPlayerRepaths = 0;
+         _supplierBoxAttachedToDriver = false;
+         _muleRearDoorsOpened = false;
+     }
+@@ -6745,15 +6899,65 @@ public class GlassHeroesBusiness : Script
+     private void BeginSupplierDriverWalk(DateTime now)
+     {
+         _supplierWalkingNodes.Clear();
+-        foreach (WorkBay point in _supplierDriverWaypoints)
+-            if (point.IsSet) _supplierWalkingNodes.Add(point.Position);
+-        _supplierWalkingNodes.Add(_supplierHandoff.Position);
++        _supplierDirectToPlayer = _supplierPartsPallet.IsSet;
++        if (_supplierDirectToPlayer)
++        {
++            Ped player = Game.Player.Character;
++            if (player == null || !player.Exists())
++            { DeferSupplierPlayerHandoff(now); return; }
++            _supplierWalkingNodes.Add(player.Position);
++            _supplierPlayerApproachDeadline = now.AddSeconds(90);
++            _nextSupplierPlayerRepath = now.AddSeconds(3);
++            _supplierPlayerRepaths = 0;
++        }
++        else
++        {
++            // Regular automatic drop-off retains every configured route stop.
++            foreach (WorkBay point in _supplierDriverWaypoints)
++                if (point.IsSet) _supplierWalkingNodes.Add(point.Position);
++            _supplierWalkingNodes.Add(_supplierHandoff.Position);
++        }
+         _supplierRouteIndex = 0;
+         _supplierVisualStage = 3;
+         _supplierStageAt = now;
+         TaskSupplierWalkingNode();
+     }
+ 
++    private void UpdateSupplierPlayerApproach(DateTime now)
++    {
++        Ped player = Game.Player.Character;
++        if (player == null || !player.Exists() || player.IsDead ||
++            _supplierDriver == null || !_supplierDriver.Exists() ||
++            _supplierCrate == null || !_supplierCrate.Exists() || !_supplierBoxAttachedToDriver)
++        { DeferSupplierPlayerHandoff(now); return; }
++        float distance = DistanceSquared(_supplierDriver.Position, player.Position);
++        if (distance < 4f)
++        {
++            if (_supplierVisualStage != 4)
++            { _supplierVisualStage = 4; _supplierStageAt = now; }
++            return; // hold the attached box for the player's explicit action
++        }
++        if (now >= _supplierPlayerApproachDeadline || distance > 10000f || _supplierPlayerRepaths >= 15)
++        { DeferSupplierPlayerHandoff(now); return; }
++        _supplierVisualStage = 3;
++        if (now < _nextSupplierPlayerRepath) return;
++        _nextSupplierPlayerRepath = now.AddSeconds(3);
++        _supplierPlayerRepaths++;
++        _supplierWalkingNodes.Clear();
++        _supplierWalkingNodes.Add(player.Position);
++        _supplierRouteIndex = 0;
++        TaskSupplierWalkingNode();
++    }
++
++    private void DeferSupplierPlayerHandoff(DateTime now)
++    {
++        // Cleanup owns visuals only. The paid/pending order and invoice ledger
++        // remain authoritative, and respawn cannot spin on the following tick.
++        DeleteSupplierVisuals();
++        _nextSupplierVisualRetryUtc = now.AddSeconds(30);
++        Log("Supplier player handoff deferred; pending order preserved", null);
++    }
++
+     private void TaskSupplierWalkingNode()
+     {
+         if (_supplierDriver == null || !_supplierDriver.Exists() ||
+@@ -6777,7 +6981,12 @@ public class GlassHeroesBusiness : Script
+         long invoice = _deliveryPrepaid ? 0L : _deliveryCost;
+         if (kind < 0) _parts += quantity;
+         else _specialStock[kind] += quantity;
+-        if (palletSlot >= 0) _storedDeliveryCrates[palletSlot]++;
++        if (palletSlot >= 0)
++        {
++            _deliveredPackageMasks[palletSlot] |= 1 << _storedDeliveryCrates[palletSlot];
++            _storedDeliveryCrates[palletSlot]++;
++            _palletVisualDirty = true;
++        }
+         _supplierInvoicesDue += invoice;
+         _completedSupplierDeliveries++;
+         _deliveryKind = -2;
+@@ -6825,26 +7034,9 @@ public class GlassHeroesBusiness : Script
+             if (_wholesaleCargoUnloaded) { _supplierVisualStage = 6; return; }
+             // Wholesale replaces the Mule with a physical pickup mission.
+             _supplierVisualStage = 7;
+-            Ped player = Game.Player.Character;
+-            if (player != null && player.Exists() &&
+-                DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 6400f &&
+-                FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null)
+-            {
+-                UpdateWholesalePalletVisual();
+-                if ((_supplierCrate == null || !_supplierCrate.Exists()) &&
+-                    _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists())
+-                {
+-                    _supplierCrate = CreateFixedEquipmentProp("prop_cs_cardbox_01",
+-                        WarehousePackagePosition(), _wholesaleWarehousePickup.Heading, false);
+-                    if (_supplierCrate != null && _supplierCrate.Exists())
+-                    {
+-                        GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
+-                            _supplierCrate.Handle, false, false);
+-                        _supplierCrate.FreezePosition = true;
+-                    }
+-                }
+-            }
+-            else if (!_supplierPlayerCarrying) DeleteOwnedProp(ref _supplierCrate);
++            // Ready cargo is streamed by player distance, independently of
++            // the assigned vehicle. Vehicle identity is checked when LOADING.
++            UpdateWholesalePalletVisual();
+             return;
+         }
+         if (!_physicalMuleDeliveries || !MuleRouteConfigured())
+@@ -6853,7 +7045,11 @@ public class GlassHeroesBusiness : Script
+             CommitSupplierDelivery();
+             return;
+         }
+-        if (_supplierVisualStage == 0) { StartMuleDelivery(now); return; }
++        if (_supplierVisualStage == 0)
++        {
++            if (now >= _nextSupplierVisualRetryUtc) StartMuleDelivery(now);
++            return;
++        }
+         if (_supplierDriver == null || !_supplierDriver.Exists() ||
+             _supplierTruck == null || !_supplierTruck.Exists())
+         {
+@@ -6861,6 +7057,11 @@ public class GlassHeroesBusiness : Script
+             return;
+         }
+         double elapsed = (now - _supplierStageAt).TotalSeconds;
++        if (_supplierDirectToPlayer && (_supplierVisualStage == 3 || _supplierVisualStage == 4))
++        {
++            UpdateSupplierPlayerApproach(now);
++            return;
++        }
+         if (_supplierVisualStage == 1)
+         {
+             if (DistanceSquared(_supplierTruck.Position, _supplierTruckPark.Position) <= 120f)
+@@ -7336,8 +7537,7 @@ public class GlassHeroesBusiness : Script
+             _supplierDriver.Exists() && DistanceSquared(player.Position, _supplierDriver.Position) < 10f;
+         bool atWarehouse = _supplierVisualStage == 7 && _deliverySupplier == 0 &&
+             _wholesaleWarehousePickup.IsSet && !_wholesaleCargoLoaded &&
+-            DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 10f &&
+-            FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null;
++            DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 10f;
+         Vehicle assignedNearPlayer = FindAssignedWholesaleVehicle(player.Position, 8f);
+         bool loadWholesale = _supplierVisualStage == 6 && _supplierPlayerCarrying &&
+             _deliverySupplier == 0 && !_wholesaleCargoUnloaded && assignedNearPlayer != null;
+@@ -7436,8 +7636,10 @@ public class GlassHeroesBusiness : Script
+                 _supplierCrate.Heading = StoragePalletPoint(slot).Heading;
+                 _supplierCrate.FreezePosition = true;
+                 GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, _supplierCrate.Handle, false, false);
+-                _storedCrateProps.Add(_supplierCrate);
+-                _supplierCrate = null; // now belongs to persistent pallet display, not Mule lifecycle
++                int packageIndex = slot * CratesPerPallet + nextBox;
++                DeleteOwnedProp(ref _deliveredPackageProps[packageIndex]);
++                _deliveredPackageProps[packageIndex] = _supplierCrate;
++                _supplierCrate = null; // delivered parcel ownership is separate from obsolete displays
+             }
+             GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
+             _supplierPlayerCarrying = false;
+@@ -7472,8 +7674,7 @@ public class GlassHeroesBusiness : Script
+             _supplierDriver.Exists() &&
+             DistanceSquared(Game.Player.Character.Position, _supplierDriver.Position) < 10f;
+         bool nearWarehouse = _supplierVisualStage == 7 && _wholesaleWarehousePickup.IsSet &&
+-            DistanceSquared(Game.Player.Character.Position, _wholesaleWarehousePickup.Position) < 10f &&
+-            FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null;
++            DistanceSquared(Game.Player.Character.Position, _wholesaleWarehousePickup.Position) < 10f;
+         bool nearCargoVehicle = (_supplierVisualStage == 9 && _wholesaleCargoLoaded ||
+             _supplierVisualStage == 6 && _supplierPlayerCarrying && _deliverySupplier == 0 && !_wholesaleCargoUnloaded) &&
+             FindAssignedWholesaleVehicle(Game.Player.Character.Position, 8f) != null;
+@@ -7488,6 +7689,7 @@ public class GlassHeroesBusiness : Script
+         string prompt = nearPallet ? "STOCK this box at the pallet." :
+             nearCargoVehicle && _wholesaleCargoLoaded ? "UNLOAD the box from the assigned vehicle." :
+             nearCargoVehicle && _supplierPlayerCarrying ? "LOAD the box into the assigned vehicle." :
++            nearWarehouse ? "PICK UP the warehouse box; use your assigned vehicle to LOAD it." :
+             "PICK UP the supplier package.";
+         UI.ShowSubtitle("~b~Glass Heroes~s~: ~y~E~s~ / ~b~D-pad RIGHT~s~ to " + prompt, 1750);
+     }
+@@ -7507,12 +7709,29 @@ public class GlassHeroesBusiness : Script
+         }
+     }
+ 
+-    private void DeleteStoragePalletVisuals()
++    private static int CompatiblePackageVisualMask(int storedBoxes, int savedMask)
+     {
+-        for (int i = 0; i < MaxStoragePallets; i++) DeleteOwnedProp(ref _storagePalletProps[i]);
++        int count = Math.Max(0, Math.Min(CratesPerPallet, storedBoxes));
++        return savedMask & ((1 << count) - 1);
++    }
++
++    private void DeleteLegacyStockroomDisplayBoxes()
++    {
++        // Only our obsolete display list. Never touch live cargo, delivered
++        // parcel ownership, warehouse props, world/MLO entities or stock counts.
+         foreach (Prop crate in _storedCrateProps)
+             try { if (crate != null && crate.Exists()) crate.Delete(); } catch { }
+         _storedCrateProps.Clear();
++    }
++
++    private void DeleteStoragePalletVisuals()
++    {
++        for (int i = 0; i < MaxStoragePallets; i++) DeleteOwnedProp(ref _storagePalletProps[i]);
++        DeleteLegacyStockroomDisplayBoxes();
++        for (int i = 0; i < _deliveredPackageProps.Length; i++)
++            DeleteOwnedProp(ref _deliveredPackageProps[i]);
++        _storageVisualAttempts = 0;
++        _nextStorageVisualAttempt = DateTime.MinValue;
+         _palletVisualDirty = true;
+     }
+ 
+@@ -7523,29 +7742,45 @@ public class GlassHeroesBusiness : Script
+         for (int i = 0; i < _ownedStoragePallets; i++)
+             if (StoragePalletPoint(i).IsSet && player != null && player.Exists() &&
+                 DistanceSquared(player.Position, StoragePalletPoint(i).Position) < 6400f) nearby = true;
+-        if (!nearby) { if (_storedCrateProps.Count > 0 || _palletVisualDirty == false)
+-            DeleteStoragePalletVisuals(); return; }
++        if (!nearby)
++        {
++            if (_storageVisualAttempts > 0 || !_palletVisualDirty || _storedCrateProps.Count > 0)
++                DeleteStoragePalletVisuals();
++            return;
++        }
++        DeleteLegacyStockroomDisplayBoxes();
+         if (!_palletVisualDirty) return;
+-        DeleteStoragePalletVisuals();
++        DateTime now = DateTime.UtcNow;
++        if (_storageVisualAttempts >= 5 || now < _nextStorageVisualAttempt) return;
++        _storageVisualAttempts++;
++        _nextStorageVisualAttempt = now.AddSeconds(3);
+         bool complete = true;
+         for (int i = 0; i < _ownedStoragePallets; i++)
+         {
+             WorkBay point = StoragePalletPoint(i);
+             if (!point.IsSet) continue;
+-            _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_02a",
+-                point.Position, point.Heading, true);
+-            if (_storagePalletProps[i] == null)
+-                _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_01a",
++            if (_storagePalletProps[i] == null || !_storagePalletProps[i].Exists())
++            {
++                _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_02a",
+                     point.Position, point.Heading, true);
++                if (_storagePalletProps[i] == null)
++                    _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_01a",
++                        point.Position, point.Heading, true);
++            }
+             if (_storagePalletProps[i] == null) { complete = false; continue; }
++            // BoxCount remains authoritative capacity data. Only parcels with
++            // delivery provenance may be reconstructed, never legacy displays.
+             for (int b = 0; b < _storedDeliveryCrates[i]; b++)
+             {
++                if ((_deliveredPackageMasks[i] & (1 << b)) == 0) continue;
++                int index = i * CratesPerPallet + b;
++                if (_deliveredPackageProps[index] != null && _deliveredPackageProps[index].Exists()) continue;
+                 Prop visual = CreateFixedEquipmentProp("prop_cs_cardbox_01",
+                     StoredBoxPosition(i, b), point.Heading, false);
+                 if (visual != null)
+                 {
+                     GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, visual.Handle, false, false);
+-                    _storedCrateProps.Add(visual);
++                    _deliveredPackageProps[index] = visual;
+                 }
+                 else complete = false;
+             }
+@@ -7670,6 +7905,7 @@ public class GlassHeroesBusiness : Script
+ 
+     private void OnAborted(object sender, EventArgs e)
+     {
++        Log("LIFECYCLE abort requested; last tick phase=" + _diagnosticTickStage, null);
+         // Nothing has been spawned or billed before activation. Do not write
+         // partially initialized defaults over the user's existing Save.ini.
+         if (!_bootGameplayActivated)
+@@ -7692,6 +7928,7 @@ public class GlassHeroesBusiness : Script
+         try { _mechanicModel.MarkAsNoLongerNeeded(); }
+         catch (Exception ex) { Log("Release model", ex); }
+         Save();
++        Log("LIFECYCLE abort cleanup completed", null);
+     }
+ 
+     private static void Notify(string message)
+@@ -7715,15 +7952,98 @@ public class GlassHeroesBusiness : Script
+             message.EndsWith(" returning serviced car to the drop-off.", StringComparison.Ordinal);
+     }
+ 
+-    private static void Log(string context, Exception ex)
+-    {
+-        try
++    // BEGIN ISSUE1 DIAGNOSTIC LOG (also exercised by the standalone test runner)
++    private sealed class DiagnosticLog
++    {
++        private readonly Func<DateTime> _utcNow;
++        private readonly Action<string> _append;
++        private DateTime _nextErrorUtc = DateTime.MinValue;
++        private DateTime _nextTransitionUtc = DateTime.MinValue;
++        private DateTime _nextWriteRetryUtc = DateTime.MinValue;
++        private int _suppressedErrors;
++        private bool _writing;
++        private bool _hasState;
++        private long _lastState;
++
++        internal DiagnosticLog(Func<DateTime> utcNow, Action<string> append)
++        {
++            _utcNow = utcNow;
++            _append = append;
++        }
++
++        internal void RecordTransition(bool shift, bool remote, bool staffInRange,
++            bool menu, int supplierStage, int customers, int remoteJobs)
++        {
++            // Read managed state only, once per existing visual refresh. No GTA
++            // natives, entity scans, string allocations or writes on stable idle.
++            long state = (shift ? 1L : 0L) | (remote ? 2L : 0L) |
++                (staffInRange ? 4L : 0L) | (menu ? 8L : 0L) |
++                ((long)supplierStage << 4) | ((long)customers << 8) |
++                ((long)remoteJobs << 24);
++            if (_hasState && state == _lastState) return;
++            DateTime now = _utcNow();
++            if (now < _nextTransitionUtc) return;
++            // Coalesce rapid changes: this is the latest observed state, not a
++            // complete event history. Never emit a per-frame/per-second heartbeat.
++            _nextTransitionUtc = now.AddSeconds(10);
++            if (Write("STATE shift=" + shift + " remote=" + remote +
++                " staffInRange=" + staffInRange + " menu=" + menu +
++                " supplierStage=" + supplierStage + " customers=" + customers +
++                " remoteJobs=" + remoteJobs, null))
++            {
++                _lastState = state;
++                _hasState = true;
++            }
++        }
++
++        internal bool Write(string context, Exception ex)
+         {
+-            Directory.CreateDirectory(DataDirectory);
+-            File.AppendAllText(Path.Combine(DataDirectory, "Errors.log"),
+-                DateTime.Now.ToString("s") + " | " + context + " | " +
+-                (ex == null ? "no exception" : ex.ToString()) + Environment.NewLine);
++            // The writer can fail or re-enter. Diagnostics must never recurse or
++            // escape into the gameplay loop, including when storage is unavailable.
++            if (_writing) return false;
++            _writing = true;
++            try
++            {
++                DateTime now = _utcNow();
++                if (now < _nextWriteRetryUtc) return false;
++                if (ex != null && now < _nextErrorUtc)
++                {
++                    if (_suppressedErrors < int.MaxValue) _suppressedErrors++;
++                    return false;
++                }
++                if (ex != null) _nextErrorUtc = now.AddSeconds(10);
++                string suppressed = ex != null && _suppressedErrors > 0
++                    ? " | suppressed errors=" + _suppressedErrors : "";
++                _append(now.ToString("s") + "Z | " + context + " | " +
++                    (ex == null ? "no exception" : ex.ToString()) + suppressed +
++                    Environment.NewLine);
++                if (ex != null) _suppressedErrors = 0;
++                return true;
++            }
++            catch
++            {
++                // Back off disk failures as well as exception floods. This clock
++                // governs logging only; no business or delivery timer is changed.
++                try { _nextWriteRetryUtc = _utcNow().AddSeconds(30); }
++                catch { }
++                return false;
++            }
++            finally { _writing = false; }
+         }
+-        catch { /* logging must never crash GTA */ }
++    }
++    // END ISSUE1 DIAGNOSTIC LOG
++
++    private static readonly DiagnosticLog _diagnosticLog = new DiagnosticLog(
++        () => DateTime.UtcNow, AppendDiagnosticLine);
++
++    private static void AppendDiagnosticLine(string line)
++    {
++        Directory.CreateDirectory(DataDirectory);
++        File.AppendAllText(Path.Combine(DataDirectory, "Errors.log"), line);
++    }
++
++    private static void Log(string context, Exception ex)
++    {
++        _diagnosticLog.Write(context, ex);
+     }
+ }
+diff --git a/VisualStudio/scripts/GlassHeroesBusiness.2.cs b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+index 73f8043..909d05f 100644
+--- a/VisualStudio/scripts/GlassHeroesBusiness.2.cs
++++ b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,5 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
++﻿// Glass Heroes Business Manager - v0.3.3.1 QA R2 / EXPERIMENTAL (#1 diagnostics + #2-#7)
++// Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+ 
+@@ -259,6 +260,7 @@ public class GlassHeroesBusiness : Script
+     // When true, newly arriving staff and mechanic bay travel may follow optional points.
+     // Customer-car pickup is ALWAYS direct, whichever walking mode is selected.
+     private bool _customEmployeeWalkingPaths;
++    private bool _customMechanicJobRoutes; // opt-in; saved route points stay intact
+     private bool _pickupUsesArrivalExit = true;
+     private bool _smoothMechanicWaypoints = true;
+     private bool _safeTeleportOnStall = true;
+@@ -295,6 +297,7 @@ public class GlassHeroesBusiness : Script
+     // never for earnings, worker wages, remote jobs or supplier progress.
+     private DateTime _bootGateUntilUtc = DateTime.MinValue;
+     private bool _bootGameplayActivated;
++    private string _diagnosticTickStage = "startup gate";
+     private bool _diagnosticHoldGameplayTick;
+     private int _diagnosticDelaySeconds = 30;
+     private bool _showMenu;
+@@ -356,8 +359,6 @@ public class GlassHeroesBusiness : Script
+     private DateTime _nextManagerSpawn = DateTime.MinValue;
+     private DateTime _nextManagerTask = DateTime.MinValue;
+     private bool _managerAtPost;
+-    private DateTime _lastKeyboardMenuAt = DateTime.MinValue;
+-    private Keys _lastKeyboardMenuKey = Keys.None;
+     private long _managerWagesDue;
+     private double _managerWageAgeSeconds;
+     private long _managerSavings;
+@@ -414,7 +415,11 @@ public class GlassHeroesBusiness : Script
+     private readonly WorkBay[] _extraStoragePallets = { new WorkBay(), new WorkBay(), new WorkBay() };
+     private readonly int[] _storedDeliveryCrates = new int[MaxStoragePallets];
+     private readonly Prop[] _storagePalletProps = new Prop[MaxStoragePallets];
+-    private readonly List<Prop> _storedCrateProps = new List<Prop>();
++    private readonly List<Prop> _storedCrateProps = new List<Prop>(); // obsolete display ownership only
++    private readonly Prop[] _deliveredPackageProps = new Prop[MaxStoragePallets * CratesPerPallet];
++    private readonly int[] _deliveredPackageMasks = new int[MaxStoragePallets];
++    private DateTime _nextStorageVisualAttempt = DateTime.MinValue;
++    private int _storageVisualAttempts;
+     private bool _palletVisualDirty = true;
+     private readonly WorkBay _wholesaleWarehousePickup = new WorkBay();
+     private Prop _wholesaleWarehousePallet; // visual-only, never counted as shop storage
+@@ -434,6 +439,8 @@ public class GlassHeroesBusiness : Script
+     private Vector3 _lastWholesaleLookupCenter;
+     private DateTime _nextSupplierInteractionHint = DateTime.MinValue;
+     private DateTime _lastSupplierCheckpoint = DateTime.MinValue;
++    private DateTime _nextWarehouseVisualAttempt = DateTime.MinValue;
++    private int _warehouseVisualAttempts;
+     private long _supplierInvoicesDue; // Earned at stocking, paid only in Expenses.
+     private bool _deliveryPrepaid; // Legacy pending orders were paid up-front; no second charge.
+     private Prop _supplierPalletProp; // legacy field retained for cleanup compatibility
+@@ -447,6 +454,11 @@ public class GlassHeroesBusiness : Script
+     private Prop _supplierCrate;
+     private int _supplierVisualStage; // 0 absent, 1 drive, 2 exit, 3 walk, 4 await handoff, 5 depart, 6 player carrying
+     private int _supplierRouteIndex;
++    private bool _supplierDirectToPlayer;
++    private DateTime _supplierPlayerApproachDeadline = DateTime.MinValue;
++    private DateTime _nextSupplierPlayerRepath = DateTime.MinValue;
++    private DateTime _nextSupplierVisualRetryUtc = DateTime.MinValue;
++    private int _supplierPlayerRepaths;
+     private bool _supplierExitIssued, _supplierDepartIssued;
+     private DateTime _supplierStageAt = DateTime.MinValue;
+     private long _supplierVisualOrderTicks;
+@@ -486,6 +498,7 @@ public class GlassHeroesBusiness : Script
+     private DateTime _lastControllerAction = DateTime.MinValue;
+     private DateTime _lastControllerToggle = DateTime.MinValue;
+     private readonly HashSet<Keys> _heldKeys = new HashSet<Keys>();
++    private readonly MenuInputGate _menuInput = new MenuInputGate();
+     private string _lastPadDetected = "NONE";
+     private DateTime _lastPadDetectedAt = DateTime.MinValue;
+     private DateTime _lastPadReadErrorAt = DateTime.MinValue;
+@@ -506,7 +519,7 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.2.9a / constructor entered", null);
++            Log("BOOT v0.3.3.1 QA R2 EXPERIMENTAL (#1 diagnostics + #2-#7) / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -667,6 +680,8 @@ public class GlassHeroesBusiness : Script
+                 if (pallet > 0) LoadPoint(data, "SupplierStoragePallet" + (pallet + 1), _extraStoragePallets[pallet - 1]);
+                 _storedDeliveryCrates[pallet] = Math.Max(0, Math.Min(CratesPerPallet,
+                     data.GetValue("Storage", "BoxCount" + (pallet + 1), 0)));
++                _deliveredPackageMasks[pallet] = CompatiblePackageVisualMask(_storedDeliveryCrates[pallet],
++                    data.GetValue("Storage", "DeliveredPackageMask" + (pallet + 1), 0));
+             }
+             _palletVisualDirty = true;
+             _deliveryDueUtcTicks = data.GetValue("Purchasing", "DeliveryDueUtcTicks", 0L);
+@@ -736,6 +751,7 @@ public class GlassHeroesBusiness : Script
+             _routeRecoveryEnabled = data.GetValue("EmployeeSettings", "TeleportOnBlockedRoute",
+                 _configuration.GetValue("Visuals", "TeleportOnBlockedRoute", true));
+             _customEmployeeWalkingPaths = data.GetValue("EmployeeSettings", "CustomWalkingPaths", false);
++            _customMechanicJobRoutes = data.GetValue("EmployeeSettings", "CustomJobRoutes", false);
+             _pickupUsesArrivalExit = data.GetValue("EmployeeSettings", "PickupUseReverseArrivalWaypoints",
+                 _configuration.GetValue("EmployeeSettings", "PickupUseReverseArrivalWaypoints", true));
+             _smoothMechanicWaypoints = data.GetValue("EmployeeSettings", "SmoothWaypointTransitions",
+@@ -846,6 +862,7 @@ public class GlassHeroesBusiness : Script
+                 Notify("Loaded. Press " + MenuKeyLabel() + " for business management. Stand at your shop to set its location.");
+                 return;
+             }
++            _diagnosticTickStage = "game clock";
+             DateTime now = DateTime.UtcNow;
+             double seconds = (now - _lastTick).TotalSeconds;
+             _lastTick = now;
+@@ -859,6 +876,7 @@ public class GlassHeroesBusiness : Script
+             // Clamp game-clock jumps from loading, cutscenes and script reloads.
+             double activeGameSeconds = !Game.IsPaused && elapsedGameMs > 0 && elapsedGameMs <= 30000L
+                 ? Math.Min(2d, elapsedGameMs / 1000d) : 0d;
++            _diagnosticTickStage = "remote mode transition";
+             if (_clockedIn && _managerTier >= 0 && Game.Player.Character != null && _placed &&
+                 DistanceSquared(Game.Player.Character.Position, _location) >
+                 _remoteDistanceMeters * _remoteDistanceMeters)
+@@ -866,9 +884,11 @@ public class GlassHeroesBusiness : Script
+                 if (!_remoteMode) EnterRemoteOperations();
+             }
+             else if (_remoteMode) LeaveRemoteOperations();
++            _diagnosticTickStage = "economy";
+             if (_clockedIn && seconds > 0) ProcessEconomy(seconds);
+             // Advance supplier ETA only while GTA is actively running and unpaused.
+             // Persist every 15 seconds of gameplay to avoid per-frame disk writes.
++            _diagnosticTickStage = "supplier timer";
+             if (_deliveryKind != -2 && activeGameSeconds > 0 && _deliveryRemainingGameSeconds > 0)
+             {
+                 _deliveryRemainingGameSeconds = Math.Max(0, _deliveryRemainingGameSeconds - activeGameSeconds);
+@@ -876,30 +896,45 @@ public class GlassHeroesBusiness : Script
+                 if (_deliveryRemainingGameSeconds <= 0 || _supplierTimerSaveSeconds >= 15)
+                 { _supplierTimerSaveSeconds = 0; Save(); }
+             }
++            _diagnosticTickStage = "remote operations";
+             if (_clockedIn && activeGameSeconds > 0 && (_remoteMode || _remoteJobs.Count > 0))
+                 ProcessRemoteOperations(activeGameSeconds);
++            _diagnosticTickStage = "controller input";
+             if (_showMenu && _controllerEnabled) DisableControllerControlsWhileMenuOpen();
+             PollController();
++            _diagnosticTickStage = "supplier interaction";
+             HandleSupplierPackageInteraction();
+             DrawWholesalePackageMarker();
++            _diagnosticTickStage = "office interaction";
+             HandleOfficeInteraction();
+             // NPC lifecycle is throttled to once a second, never on every draw frame.
+             _visualRefreshClock += seconds;
+             if (_visualRefreshClock >= 1.0)
+             {
+                 _visualRefreshClock = 0;
++                _diagnosticTickStage = "staff visuals";
+                 UpdateVisualMechanics();
++                _diagnosticTickStage = "supplier delivery visuals";
+                 try { ProcessSupplierDelivery(now); }
+                 catch (Exception deliveryError)
+                 { Log("Mule delivery visual (order preserved)", deliveryError); DeleteSupplierVisuals(); }
++                _diagnosticTickStage = "customer visuals";
+                 UpdateCustomerVisuals();
++                _diagnosticTickStage = "office visuals";
+                 UpdateOfficeDeskVisuals();
++                _diagnosticTickStage = "equipment visuals";
+                 UpdateEquipmentVisuals();
++                _diagnosticTickStage = "stockroom visuals";
+                 UpdateSupplierPalletVisual();
++                _diagnosticTickStage = "warehouse visuals";
+                 UpdateWholesalePalletVisual();
++                _diagnosticLog.RecordTransition(_clockedIn, _remoteMode,
++                    _workersPreviouslyInRange, _showMenu, _supplierVisualStage,
++                    _activeCustomerOrders.Count, _remoteJobs.Count);
+             }
+             // GTA help text is transient. Render it each game tick while the menu is open.
+             // This affects UI presentation only; ProcessEconomy still uses elapsed seconds.
++            _diagnosticTickStage = "menu rendering";
+             if (_showMenu)
+             {
+                 DisablePhoneWhileMenuOpen(); // GTA control disabling lasts one frame.
+@@ -907,18 +942,21 @@ public class GlassHeroesBusiness : Script
+             }
+             // Placement preview can remain on after F2 closes so you can WALK
+             // around the custom MLO and inspect every marker from different angles.
++            _diagnosticTickStage = "placement rendering";
+             if (_showPlacementMarkers || _autoLotPreview) DrawPlacementMarkers();
++            _diagnosticTickStage = "idle between ticks";
+         }
+         catch (Exception ex)
+         {
+-            Log("Tick", ex);
++            Log("Tick / " + _diagnosticTickStage, ex);
+             _clockedIn = false; // Fail safely instead of repeatedly charging payroll.
+         }
+     }
+ 
+     private void OnKeyUp(object sender, KeyEventArgs e)
+     {
+-        _heldKeys.Remove(e.KeyCode);
++        if (_heldKeys.Remove(e.KeyCode))
++            _menuInput.ReleaseKeyboard(MenuActionForKey(e.KeyCode), DateTime.UtcNow.Ticks);
+     }
+ 
+     private void OnKeyDown(object sender, KeyEventArgs e)
+@@ -930,6 +968,8 @@ public class GlassHeroesBusiness : Script
+             // The game's key callback may auto-repeat while Enter is held.
+             // A single physical press must cause only one menu selection.
+             if (!_heldKeys.Add(e.KeyCode)) return;
++            int action = MenuActionForKey(e.KeyCode);
++            if (action >= 0 && !_menuInput.TryKeyboard(action, DateTime.UtcNow.Ticks)) return;
+             // Test KeyCode (not KeyData), since KeyData also contains Shift/Ctrl/Alt flags.
+             // When RequireCtrl=false, F2 and Ctrl+F2 both toggle the menu.
+             // When true, ordinary F2 is ignored; Ctrl+F2 is required.
+@@ -953,14 +993,8 @@ public class GlassHeroesBusiness : Script
+             int menuCount = GetMenuItems().Length;
+             if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down)
+             {
+-                DateTime time = DateTime.UtcNow;
+-                bool handledByPad = (time - _lastControllerAction).TotalMilliseconds < 210 &&
+-                    _lastPadDetected == (e.KeyCode == Keys.Up ? "UP" : "DOWN");
+-                _lastKeyboardMenuAt = time;
+-                _lastKeyboardMenuKey = e.KeyCode;
+-                if (!handledByPad)
+-                    _selection = (e.KeyCode == Keys.Up ?
+-                        _selection + menuCount - 1 : _selection + 1) % menuCount;
++                _selection = (e.KeyCode == Keys.Up ?
++                    _selection + menuCount - 1 : _selection + 1) % menuCount;
+             }
+             else if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Return)
+                 ExecuteSelection();
+@@ -968,6 +1002,58 @@ public class GlassHeroesBusiness : Script
+         catch (Exception ex) { Log("Key press", ex); }
+     }
+ 
++    // ISSUE2: semantic input arbitration; no gameplay clock or disk access.
++    private sealed class MenuInputGate
++    {
++        private readonly int[] _keyboardHeld = new int[5];
++        private readonly long[] _keyboardAt = { -1, -1, -1, -1, -1 };
++        private readonly long[] _controllerAt = { -1, -1, -1, -1, -1 };
++        private const long EchoTicks = 250 * TimeSpan.TicksPerMillisecond;
++
++        internal bool TryKeyboard(int action, long now)
++        {
++            if (++_keyboardHeld[action] > 1) return false;
++            _keyboardAt[action] = now;
++            return !Recent(_controllerAt[action], now);
++        }
++
++        internal void ReleaseKeyboard(int action, long now)
++        {
++            if (action < 0) return;
++            if (_keyboardHeld[action] > 0) _keyboardHeld[action]--;
++            _keyboardAt[action] = now; // suppress a frontend edge delayed until release
++        }
++
++        internal bool TryController(int action, long now)
++        {
++            if (_keyboardHeld[action] > 0 || Recent(_keyboardAt[action], now)) return false;
++            _controllerAt[action] = now;
++            return true; // controller-only timing remains in PollController
++        }
++
++        private static bool Recent(long last, long now)
++        {
++            return last >= 0 && now >= last && now - last < EchoTicks;
++        }
++    }
++
++    private int MenuActionForKey(Keys key)
++    {
++        if (key == Keys.Up) return 0;
++        if (key == Keys.Down) return 1;
++        if (key == Keys.Enter || key == Keys.Return) return 2;
++        if (key == Keys.Escape || key == Keys.Back) return 3;
++        return key == _menuKey ? 4 : -1;
++    }
++
++    private static string PointEditorActionLabel(int index, bool isSet, bool markers)
++    {
++        if (index == 0) return isSet ? "UPDATE / SAVE" : "SET / SAVE";
++        if (index == 1) return isSet ? "CLEAR" : "NOT SET";
++        if (index == 2) return markers ? "ON" : "OFF";
++        return ">";
++    }
++
+     private string MenuKeyLabel()
+     {
+         return (_requireCtrlForMenu ? "CTRL+" : "") + _menuKey.ToString().ToUpperInvariant();
+@@ -1015,14 +1101,14 @@ public class GlassHeroesBusiness : Script
+                 _menuPage = _editorReturnPage; _selection = _editorReturnSelection; break;
+             case MenuPage.MechanicBays: _menuPage = MenuPage.EmployeePlacements; _selection = 1; break;
+             case MenuPage.EmployeePaths: _menuPage = MenuPage.EmployeeSettings; _selection = 1; break;
+-            case MenuPage.ArrivalWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 1; break;
+-            case MenuPage.ServiceWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 2; break;
+-            case MenuPage.BayApproaches: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 3; break;
++            case MenuPage.ArrivalWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 2; break;
++            case MenuPage.ServiceWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 3; break;
++            case MenuPage.BayApproaches: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 4; break;
+             case MenuPage.RouteRecovery: _menuPage = MenuPage.EmployeeSettings; _selection = 2; break;
+             case MenuPage.PlacementMarkers: _menuPage = MenuPage.EmployeeSettings; _selection = 3; break;
+             case MenuPage.ServiceVehicleBays: _menuPage = _customCarBaysFromDriveOptions ?
+                 MenuPage.VehicleDriveOptions : MenuPage.CustomerPlacements;
+-                _selection = 4; break;
++                _selection = _customCarBaysFromDriveOptions ? 4 : 6; break;
+             case MenuPage.VehicleDriveOptions: _menuPage = MenuPage.Customers; _selection = 3; break;
+             case MenuPage.VehicleAutoLotOptions: _menuPage = MenuPage.VehicleDriveOptions; _selection = 3; break;
+             case MenuPage.Customers: _menuPage = MenuPage.BusinessManagement; _selection = 1; break;
+@@ -1156,7 +1242,7 @@ public class GlassHeroesBusiness : Script
+                     "Spawn -> Break Waypoints >", "Break -> Bay Waypoints >",
+                     "Final Bay Approaches >", "Legacy Staff Checkpoint (MLO) >",
+                     "Choose Job Waypoints by Mechanic >", "Smooth Through-Waypoints",
+-                    "Teleport Stuck Pedestrians", "< Back to Walking Paths" };
++                    "Teleport Stuck Pedestrians", "Advanced Break <-> Bay Routes", "< Back to Walking Paths" };
+             case MenuPage.ReceptionWalkingPaths:
+                 return new string[] { "Receptionist Walking Mode", "Spawn -> Desk Waypoints >",
+                     "Final Desk Approach >", "< Back to Walking Paths" };
+@@ -1189,7 +1275,7 @@ public class GlassHeroesBusiness : Script
+                 return new string[] { "Bay 1 Final Turn >", "Bay 2 Final Turn >",
+                     "Bay 3 Final Turn >", "< Back to Walking Paths" };
+             case MenuPage.PointEditor:
+-                return new string[] { "Set / Update Position + Facing", "Clear Saved Position",
++                return new string[] { "Set / Save Position + Facing", "Clear Saved Position",
+                     "Marker Preview", "Show Saved Coordinates", "< Back" };
+             case MenuPage.RouteRecovery:
+                 return new string[] { "Blocked-Route Teleport", "Recovery Status", "< Back" };
+@@ -1447,6 +1533,7 @@ public class GlassHeroesBusiness : Script
+                 index == 1 ? (_customReceptionWalkingPaths ? "CUSTOM" : "DIRECT") :
+                 index == 2 ? (_customManagerWalkingPaths ? "CUSTOM" : "DIRECT") : ">";
+             case MenuPage.MechanicWalkingPaths:
++                if (index == 9) return _customMechanicJobRoutes ? "SAVED WAYPOINTS" : "DIRECT";
+                 if (index == 7) return _smoothMechanicWaypoints ? "ON" : "OFF";
+                 if (index == 8) return _safeTeleportOnStall ? "ON" : "OFF";
+                 switch (index)
+@@ -1477,9 +1564,8 @@ public class GlassHeroesBusiness : Script
+             case MenuPage.BayApproaches:
+                 return ">";
+             case MenuPage.PointEditor:
+-                if (index == 0 || index == 1) return Status(_editingPoint);
+-                if (index == 2) return _showPlacementMarkers ? "ON" : "OFF";
+-                return ">";
++                return PointEditorActionLabel(index,
++                    _editingPoint != null && _editingPoint.IsSet, _showPlacementMarkers);
+             case MenuPage.RouteRecovery:
+                 return index == 0 ? (_routeRecoveryEnabled ? "ON" : "OFF") : ">";
+             case MenuPage.Finances:
+@@ -1655,6 +1741,7 @@ public class GlassHeroesBusiness : Script
+                     case 6: return "Choose a separate set of existing job-route stops for each mechanic.";
+                     case 7: return "Advance ~1.9m before intermediate waypoints; final target unchanged.";
+                     case 8: return "Recover stuck workers beside saved points rather than cancelling jobs.";
++                    case 9: return "Default DIRECT Break <-> Bay; opt in to existing saved job stops and approaches.";
+                     default: return "Return to separate employee walking settings.";
+                 }
+             case MenuPage.MechanicRouteRoster:
+@@ -2930,6 +3017,13 @@ public class GlassHeroesBusiness : Script
+                 Notify("Smooth mechanic route transitions " + (_smoothMechanicWaypoints ? "ON" : "OFF") + "."); break;
+             case 8: _safeTeleportOnStall = !_safeTeleportOnStall; Save();
+                 Notify("Safe stuck-ped teleport " + (_safeTeleportOnStall ? "ON" : "OFF") + "."); break;
++            case 9:
++                if (_clockedIn) { Notify("Close shop before changing job routes."); break; }
++                _customMechanicJobRoutes = !_customMechanicJobRoutes;
++                Save();
++                Notify("Break / Bay routes: " + (_customMechanicJobRoutes ?
++                    "SAVED WAYPOINTS" : "DIRECT") + ". Existing points and masks are preserved.");
++                break;
+             default: NavigateBack(); break;
+         }
+     }
+@@ -3395,25 +3489,34 @@ public class GlassHeroesBusiness : Script
+         }
+     }
+ 
+-    private static void MarkParkingSquare(WorkBay point, Color color)
++    private static Vector3[] ParkingOutlineVertices(Vector3 position, float heading)
+     {
+-        if (point == null || !point.IsSet) return;
+-        // A flat car-length rectangular outline, rotated by saved heading.
+-        float radians = point.Heading * (float)Math.PI / 180f;
++        // SHVDN/GTA: forward at 0 degrees is +Y, at 90 degrees is -X.
++        // This is the inverse of Vector3.ToHeading, not a mirrored +X rotation.
++        float radians = heading * (float)Math.PI / 180f;
+         float sin = (float)Math.Sin(radians), cos = (float)Math.Cos(radians);
+-        Vector3[] corners = new Vector3[4];
+-        float[] length = { -2.55f, -2.55f, 2.55f, 2.55f };
+-        float[] width = { -1.18f, 1.18f, 1.18f, -1.18f };
+-        for (int i = 0; i < 4; i++)
++        Vector3[] points = new Vector3[7];
++        for (int i = 0; i < points.Length; i++)
+         {
+-            float x = length[i] * sin + width[i] * cos;
+-            float y = length[i] * cos - width[i] * sin;
+-            corners[i] = new Vector3(point.Position.X + x, point.Position.Y + y,
+-                point.Position.Z + 0.025f);
++            float length = i < 4 ? (i < 2 ? -2.55f : 2.55f) : (i == 4 ? 2.15f : 0.85f);
++            float width = i < 4 ? (i == 0 || i == 3 ? -1.18f : 1.18f) :
++                (i == 4 ? 0f : (i == 5 ? -0.60f : 0.60f));
++            points[i] = new Vector3(position.X - length * sin + width * cos,
++                position.Y + length * cos + width * sin, position.Z + 0.025f);
+         }
+-        for (int i = 0; i < 4; i++)
++        return points;
++    }
++
++    private static void MarkParkingSquare(WorkBay point, Color color)
++    {
++        if (point == null || !point.IsSet) return;
++        Vector3[] points = ParkingOutlineVertices(point.Position, point.Heading);
++        // Four outline edges, then two arms of a clear forward-facing arrow.
++        // Existing placement-preview distance/toggles remain in the caller.
++        for (int i = 0; i < 6; i++)
+         {
+-            Vector3 a = corners[i], b = corners[(i + 1) % 4];
++            Vector3 a = i < 4 ? points[i] : points[4];
++            Vector3 b = i < 4 ? points[(i + 1) % 4] : points[i + 1];
+             GTA.Native.Function.Call(GTA.Native.Hash.DRAW_LINE,
+                 a.X, a.Y, a.Z, b.X, b.Y, b.Z, (int)color.R, (int)color.G, (int)color.B, (int)color.A);
+         }
+@@ -3637,15 +3740,17 @@ public class GlassHeroesBusiness : Script
+             if (_customEmployeeWalkingPaths)
+             {
+                 if (CountSet(_arrivalRoute) > 0)
++                {
+                     foreach (WorkBay step in _arrivalRoute)
+                         if (step.IsSet) result.Add(step.Position);
++                }
+                 else if (_walkCheckpoint.IsSet) result.Add(_walkCheckpoint.Position);
+             }
+         }
+         else if (phase == PhaseToBreak) result.Add(GetBreakSpot(slot));
+         else if (phase == PhaseToBay)
+         {
+-            if (_customEmployeeWalkingPaths)
++            if (_customMechanicJobRoutes)
+             {
+                 int routeMask = slot < _mechanics.Count ? _mechanics[slot].JobOutboundMask : 31;
+                 for (int i = 0; i < _serviceRoute.Length; i++)
+@@ -3657,7 +3762,7 @@ public class GlassHeroesBusiness : Script
+         }
+         else if (phase == PhaseReturningToBreak)
+         {
+-            if (_customEmployeeWalkingPaths)
++            if (_customMechanicJobRoutes)
+             {
+                 if (_bayApproaches[slot].IsSet) result.Add(_bayApproaches[slot].Position);
+                 int routeMask = slot < _mechanics.Count ? _mechanics[slot].JobReturnMask : 31;
+@@ -3670,10 +3775,10 @@ public class GlassHeroesBusiness : Script
+         return result;
+     }
+ 
+-    private void IssueEmployeeWalkTask(Ped worker, Vector3 target, float heading, bool forceStraight = false)
++    private void IssueEmployeeWalkTask(Ped worker, Vector3 target, float heading, bool forceStraight = false, bool directJob = false)
+     {
+         if (worker == null || !worker.Exists()) return;
+-        if (_customEmployeeWalkingPaths || forceStraight)
++        if ((_customEmployeeWalkingPaths && !directJob) || forceStraight)
+             GTA.Native.Function.Call(GTA.Native.Hash.TASK_GO_STRAIGHT_TO_COORD,
+                 worker.Handle, target.X, target.Y, target.Z,
+                 _walkSpeed, -1, heading, 0.3f);
+@@ -3695,7 +3800,8 @@ public class GlassHeroesBusiness : Script
+             _walkCheckpoint.Heading : _breakArea.Heading;
+         GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, employee.Worker.Handle);
+         IssueEmployeeWalkTask(employee.Worker, target, heading,
+-            employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0);
++            employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0,
++            !_customMechanicJobRoutes && (employee.ArrivalPhase == PhaseToBay || employee.ArrivalPhase == PhaseReturningToBreak));
+         employee.RouteSince = now;
+         employee.LastProgressAt = now;
+         employee.LastDistanceSquared = DistanceSquared(employee.Worker.Position, target);
+@@ -3882,7 +3988,8 @@ public class GlassHeroesBusiness : Script
+             }
+             // Reissue the current node, NOT a direct route to the final bay.
+             IssueEmployeeWalkTask(employee.Worker, target, employee.Worker.Heading,
+-                employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0);
++                employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0,
++            !_customMechanicJobRoutes && (employee.ArrivalPhase == PhaseToBay || employee.ArrivalPhase == PhaseReturningToBreak));
+             employee.LastProgressAt = now;
+             employee.RouteRetries++;
+         }
+@@ -6212,22 +6319,64 @@ public class GlassHeroesBusiness : Script
+     {
+         Ped player = Game.Player.Character;
+         bool show = _deliveryKind != -2 && _deliverySupplier == 0 &&
++            _deliveryRemainingGameSeconds <= 0 && _wholesaleWarehousePickup.IsSet &&
+             _supplierVisualStage == 7 && !_wholesaleCargoLoaded && !_supplierPlayerCarrying &&
+             player != null && player.Exists() &&
+             DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 6400f;
+         if (!show)
+-        { DeleteOwnedProp(ref _wholesaleWarehousePallet); return; }
+-        if (_wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists()) return;
+-        _wholesaleWarehousePallet = CreateFixedEquipmentProp("prop_pallet_02a",
++        {
++            DeleteOwnedProp(ref _wholesaleWarehousePallet);
++            // This crate belongs to this pickup only; never delete carried,
++            // vehicle-attached or non-wholesale delivery cargo here.
++            if (_deliverySupplier == 0 && _supplierVisualStage == 7 &&
++                !_wholesaleCargoLoaded && !_supplierPlayerCarrying)
++                DeleteOwnedProp(ref _supplierCrate);
++            _warehouseVisualAttempts = 0;
++            _nextWarehouseVisualAttempt = DateTime.MinValue;
++            return;
++        }
++        bool palletExists = _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists();
++        bool boxExists = _supplierCrate != null && _supplierCrate.Exists();
++        if (palletExists && boxExists) return;
++        if (!TryBeginWarehouseVisualAttempt(DateTime.UtcNow)) return;
++        if (!palletExists) _wholesaleWarehousePallet = CreateWarehousePallet();
++        if (!boxExists && _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists())
++        {
++            _supplierCrate = CreateFixedEquipmentProp("prop_cs_cardbox_01",
++                WarehousePackagePosition(), _wholesaleWarehousePickup.Heading, false);
++            if (_supplierCrate != null && _supplierCrate.Exists())
++            {
++                GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
++                    _supplierCrate.Handle, false, false);
++                _supplierCrate.FreezePosition = true;
++            }
++        }
++    }
++
++    private bool TryBeginWarehouseVisualAttempt(DateTime now)
++    {
++        if (now < _nextWarehouseVisualAttempt) return false;
++        // Five attempts per batch, then a longer cooldown. A transient model
++        // failure must not permanently hide a ready package until stream-out.
++        if (_warehouseVisualAttempts >= 5) _warehouseVisualAttempts = 0;
++        _warehouseVisualAttempts++;
++        _nextWarehouseVisualAttempt = now.AddSeconds(_warehouseVisualAttempts >= 5 ? 30 : 3);
++        return true;
++    }
++
++    private Prop CreateWarehousePallet()
++    {
++        Prop pallet = CreateFixedEquipmentProp("prop_pallet_02a",
+             _wholesaleWarehousePickup.Position, _wholesaleWarehousePickup.Heading, true);
+-        if (_wholesaleWarehousePallet == null)
+-            _wholesaleWarehousePallet = CreateFixedEquipmentProp("prop_pallet_01a",
++        if (pallet == null)
++            pallet = CreateFixedEquipmentProp("prop_pallet_01a",
+                 _wholesaleWarehousePickup.Position, _wholesaleWarehousePickup.Heading, true);
++        return pallet;
+     }
+ 
+     private void DrawWholesalePackageMarker()
+     {
+-        if (_deliveryKind == -2 || _deliverySupplier != 0 ||
++        if (_deliveryKind == -2 || _deliverySupplier != 0 || _deliveryRemainingGameSeconds > 0 ||
+             _supplierPlayerCarrying || _wholesaleCargoLoaded || _wholesaleCargoUnloaded ||
+             !_wholesaleWarehousePickup.IsSet || _supplierVisualStage != 7) return;
+         Ped player = Game.Player.Character;
+@@ -6314,6 +6463,7 @@ public class GlassHeroesBusiness : Script
+             {
+                 if (pallet > 0) SavePoint(data, "SupplierStoragePallet" + (pallet + 1), _extraStoragePallets[pallet - 1]);
+                 data.SetValue("Storage", "BoxCount" + (pallet + 1), _storedDeliveryCrates[pallet]);
++                data.SetValue("Storage", "DeliveredPackageMask" + (pallet + 1), _deliveredPackageMasks[pallet]);
+             }
+             data.SetValue("Purchasing", "DeliveryDueUtcTicks", _deliveryDueUtcTicks);
+             data.SetValue("Purchasing", "DeliveryRemainingGameSeconds", _deliveryRemainingGameSeconds);
+@@ -6372,6 +6522,7 @@ public class GlassHeroesBusiness : Script
+             data.SetValue("EmployeeSettings", "TeleportOnBlockedRoute", _routeRecoveryEnabled);
+             data.SetValue("EmployeeSettings", "BreakAnimationsEnabled", _breakAnimationsEnabled);
+             data.SetValue("EmployeeSettings", "CustomWalkingPaths", _customEmployeeWalkingPaths);
++            data.SetValue("EmployeeSettings", "CustomJobRoutes", _customMechanicJobRoutes);
+             data.SetValue("EmployeeSettings", "PickupUseReverseArrivalWaypoints", _pickupUsesArrivalExit);
+             data.SetValue("EmployeeSettings", "SmoothWaypointTransitions", _smoothMechanicWaypoints);
+             data.SetValue("EmployeeSettings", "SafeTeleportOnStall", _safeTeleportOnStall);
+@@ -6486,7 +6637,8 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+         if ((now - _lastControllerAction).TotalMilliseconds < 180) return;
+-        if (PadPressed(_controllerOpenModifier) && PadJustPressed(_controllerOpenButton))
++        if (PadPressed(_controllerOpenModifier) && PadJustPressed(_controllerOpenButton) &&
++            _menuInput.TryController(4, now.Ticks))
+         {
+             _lastPadDetected = "OPEN COMBO";
+             _lastPadDetectedAt = now;
+@@ -6498,14 +6650,12 @@ public class GlassHeroesBusiness : Script
+         if (!_showMenu) return;
+         // Unlike keyboard KeyDown, gamepad edges must be polled during Tick.
+         // Some frontend controls are used elsewhere, so suppress only when menu active.
+-        if (PadJustPressed(_controllerBack)) { _lastPadDetected = "BACK"; NavigateBack(); _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerUp) &&
+-            !(_lastKeyboardMenuKey == Keys.Up && (now - _lastKeyboardMenuAt).TotalMilliseconds < 250))
++        if (PadJustPressed(_controllerBack) && _menuInput.TryController(3, now.Ticks)) { _lastPadDetected = "BACK"; NavigateBack(); _lastControllerAction = now; }
++        else if (PadJustPressed(_controllerUp) && _menuInput.TryController(0, now.Ticks))
+         { _lastPadDetected = "UP"; _selection = (_selection - 1 + GetMenuItems().Length) % GetMenuItems().Length; _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerDown) &&
+-            !(_lastKeyboardMenuKey == Keys.Down && (now - _lastKeyboardMenuAt).TotalMilliseconds < 250))
++        else if (PadJustPressed(_controllerDown) && _menuInput.TryController(1, now.Ticks))
+         { _lastPadDetected = "DOWN"; _selection = (_selection + 1) % GetMenuItems().Length; _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerAccept))
++        else if (PadJustPressed(_controllerAccept) && _menuInput.TryController(2, now.Ticks))
+         { _lastPadDetected = "SELECT"; ExecuteSelection(); _lastControllerAction = now; }
+         if (_lastPadDetected != "NONE") _lastPadDetectedAt = now;
+         }
+@@ -6590,6 +6740,8 @@ public class GlassHeroesBusiness : Script
+         try { if (_supplierDriver != null && _supplierDriver.Exists()) _supplierDriver.Delete(); } catch { }
+         try { if (_supplierTruck != null && _supplierTruck.Exists()) _supplierTruck.Delete(); } catch { }
+         _supplierCrate = null;
++        _warehouseVisualAttempts = 0;
++        _nextWarehouseVisualAttempt = DateTime.MinValue;
+         DeleteOwnedProp(ref _wholesaleWarehousePallet);
+         _supplierPlayerCarrying = false;
+         _supplierDriver = null;
+@@ -6599,6 +6751,8 @@ public class GlassHeroesBusiness : Script
+         _supplierDepartIssued = false;
+         _supplierRouteIndex = 0;
+         _supplierWalkingNodes.Clear();
++        _supplierDirectToPlayer = false;
++        _supplierPlayerRepaths = 0;
+         _supplierBoxAttachedToDriver = false;
+         _muleRearDoorsOpened = false;
+     }
+@@ -6745,15 +6899,65 @@ public class GlassHeroesBusiness : Script
+     private void BeginSupplierDriverWalk(DateTime now)
+     {
+         _supplierWalkingNodes.Clear();
+-        foreach (WorkBay point in _supplierDriverWaypoints)
+-            if (point.IsSet) _supplierWalkingNodes.Add(point.Position);
+-        _supplierWalkingNodes.Add(_supplierHandoff.Position);
++        _supplierDirectToPlayer = _supplierPartsPallet.IsSet;
++        if (_supplierDirectToPlayer)
++        {
++            Ped player = Game.Player.Character;
++            if (player == null || !player.Exists())
++            { DeferSupplierPlayerHandoff(now); return; }
++            _supplierWalkingNodes.Add(player.Position);
++            _supplierPlayerApproachDeadline = now.AddSeconds(90);
++            _nextSupplierPlayerRepath = now.AddSeconds(3);
++            _supplierPlayerRepaths = 0;
++        }
++        else
++        {
++            // Regular automatic drop-off retains every configured route stop.
++            foreach (WorkBay point in _supplierDriverWaypoints)
++                if (point.IsSet) _supplierWalkingNodes.Add(point.Position);
++            _supplierWalkingNodes.Add(_supplierHandoff.Position);
++        }
+         _supplierRouteIndex = 0;
+         _supplierVisualStage = 3;
+         _supplierStageAt = now;
+         TaskSupplierWalkingNode();
+     }
+ 
++    private void UpdateSupplierPlayerApproach(DateTime now)
++    {
++        Ped player = Game.Player.Character;
++        if (player == null || !player.Exists() || player.IsDead ||
++            _supplierDriver == null || !_supplierDriver.Exists() ||
++            _supplierCrate == null || !_supplierCrate.Exists() || !_supplierBoxAttachedToDriver)
++        { DeferSupplierPlayerHandoff(now); return; }
++        float distance = DistanceSquared(_supplierDriver.Position, player.Position);
++        if (distance < 4f)
++        {
++            if (_supplierVisualStage != 4)
++            { _supplierVisualStage = 4; _supplierStageAt = now; }
++            return; // hold the attached box for the player's explicit action
++        }
++        if (now >= _supplierPlayerApproachDeadline || distance > 10000f || _supplierPlayerRepaths >= 15)
++        { DeferSupplierPlayerHandoff(now); return; }
++        _supplierVisualStage = 3;
++        if (now < _nextSupplierPlayerRepath) return;
++        _nextSupplierPlayerRepath = now.AddSeconds(3);
++        _supplierPlayerRepaths++;
++        _supplierWalkingNodes.Clear();
++        _supplierWalkingNodes.Add(player.Position);
++        _supplierRouteIndex = 0;
++        TaskSupplierWalkingNode();
++    }
++
++    private void DeferSupplierPlayerHandoff(DateTime now)
++    {
++        // Cleanup owns visuals only. The paid/pending order and invoice ledger
++        // remain authoritative, and respawn cannot spin on the following tick.
++        DeleteSupplierVisuals();
++        _nextSupplierVisualRetryUtc = now.AddSeconds(30);
++        Log("Supplier player handoff deferred; pending order preserved", null);
++    }
++
+     private void TaskSupplierWalkingNode()
+     {
+         if (_supplierDriver == null || !_supplierDriver.Exists() ||
+@@ -6777,7 +6981,12 @@ public class GlassHeroesBusiness : Script
+         long invoice = _deliveryPrepaid ? 0L : _deliveryCost;
+         if (kind < 0) _parts += quantity;
+         else _specialStock[kind] += quantity;
+-        if (palletSlot >= 0) _storedDeliveryCrates[palletSlot]++;
++        if (palletSlot >= 0)
++        {
++            _deliveredPackageMasks[palletSlot] |= 1 << _storedDeliveryCrates[palletSlot];
++            _storedDeliveryCrates[palletSlot]++;
++            _palletVisualDirty = true;
++        }
+         _supplierInvoicesDue += invoice;
+         _completedSupplierDeliveries++;
+         _deliveryKind = -2;
+@@ -6825,26 +7034,9 @@ public class GlassHeroesBusiness : Script
+             if (_wholesaleCargoUnloaded) { _supplierVisualStage = 6; return; }
+             // Wholesale replaces the Mule with a physical pickup mission.
+             _supplierVisualStage = 7;
+-            Ped player = Game.Player.Character;
+-            if (player != null && player.Exists() &&
+-                DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 6400f &&
+-                FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null)
+-            {
+-                UpdateWholesalePalletVisual();
+-                if ((_supplierCrate == null || !_supplierCrate.Exists()) &&
+-                    _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists())
+-                {
+-                    _supplierCrate = CreateFixedEquipmentProp("prop_cs_cardbox_01",
+-                        WarehousePackagePosition(), _wholesaleWarehousePickup.Heading, false);
+-                    if (_supplierCrate != null && _supplierCrate.Exists())
+-                    {
+-                        GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
+-                            _supplierCrate.Handle, false, false);
+-                        _supplierCrate.FreezePosition = true;
+-                    }
+-                }
+-            }
+-            else if (!_supplierPlayerCarrying) DeleteOwnedProp(ref _supplierCrate);
++            // Ready cargo is streamed by player distance, independently of
++            // the assigned vehicle. Vehicle identity is checked when LOADING.
++            UpdateWholesalePalletVisual();
+             return;
+         }
+         if (!_physicalMuleDeliveries || !MuleRouteConfigured())
+@@ -6853,7 +7045,11 @@ public class GlassHeroesBusiness : Script
+             CommitSupplierDelivery();
+             return;
+         }
+-        if (_supplierVisualStage == 0) { StartMuleDelivery(now); return; }
++        if (_supplierVisualStage == 0)
++        {
++            if (now >= _nextSupplierVisualRetryUtc) StartMuleDelivery(now);
++            return;
++        }
+         if (_supplierDriver == null || !_supplierDriver.Exists() ||
+             _supplierTruck == null || !_supplierTruck.Exists())
+         {
+@@ -6861,6 +7057,11 @@ public class GlassHeroesBusiness : Script
+             return;
+         }
+         double elapsed = (now - _supplierStageAt).TotalSeconds;
++        if (_supplierDirectToPlayer && (_supplierVisualStage == 3 || _supplierVisualStage == 4))
++        {
++            UpdateSupplierPlayerApproach(now);
++            return;
++        }
+         if (_supplierVisualStage == 1)
+         {
+             if (DistanceSquared(_supplierTruck.Position, _supplierTruckPark.Position) <= 120f)
+@@ -7336,8 +7537,7 @@ public class GlassHeroesBusiness : Script
+             _supplierDriver.Exists() && DistanceSquared(player.Position, _supplierDriver.Position) < 10f;
+         bool atWarehouse = _supplierVisualStage == 7 && _deliverySupplier == 0 &&
+             _wholesaleWarehousePickup.IsSet && !_wholesaleCargoLoaded &&
+-            DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 10f &&
+-            FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null;
++            DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 10f;
+         Vehicle assignedNearPlayer = FindAssignedWholesaleVehicle(player.Position, 8f);
+         bool loadWholesale = _supplierVisualStage == 6 && _supplierPlayerCarrying &&
+             _deliverySupplier == 0 && !_wholesaleCargoUnloaded && assignedNearPlayer != null;
+@@ -7436,8 +7636,10 @@ public class GlassHeroesBusiness : Script
+                 _supplierCrate.Heading = StoragePalletPoint(slot).Heading;
+                 _supplierCrate.FreezePosition = true;
+                 GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, _supplierCrate.Handle, false, false);
+-                _storedCrateProps.Add(_supplierCrate);
+-                _supplierCrate = null; // now belongs to persistent pallet display, not Mule lifecycle
++                int packageIndex = slot * CratesPerPallet + nextBox;
++                DeleteOwnedProp(ref _deliveredPackageProps[packageIndex]);
++                _deliveredPackageProps[packageIndex] = _supplierCrate;
++                _supplierCrate = null; // delivered parcel ownership is separate from obsolete displays
+             }
+             GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
+             _supplierPlayerCarrying = false;
+@@ -7472,8 +7674,7 @@ public class GlassHeroesBusiness : Script
+             _supplierDriver.Exists() &&
+             DistanceSquared(Game.Player.Character.Position, _supplierDriver.Position) < 10f;
+         bool nearWarehouse = _supplierVisualStage == 7 && _wholesaleWarehousePickup.IsSet &&
+-            DistanceSquared(Game.Player.Character.Position, _wholesaleWarehousePickup.Position) < 10f &&
+-            FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null;
++            DistanceSquared(Game.Player.Character.Position, _wholesaleWarehousePickup.Position) < 10f;
+         bool nearCargoVehicle = (_supplierVisualStage == 9 && _wholesaleCargoLoaded ||
+             _supplierVisualStage == 6 && _supplierPlayerCarrying && _deliverySupplier == 0 && !_wholesaleCargoUnloaded) &&
+             FindAssignedWholesaleVehicle(Game.Player.Character.Position, 8f) != null;
+@@ -7488,6 +7689,7 @@ public class GlassHeroesBusiness : Script
+         string prompt = nearPallet ? "STOCK this box at the pallet." :
+             nearCargoVehicle && _wholesaleCargoLoaded ? "UNLOAD the box from the assigned vehicle." :
+             nearCargoVehicle && _supplierPlayerCarrying ? "LOAD the box into the assigned vehicle." :
++            nearWarehouse ? "PICK UP the warehouse box; use your assigned vehicle to LOAD it." :
+             "PICK UP the supplier package.";
+         UI.ShowSubtitle("~b~Glass Heroes~s~: ~y~E~s~ / ~b~D-pad RIGHT~s~ to " + prompt, 1750);
+     }
+@@ -7507,12 +7709,29 @@ public class GlassHeroesBusiness : Script
+         }
+     }
+ 
+-    private void DeleteStoragePalletVisuals()
++    private static int CompatiblePackageVisualMask(int storedBoxes, int savedMask)
+     {
+-        for (int i = 0; i < MaxStoragePallets; i++) DeleteOwnedProp(ref _storagePalletProps[i]);
++        int count = Math.Max(0, Math.Min(CratesPerPallet, storedBoxes));
++        return savedMask & ((1 << count) - 1);
++    }
++
++    private void DeleteLegacyStockroomDisplayBoxes()
++    {
++        // Only our obsolete display list. Never touch live cargo, delivered
++        // parcel ownership, warehouse props, world/MLO entities or stock counts.
+         foreach (Prop crate in _storedCrateProps)
+             try { if (crate != null && crate.Exists()) crate.Delete(); } catch { }
+         _storedCrateProps.Clear();
++    }
++
++    private void DeleteStoragePalletVisuals()
++    {
++        for (int i = 0; i < MaxStoragePallets; i++) DeleteOwnedProp(ref _storagePalletProps[i]);
++        DeleteLegacyStockroomDisplayBoxes();
++        for (int i = 0; i < _deliveredPackageProps.Length; i++)
++            DeleteOwnedProp(ref _deliveredPackageProps[i]);
++        _storageVisualAttempts = 0;
++        _nextStorageVisualAttempt = DateTime.MinValue;
+         _palletVisualDirty = true;
+     }
+ 
+@@ -7523,29 +7742,45 @@ public class GlassHeroesBusiness : Script
+         for (int i = 0; i < _ownedStoragePallets; i++)
+             if (StoragePalletPoint(i).IsSet && player != null && player.Exists() &&
+                 DistanceSquared(player.Position, StoragePalletPoint(i).Position) < 6400f) nearby = true;
+-        if (!nearby) { if (_storedCrateProps.Count > 0 || _palletVisualDirty == false)
+-            DeleteStoragePalletVisuals(); return; }
++        if (!nearby)
++        {
++            if (_storageVisualAttempts > 0 || !_palletVisualDirty || _storedCrateProps.Count > 0)
++                DeleteStoragePalletVisuals();
++            return;
++        }
++        DeleteLegacyStockroomDisplayBoxes();
+         if (!_palletVisualDirty) return;
+-        DeleteStoragePalletVisuals();
++        DateTime now = DateTime.UtcNow;
++        if (_storageVisualAttempts >= 5 || now < _nextStorageVisualAttempt) return;
++        _storageVisualAttempts++;
++        _nextStorageVisualAttempt = now.AddSeconds(3);
+         bool complete = true;
+         for (int i = 0; i < _ownedStoragePallets; i++)
+         {
+             WorkBay point = StoragePalletPoint(i);
+             if (!point.IsSet) continue;
+-            _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_02a",
+-                point.Position, point.Heading, true);
+-            if (_storagePalletProps[i] == null)
+-                _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_01a",
++            if (_storagePalletProps[i] == null || !_storagePalletProps[i].Exists())
++            {
++                _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_02a",
+                     point.Position, point.Heading, true);
++                if (_storagePalletProps[i] == null)
++                    _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_01a",
++                        point.Position, point.Heading, true);
++            }
+             if (_storagePalletProps[i] == null) { complete = false; continue; }
++            // BoxCount remains authoritative capacity data. Only parcels with
++            // delivery provenance may be reconstructed, never legacy displays.
+             for (int b = 0; b < _storedDeliveryCrates[i]; b++)
+             {
++                if ((_deliveredPackageMasks[i] & (1 << b)) == 0) continue;
++                int index = i * CratesPerPallet + b;
++                if (_deliveredPackageProps[index] != null && _deliveredPackageProps[index].Exists()) continue;
+                 Prop visual = CreateFixedEquipmentProp("prop_cs_cardbox_01",
+                     StoredBoxPosition(i, b), point.Heading, false);
+                 if (visual != null)
+                 {
+                     GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, visual.Handle, false, false);
+-                    _storedCrateProps.Add(visual);
++                    _deliveredPackageProps[index] = visual;
+                 }
+                 else complete = false;
+             }
+@@ -7670,6 +7905,7 @@ public class GlassHeroesBusiness : Script
+ 
+     private void OnAborted(object sender, EventArgs e)
+     {
++        Log("LIFECYCLE abort requested; last tick phase=" + _diagnosticTickStage, null);
+         // Nothing has been spawned or billed before activation. Do not write
+         // partially initialized defaults over the user's existing Save.ini.
+         if (!_bootGameplayActivated)
+@@ -7692,6 +7928,7 @@ public class GlassHeroesBusiness : Script
+         try { _mechanicModel.MarkAsNoLongerNeeded(); }
+         catch (Exception ex) { Log("Release model", ex); }
+         Save();
++        Log("LIFECYCLE abort cleanup completed", null);
+     }
+ 
+     private static void Notify(string message)
+@@ -7715,15 +7952,98 @@ public class GlassHeroesBusiness : Script
+             message.EndsWith(" returning serviced car to the drop-off.", StringComparison.Ordinal);
+     }
+ 
+-    private static void Log(string context, Exception ex)
+-    {
+-        try
++    // BEGIN ISSUE1 DIAGNOSTIC LOG (also exercised by the standalone test runner)
++    private sealed class DiagnosticLog
++    {
++        private readonly Func<DateTime> _utcNow;
++        private readonly Action<string> _append;
++        private DateTime _nextErrorUtc = DateTime.MinValue;
++        private DateTime _nextTransitionUtc = DateTime.MinValue;
++        private DateTime _nextWriteRetryUtc = DateTime.MinValue;
++        private int _suppressedErrors;
++        private bool _writing;
++        private bool _hasState;
++        private long _lastState;
++
++        internal DiagnosticLog(Func<DateTime> utcNow, Action<string> append)
++        {
++            _utcNow = utcNow;
++            _append = append;
++        }
++
++        internal void RecordTransition(bool shift, bool remote, bool staffInRange,
++            bool menu, int supplierStage, int customers, int remoteJobs)
++        {
++            // Read managed state only, once per existing visual refresh. No GTA
++            // natives, entity scans, string allocations or writes on stable idle.
++            long state = (shift ? 1L : 0L) | (remote ? 2L : 0L) |
++                (staffInRange ? 4L : 0L) | (menu ? 8L : 0L) |
++                ((long)supplierStage << 4) | ((long)customers << 8) |
++                ((long)remoteJobs << 24);
++            if (_hasState && state == _lastState) return;
++            DateTime now = _utcNow();
++            if (now < _nextTransitionUtc) return;
++            // Coalesce rapid changes: this is the latest observed state, not a
++            // complete event history. Never emit a per-frame/per-second heartbeat.
++            _nextTransitionUtc = now.AddSeconds(10);
++            if (Write("STATE shift=" + shift + " remote=" + remote +
++                " staffInRange=" + staffInRange + " menu=" + menu +
++                " supplierStage=" + supplierStage + " customers=" + customers +
++                " remoteJobs=" + remoteJobs, null))
++            {
++                _lastState = state;
++                _hasState = true;
++            }
++        }
++
++        internal bool Write(string context, Exception ex)
+         {
+-            Directory.CreateDirectory(DataDirectory);
+-            File.AppendAllText(Path.Combine(DataDirectory, "Errors.log"),
+-                DateTime.Now.ToString("s") + " | " + context + " | " +
+-                (ex == null ? "no exception" : ex.ToString()) + Environment.NewLine);
++            // The writer can fail or re-enter. Diagnostics must never recurse or
++            // escape into the gameplay loop, including when storage is unavailable.
++            if (_writing) return false;
++            _writing = true;
++            try
++            {
++                DateTime now = _utcNow();
++                if (now < _nextWriteRetryUtc) return false;
++                if (ex != null && now < _nextErrorUtc)
++                {
++                    if (_suppressedErrors < int.MaxValue) _suppressedErrors++;
++                    return false;
++                }
++                if (ex != null) _nextErrorUtc = now.AddSeconds(10);
++                string suppressed = ex != null && _suppressedErrors > 0
++                    ? " | suppressed errors=" + _suppressedErrors : "";
++                _append(now.ToString("s") + "Z | " + context + " | " +
++                    (ex == null ? "no exception" : ex.ToString()) + suppressed +
++                    Environment.NewLine);
++                if (ex != null) _suppressedErrors = 0;
++                return true;
++            }
++            catch
++            {
++                // Back off disk failures as well as exception floods. This clock
++                // governs logging only; no business or delivery timer is changed.
++                try { _nextWriteRetryUtc = _utcNow().AddSeconds(30); }
++                catch { }
++                return false;
++            }
++            finally { _writing = false; }
+         }
+-        catch { /* logging must never crash GTA */ }
++    }
++    // END ISSUE1 DIAGNOSTIC LOG
++
++    private static readonly DiagnosticLog _diagnosticLog = new DiagnosticLog(
++        () => DateTime.UtcNow, AppendDiagnosticLine);
++
++    private static void AppendDiagnosticLine(string line)
++    {
++        Directory.CreateDirectory(DataDirectory);
++        File.AppendAllText(Path.Combine(DataDirectory, "Errors.log"), line);
++    }
++
++    private static void Log(string context, Exception ex)
++    {
++        _diagnosticLog.Write(context, ex);
+     }
+ }

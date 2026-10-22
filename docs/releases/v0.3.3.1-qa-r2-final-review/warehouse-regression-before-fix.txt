@@ -1,0 +1,19 @@
+/workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Program.cs(12,62): warning CS0649: Field 'Harness.WorkBay.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Program.cs(5,93): warning CS0649: Field 'Prop.Handle' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Program.cs(84,32): warning CS0649: Field 'Harness._wholesaleCargoUnloaded' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Tests.csproj]
+PASS #3 ready shipment spawns without any vehicle API or nearby assigned vehicle
+PASS #3 box rests on actual grounded pallet rather than saved Z
+PASS #3 refresh does not duplicate live cargo
+PASS #3 stream out deletes warehouse-owned visuals and re-entry recreates one pair
+PASS #3 carried and loaded cargo are never deleted by warehouse streaming
+Unhandled exception. System.Exception: stationary recovery still blocked after retry budget
+   at Harness.Check(Boolean b, String m) in /workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Program.cs:line 96
+   at Harness.<>c.<Main>b__26_5() in /workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Program.cs:line 104
+   at Harness.Test(String n, Action a) in /workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Program.cs:line 97
+   at Harness.Main() in /workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Program.cs:line 104
+Traceback (most recent call last):
+  File "/workspace/GTAV_Mechanic_Shop_Script/verification/run_issue_tests.py", line 43, in <module>
+    subprocess.run(['dotnet', 'run', '--project', str(path/'Tests.csproj'), '--configuration', 'Release'], cwd=path, check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['dotnet', 'run', '--project', '/workspace/.cloud-setup/tmp/glassheroes-issue3-r78o1vqk/Tests.csproj', '--configuration', 'Release']' returned non-zero exit status 134.

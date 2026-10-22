@@ -1,0 +1,9 @@
+# v0.3.3.1 QA R2 — EXPERIMENTAL / FINAL REVIEW PENDING
+
+- PR #16 feedback: renew warehouse visual retries after each bounded five-attempt batch and thirty-second cooldown. Keep three-second spacing, retain a successful pallet, retry missing box models in place and stop all requests while both props are alive. No permanent in-range lockout and no per-frame model request loop.
+- Explicitly integrate PR #9's transition-only state checkpoints, tick-phase error context, lifecycle logs, error throttle, writer reentrancy guard and storage-failure backoff. Record the original commit and verify diagnostic implementation hashes. Update the boot banner to QA R2.
+- Retain #2 input/Back/label corrections, #3 vehicle-independent ready cargo with assigned-vehicle loading, #5 direct player handoff plus ordinary waypoint routing, #6 legacy display suppression with real parcel provenance, #4 GTA heading/front arrow and #7 direct work routes with advanced opt-in.
+- Add targeted exhaustion/renewal/partial-failure tests, rerun all corrective and diagnostic behavior tests, original static checks, business/timer preservation guards and actual net48/SHVDN2 compilation.
+- Produce ONE source installation/review ZIP with matched install and Visual Studio source, source diffs, regression evidence, provenance, actual test logs, final-review handoff, checksums and updated MD/DOCX/PDF guide. Historical RC1 is packaged only as a .txt verification fixture, not another active script. No nested old source ZIPs, DLLs or live Save.ini/Settings.ini files.
+
+No new save/config schema or default changes relative to PR #16; optional DeliveredPackageMask1..4 and CustomJobRoutes compatibility remains documented. No existing business save or live setting was modified. main/development and existing PR branches remain unchanged. GTA testing NOT RUN; Windows build NOT RUN; stack-overflow cause UNPROVEN; final ChatGPT review PENDING.

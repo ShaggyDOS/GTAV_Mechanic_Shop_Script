@@ -1,0 +1,72 @@
+{
+  "version": "v0.3.3.1 EXPERIMENTAL / QA ONLY",
+  "label": "qa-r2-final-review",
+  "included_issues": [
+    "1",
+    "2",
+    "3",
+    "5",
+    "6",
+    "4",
+    "7"
+  ],
+  "created_utc": "2026-10-22T17:09:24.030724+00:00",
+  "base_commit": "86919e7648d55dc80295fa19b68560988fac41e0",
+  "sdk": "8.0.426",
+  "target": "net48 / C# 7.3 / ScriptHookVDotNet2 2.11.6",
+  "release_build": "PASS",
+  "production_warnings": [
+    "CS0169",
+    "CS0649"
+  ],
+  "static_checks": {
+    "passed": 21,
+    "total": 21
+  },
+  "behavior_tests": {
+    "2": {
+      "passed": 10,
+      "total": 10
+    },
+    "3": {
+      "passed": 14,
+      "total": 14
+    },
+    "5": {
+      "passed": 8,
+      "total": 8
+    },
+    "6": {
+      "passed": 8,
+      "total": 8
+    },
+    "4": {
+      "passed": 7,
+      "total": 7
+    },
+    "7": {
+      "passed": 7,
+      "total": 7
+    },
+    "1": {
+      "passed": 9,
+      "total": 9
+    }
+  },
+  "source_sha256": {
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445"
+  },
+  "source_copies_equal": true,
+  "source_diff_applies_exactly": true,
+  "historical_rc1_unchanged": true,
+  "business_saves_or_live_settings_touched": false,
+  "gta_testing": "NOT RUN",
+  "windows_build": "NOT RUN",
+  "crash_cause": "UNPROVEN",
+  "review_status": "PENDING; no integration or main merge authorized by this artifact",
+  "pr9_diagnostics_commit": "4727bdabdf67efd07810f5a62e5d1fdb202464e3",
+  "behavior_test_total": 63,
+  "behavior_test_passed": 63,
+  "final_review_only": true
+}

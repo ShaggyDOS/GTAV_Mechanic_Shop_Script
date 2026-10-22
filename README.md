@@ -1,5 +1,7 @@
 # GlassHeroes Business Script
 
+Current final-review candidate: **v0.3.3.1 QA R2 EXPERIMENTAL**, combining PR #9 diagnostics, PR #16 corrections and bounded warehouse retry renewal. See [R2 developer guide](docs/releases/v0.3.3.1-qa-r2-final-review/DEVELOPER_GUIDE.md) and [final review handoff](docs/releases/v0.3.3.1-qa-r2-final-review/FINAL_REVIEW_HANDOFF.md). All automated checks pass; GTA testing NOT RUN and crash cause UNPROVEN. Use the single R2 source ZIP for review; earlier QA links below are historical and do not include this follow-up.
+
 Review-pending v0.3.3.1 QA candidate (#2–#7): see [developer guide](docs/releases/v0.3.3.1-qa-issues2-7/DEVELOPER_GUIDE.md) and [branch/PR handoff](docs/releases/v0.3.3.1-qa-issues2-7/REVIEW_HANDOFF.md). Build and automated checks pass; GTA testing NOT RUN; crash cause UNPROVEN. Install one `Install/scripts/GlassHeroesBusiness.2.cs` only, preserving all saves/settings. Historical root RC1 remains unchanged.
 
 A GTA V mod project focused on a business / mechanic shop script system.

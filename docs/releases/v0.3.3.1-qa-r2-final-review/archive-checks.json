@@ -1,0 +1,18 @@
+{
+  "archive_crc": "PASS",
+  "archive_paths_unique_and_relative": true,
+  "only_business_source_paths": [
+    "Install/scripts/GlassHeroesBusiness.2.cs",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs"
+  ],
+  "no_live_save_settings_dll_or_nested_zip": true,
+  "source_sha256": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+  "extracted_package_checks": {
+    "static": "PASS from extracted ZIP using .txt baseline fixture",
+    "preservation": "PASS from extracted ZIP using .txt baseline fixture"
+  },
+  "pr16_delta_applies_exactly": true,
+  "docx_pdf_final_results_verified": true,
+  "gta_testing": "NOT RUN",
+  "final_review": "PENDING"
+}

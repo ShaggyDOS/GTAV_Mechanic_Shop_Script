@@ -12,6 +12,7 @@ output = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(tempfile.get
 output.mkdir(exist_ok=True)
 source = repo / 'VisualStudio/scripts/GlassHeroesBusiness.2.cs'
 rc1 = repo / 'GlassHeroesBusiness_v0.3.3.0_RC1.2.cs'
+if not rc1.exists(): rc1 = repo / 'verification/baselines/GlassHeroesBusiness_v0.3.3.0_RC1.2.cs.txt'
 with tempfile.TemporaryDirectory(prefix='glassheroes-static-') as tmp:
     baseline = Path(tmp) / 'source.2.cs'
     baseline.write_text(rc1.read_text(encoding='utf-8-sig'), encoding='utf-8')
