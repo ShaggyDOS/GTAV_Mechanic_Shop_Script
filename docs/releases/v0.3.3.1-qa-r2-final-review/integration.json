@@ -1,0 +1,35 @@
+{
+  "base_pr": 16,
+  "base_commit": "2bca18a8f4b345befbab5a2be2b9645eb228e0c2",
+  "diagnostics_pr": 9,
+  "diagnostics_commit": "4727bdabdf67efd07810f5a62e5d1fdb202464e3",
+  "branch": "qa/v0.3.3.1-final-review-r2",
+  "observed_pr_heads": {
+    "9": "4727bdabdf67efd07810f5a62e5d1fdb202464e3",
+    "10": "0ed037afe9276e5eafc5d2caa114be85537af76c",
+    "11": "fcc448369031063ab1e8b8956110e92e89781edf",
+    "12": "c841beca5f95d8b9d9cf86c48627106086336581",
+    "13": "17b434f34dd9838279feb9d79e4093dac8a2685f",
+    "14": "3d660a24bdc959fd54c434e644d7ff39d55e0fc8",
+    "15": "cc6f3b5a78fa2c56bf381ceafa4f167ff21f30db",
+    "16": "2bca18a8f4b345befbab5a2be2b9645eb228e0c2"
+  },
+  "integration_method": "Explicit source-only PR9 patch onto PR16; version-header conflict resolved; new retry gate; no main/development/PR-branch merge",
+  "review_comment_source": "User-pasted ChatGPT coordination feedback in this chat; GitHub API reads returned Forbidden",
+  "draft_status_source": "User-provided review reports PRs #10-#16 draft; native Git refs confirm source heads, not UI draft state",
+  "diagnostic_reference": {
+    "pr": 9,
+    "commit": "4727bdabdf67efd07810f5a62e5d1fdb202464e3",
+    "full_source_sha256": "479b321a6626458697de40c3b4f2f01557942cbd594b93323b652d26de241b38",
+    "diagnostic_region_sha256": "7c5aeb61dac79566a333373322a7b7588c63db34ffb61899fc9f6844441fa3b1",
+    "methods_sha256": {
+      "OnTick": "229a7405ed6fc77e90e65777be84475923b00afe158a33cfa08e7f091f4df70a",
+      "OnAborted": "34e9e6ed639d48bbb8fe57c6782fafed80da55146313206e7747b2d91482fb73",
+      "AppendDiagnosticLine": "034be22f0451edb4087aed4e9ee68722958ab3f29815ff127405fdd96cfcf21a",
+      "Log": "e927d34659545891f73fb8577d50b11b1df99131db3fe509efab3f983d7f4735"
+    }
+  },
+  "gta_testing": "NOT RUN",
+  "crash_cause": "UNPROVEN",
+  "final_review": "PENDING"
+}

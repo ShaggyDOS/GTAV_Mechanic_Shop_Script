@@ -1,0 +1,14 @@
+  Determining projects to restore...
+  Restored /workspace/GTAV_Mechanic_Shop_Script/VisualStudio/GlassHeroesBusiness.csproj (in 458 ms).
+/workspace/GTAV_Mechanic_Shop_Script/VisualStudio/scripts/GlassHeroesBusiness.2.cs(145,21): warning CS0649: Field 'GlassHeroesBusiness.CustomerOrder.VehicleTaskIssued' is never assigned to, and will always have its default value false [/workspace/GTAV_Mechanic_Shop_Script/VisualStudio/GlassHeroesBusiness.csproj]
+/workspace/GTAV_Mechanic_Shop_Script/VisualStudio/scripts/GlassHeroesBusiness.2.cs(376,17): warning CS0169: The field 'GlassHeroesBusiness._selectedInvoiceMechanicSlot' is never used [/workspace/GTAV_Mechanic_Shop_Script/VisualStudio/GlassHeroesBusiness.csproj]
+  GlassHeroesBusiness -> /workspace/.cloud-setup/tmp/glassheroes-build-ugva0gif/bin/GlassHeroesBusiness.dll
+
+Build succeeded.
+
+/workspace/GTAV_Mechanic_Shop_Script/VisualStudio/scripts/GlassHeroesBusiness.2.cs(145,21): warning CS0649: Field 'GlassHeroesBusiness.CustomerOrder.VehicleTaskIssued' is never assigned to, and will always have its default value false [/workspace/GTAV_Mechanic_Shop_Script/VisualStudio/GlassHeroesBusiness.csproj]
+/workspace/GTAV_Mechanic_Shop_Script/VisualStudio/scripts/GlassHeroesBusiness.2.cs(376,17): warning CS0169: The field 'GlassHeroesBusiness._selectedInvoiceMechanicSlot' is never used [/workspace/GTAV_Mechanic_Shop_Script/VisualStudio/GlassHeroesBusiness.csproj]
+    2 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.51

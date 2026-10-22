@@ -1,0 +1,480 @@
+diff --git a/Install/scripts/GlassHeroesBusiness.2.cs b/Install/scripts/GlassHeroesBusiness.2.cs
+index 73f8043..3d94b85 100644
+--- a/Install/scripts/GlassHeroesBusiness.2.cs
++++ b/Install/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,5 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
++﻿// Glass Heroes Business Manager - v0.3.3.1 issue #1 DIAGNOSTIC / EXPERIMENTAL
++// Idle crash cause unconfirmed; transition logging is not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+ 
+@@ -295,6 +296,7 @@ public class GlassHeroesBusiness : Script
+     // never for earnings, worker wages, remote jobs or supplier progress.
+     private DateTime _bootGateUntilUtc = DateTime.MinValue;
+     private bool _bootGameplayActivated;
++    private string _diagnosticTickStage = "startup gate";
+     private bool _diagnosticHoldGameplayTick;
+     private int _diagnosticDelaySeconds = 30;
+     private bool _showMenu;
+@@ -506,7 +508,7 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.2.9a / constructor entered", null);
++            Log("BOOT v0.3.3.1 issue #1 EXPERIMENTAL / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -846,6 +848,7 @@ public class GlassHeroesBusiness : Script
+                 Notify("Loaded. Press " + MenuKeyLabel() + " for business management. Stand at your shop to set its location.");
+                 return;
+             }
++            _diagnosticTickStage = "game clock";
+             DateTime now = DateTime.UtcNow;
+             double seconds = (now - _lastTick).TotalSeconds;
+             _lastTick = now;
+@@ -859,6 +862,7 @@ public class GlassHeroesBusiness : Script
+             // Clamp game-clock jumps from loading, cutscenes and script reloads.
+             double activeGameSeconds = !Game.IsPaused && elapsedGameMs > 0 && elapsedGameMs <= 30000L
+                 ? Math.Min(2d, elapsedGameMs / 1000d) : 0d;
++            _diagnosticTickStage = "remote mode transition";
+             if (_clockedIn && _managerTier >= 0 && Game.Player.Character != null && _placed &&
+                 DistanceSquared(Game.Player.Character.Position, _location) >
+                 _remoteDistanceMeters * _remoteDistanceMeters)
+@@ -866,9 +870,11 @@ public class GlassHeroesBusiness : Script
+                 if (!_remoteMode) EnterRemoteOperations();
+             }
+             else if (_remoteMode) LeaveRemoteOperations();
++            _diagnosticTickStage = "economy";
+             if (_clockedIn && seconds > 0) ProcessEconomy(seconds);
+             // Advance supplier ETA only while GTA is actively running and unpaused.
+             // Persist every 15 seconds of gameplay to avoid per-frame disk writes.
++            _diagnosticTickStage = "supplier timer";
+             if (_deliveryKind != -2 && activeGameSeconds > 0 && _deliveryRemainingGameSeconds > 0)
+             {
+                 _deliveryRemainingGameSeconds = Math.Max(0, _deliveryRemainingGameSeconds - activeGameSeconds);
+@@ -876,30 +882,45 @@ public class GlassHeroesBusiness : Script
+                 if (_deliveryRemainingGameSeconds <= 0 || _supplierTimerSaveSeconds >= 15)
+                 { _supplierTimerSaveSeconds = 0; Save(); }
+             }
++            _diagnosticTickStage = "remote operations";
+             if (_clockedIn && activeGameSeconds > 0 && (_remoteMode || _remoteJobs.Count > 0))
+                 ProcessRemoteOperations(activeGameSeconds);
++            _diagnosticTickStage = "controller input";
+             if (_showMenu && _controllerEnabled) DisableControllerControlsWhileMenuOpen();
+             PollController();
++            _diagnosticTickStage = "supplier interaction";
+             HandleSupplierPackageInteraction();
+             DrawWholesalePackageMarker();
++            _diagnosticTickStage = "office interaction";
+             HandleOfficeInteraction();
+             // NPC lifecycle is throttled to once a second, never on every draw frame.
+             _visualRefreshClock += seconds;
+             if (_visualRefreshClock >= 1.0)
+             {
+                 _visualRefreshClock = 0;
++                _diagnosticTickStage = "staff visuals";
+                 UpdateVisualMechanics();
++                _diagnosticTickStage = "supplier delivery visuals";
+                 try { ProcessSupplierDelivery(now); }
+                 catch (Exception deliveryError)
+                 { Log("Mule delivery visual (order preserved)", deliveryError); DeleteSupplierVisuals(); }
++                _diagnosticTickStage = "customer visuals";
+                 UpdateCustomerVisuals();
++                _diagnosticTickStage = "office visuals";
+                 UpdateOfficeDeskVisuals();
++                _diagnosticTickStage = "equipment visuals";
+                 UpdateEquipmentVisuals();
++                _diagnosticTickStage = "stockroom visuals";
+                 UpdateSupplierPalletVisual();
++                _diagnosticTickStage = "warehouse visuals";
+                 UpdateWholesalePalletVisual();
++                _diagnosticLog.RecordTransition(_clockedIn, _remoteMode,
++                    _workersPreviouslyInRange, _showMenu, _supplierVisualStage,
++                    _activeCustomerOrders.Count, _remoteJobs.Count);
+             }
+             // GTA help text is transient. Render it each game tick while the menu is open.
+             // This affects UI presentation only; ProcessEconomy still uses elapsed seconds.
++            _diagnosticTickStage = "menu rendering";
+             if (_showMenu)
+             {
+                 DisablePhoneWhileMenuOpen(); // GTA control disabling lasts one frame.
+@@ -907,11 +928,13 @@ public class GlassHeroesBusiness : Script
+             }
+             // Placement preview can remain on after F2 closes so you can WALK
+             // around the custom MLO and inspect every marker from different angles.
++            _diagnosticTickStage = "placement rendering";
+             if (_showPlacementMarkers || _autoLotPreview) DrawPlacementMarkers();
++            _diagnosticTickStage = "idle between ticks";
+         }
+         catch (Exception ex)
+         {
+-            Log("Tick", ex);
++            Log("Tick / " + _diagnosticTickStage, ex);
+             _clockedIn = false; // Fail safely instead of repeatedly charging payroll.
+         }
+     }
+@@ -7670,6 +7693,7 @@ public class GlassHeroesBusiness : Script
+ 
+     private void OnAborted(object sender, EventArgs e)
+     {
++        Log("LIFECYCLE abort requested; last tick phase=" + _diagnosticTickStage, null);
+         // Nothing has been spawned or billed before activation. Do not write
+         // partially initialized defaults over the user's existing Save.ini.
+         if (!_bootGameplayActivated)
+@@ -7692,6 +7716,7 @@ public class GlassHeroesBusiness : Script
+         try { _mechanicModel.MarkAsNoLongerNeeded(); }
+         catch (Exception ex) { Log("Release model", ex); }
+         Save();
++        Log("LIFECYCLE abort cleanup completed", null);
+     }
+ 
+     private static void Notify(string message)
+@@ -7715,15 +7740,98 @@ public class GlassHeroesBusiness : Script
+             message.EndsWith(" returning serviced car to the drop-off.", StringComparison.Ordinal);
+     }
+ 
+-    private static void Log(string context, Exception ex)
+-    {
+-        try
++    // BEGIN ISSUE1 DIAGNOSTIC LOG (also exercised by the standalone test runner)
++    private sealed class DiagnosticLog
++    {
++        private readonly Func<DateTime> _utcNow;
++        private readonly Action<string> _append;
++        private DateTime _nextErrorUtc = DateTime.MinValue;
++        private DateTime _nextTransitionUtc = DateTime.MinValue;
++        private DateTime _nextWriteRetryUtc = DateTime.MinValue;
++        private int _suppressedErrors;
++        private bool _writing;
++        private bool _hasState;
++        private long _lastState;
++
++        internal DiagnosticLog(Func<DateTime> utcNow, Action<string> append)
++        {
++            _utcNow = utcNow;
++            _append = append;
++        }
++
++        internal void RecordTransition(bool shift, bool remote, bool staffInRange,
++            bool menu, int supplierStage, int customers, int remoteJobs)
++        {
++            // Read managed state only, once per existing visual refresh. No GTA
++            // natives, entity scans, string allocations or writes on stable idle.
++            long state = (shift ? 1L : 0L) | (remote ? 2L : 0L) |
++                (staffInRange ? 4L : 0L) | (menu ? 8L : 0L) |
++                ((long)supplierStage << 4) | ((long)customers << 8) |
++                ((long)remoteJobs << 24);
++            if (_hasState && state == _lastState) return;
++            DateTime now = _utcNow();
++            if (now < _nextTransitionUtc) return;
++            // Coalesce rapid changes: this is the latest observed state, not a
++            // complete event history. Never emit a per-frame/per-second heartbeat.
++            _nextTransitionUtc = now.AddSeconds(10);
++            if (Write("STATE shift=" + shift + " remote=" + remote +
++                " staffInRange=" + staffInRange + " menu=" + menu +
++                " supplierStage=" + supplierStage + " customers=" + customers +
++                " remoteJobs=" + remoteJobs, null))
++            {
++                _lastState = state;
++                _hasState = true;
++            }
++        }
++
++        internal bool Write(string context, Exception ex)
+         {
+-            Directory.CreateDirectory(DataDirectory);
+-            File.AppendAllText(Path.Combine(DataDirectory, "Errors.log"),
+-                DateTime.Now.ToString("s") + " | " + context + " | " +
+-                (ex == null ? "no exception" : ex.ToString()) + Environment.NewLine);
++            // The writer can fail or re-enter. Diagnostics must never recurse or
++            // escape into the gameplay loop, including when storage is unavailable.
++            if (_writing) return false;
++            _writing = true;
++            try
++            {
++                DateTime now = _utcNow();
++                if (now < _nextWriteRetryUtc) return false;
++                if (ex != null && now < _nextErrorUtc)
++                {
++                    if (_suppressedErrors < int.MaxValue) _suppressedErrors++;
++                    return false;
++                }
++                if (ex != null) _nextErrorUtc = now.AddSeconds(10);
++                string suppressed = ex != null && _suppressedErrors > 0
++                    ? " | suppressed errors=" + _suppressedErrors : "";
++                _append(now.ToString("s") + "Z | " + context + " | " +
++                    (ex == null ? "no exception" : ex.ToString()) + suppressed +
++                    Environment.NewLine);
++                if (ex != null) _suppressedErrors = 0;
++                return true;
++            }
++            catch
++            {
++                // Back off disk failures as well as exception floods. This clock
++                // governs logging only; no business or delivery timer is changed.
++                try { _nextWriteRetryUtc = _utcNow().AddSeconds(30); }
++                catch { }
++                return false;
++            }
++            finally { _writing = false; }
+         }
+-        catch { /* logging must never crash GTA */ }
++    }
++    // END ISSUE1 DIAGNOSTIC LOG
++
++    private static readonly DiagnosticLog _diagnosticLog = new DiagnosticLog(
++        () => DateTime.UtcNow, AppendDiagnosticLine);
++
++    private static void AppendDiagnosticLine(string line)
++    {
++        Directory.CreateDirectory(DataDirectory);
++        File.AppendAllText(Path.Combine(DataDirectory, "Errors.log"), line);
++    }
++
++    private static void Log(string context, Exception ex)
++    {
++        _diagnosticLog.Write(context, ex);
+     }
+ }
+diff --git a/VisualStudio/scripts/GlassHeroesBusiness.2.cs b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+index 73f8043..3d94b85 100644
+--- a/VisualStudio/scripts/GlassHeroesBusiness.2.cs
++++ b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,5 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
++﻿// Glass Heroes Business Manager - v0.3.3.1 issue #1 DIAGNOSTIC / EXPERIMENTAL
++// Idle crash cause unconfirmed; transition logging is not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+ 
+@@ -295,6 +296,7 @@ public class GlassHeroesBusiness : Script
+     // never for earnings, worker wages, remote jobs or supplier progress.
+     private DateTime _bootGateUntilUtc = DateTime.MinValue;
+     private bool _bootGameplayActivated;
++    private string _diagnosticTickStage = "startup gate";
+     private bool _diagnosticHoldGameplayTick;
+     private int _diagnosticDelaySeconds = 30;
+     private bool _showMenu;
+@@ -506,7 +508,7 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.2.9a / constructor entered", null);
++            Log("BOOT v0.3.3.1 issue #1 EXPERIMENTAL / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -846,6 +848,7 @@ public class GlassHeroesBusiness : Script
+                 Notify("Loaded. Press " + MenuKeyLabel() + " for business management. Stand at your shop to set its location.");
+                 return;
+             }
++            _diagnosticTickStage = "game clock";
+             DateTime now = DateTime.UtcNow;
+             double seconds = (now - _lastTick).TotalSeconds;
+             _lastTick = now;
+@@ -859,6 +862,7 @@ public class GlassHeroesBusiness : Script
+             // Clamp game-clock jumps from loading, cutscenes and script reloads.
+             double activeGameSeconds = !Game.IsPaused && elapsedGameMs > 0 && elapsedGameMs <= 30000L
+                 ? Math.Min(2d, elapsedGameMs / 1000d) : 0d;
++            _diagnosticTickStage = "remote mode transition";
+             if (_clockedIn && _managerTier >= 0 && Game.Player.Character != null && _placed &&
+                 DistanceSquared(Game.Player.Character.Position, _location) >
+                 _remoteDistanceMeters * _remoteDistanceMeters)
+@@ -866,9 +870,11 @@ public class GlassHeroesBusiness : Script
+                 if (!_remoteMode) EnterRemoteOperations();
+             }
+             else if (_remoteMode) LeaveRemoteOperations();
++            _diagnosticTickStage = "economy";
+             if (_clockedIn && seconds > 0) ProcessEconomy(seconds);
+             // Advance supplier ETA only while GTA is actively running and unpaused.
+             // Persist every 15 seconds of gameplay to avoid per-frame disk writes.
++            _diagnosticTickStage = "supplier timer";
+             if (_deliveryKind != -2 && activeGameSeconds > 0 && _deliveryRemainingGameSeconds > 0)
+             {
+                 _deliveryRemainingGameSeconds = Math.Max(0, _deliveryRemainingGameSeconds - activeGameSeconds);
+@@ -876,30 +882,45 @@ public class GlassHeroesBusiness : Script
+                 if (_deliveryRemainingGameSeconds <= 0 || _supplierTimerSaveSeconds >= 15)
+                 { _supplierTimerSaveSeconds = 0; Save(); }
+             }
++            _diagnosticTickStage = "remote operations";
+             if (_clockedIn && activeGameSeconds > 0 && (_remoteMode || _remoteJobs.Count > 0))
+                 ProcessRemoteOperations(activeGameSeconds);
++            _diagnosticTickStage = "controller input";
+             if (_showMenu && _controllerEnabled) DisableControllerControlsWhileMenuOpen();
+             PollController();
++            _diagnosticTickStage = "supplier interaction";
+             HandleSupplierPackageInteraction();
+             DrawWholesalePackageMarker();
++            _diagnosticTickStage = "office interaction";
+             HandleOfficeInteraction();
+             // NPC lifecycle is throttled to once a second, never on every draw frame.
+             _visualRefreshClock += seconds;
+             if (_visualRefreshClock >= 1.0)
+             {
+                 _visualRefreshClock = 0;
++                _diagnosticTickStage = "staff visuals";
+                 UpdateVisualMechanics();
++                _diagnosticTickStage = "supplier delivery visuals";
+                 try { ProcessSupplierDelivery(now); }
+                 catch (Exception deliveryError)
+                 { Log("Mule delivery visual (order preserved)", deliveryError); DeleteSupplierVisuals(); }
++                _diagnosticTickStage = "customer visuals";
+                 UpdateCustomerVisuals();
++                _diagnosticTickStage = "office visuals";
+                 UpdateOfficeDeskVisuals();
++                _diagnosticTickStage = "equipment visuals";
+                 UpdateEquipmentVisuals();
++                _diagnosticTickStage = "stockroom visuals";
+                 UpdateSupplierPalletVisual();
++                _diagnosticTickStage = "warehouse visuals";
+                 UpdateWholesalePalletVisual();
++                _diagnosticLog.RecordTransition(_clockedIn, _remoteMode,
++                    _workersPreviouslyInRange, _showMenu, _supplierVisualStage,
++                    _activeCustomerOrders.Count, _remoteJobs.Count);
+             }
+             // GTA help text is transient. Render it each game tick while the menu is open.
+             // This affects UI presentation only; ProcessEconomy still uses elapsed seconds.
++            _diagnosticTickStage = "menu rendering";
+             if (_showMenu)
+             {
+                 DisablePhoneWhileMenuOpen(); // GTA control disabling lasts one frame.
+@@ -907,11 +928,13 @@ public class GlassHeroesBusiness : Script
+             }
+             // Placement preview can remain on after F2 closes so you can WALK
+             // around the custom MLO and inspect every marker from different angles.
++            _diagnosticTickStage = "placement rendering";
+             if (_showPlacementMarkers || _autoLotPreview) DrawPlacementMarkers();
++            _diagnosticTickStage = "idle between ticks";
+         }
+         catch (Exception ex)
+         {
+-            Log("Tick", ex);
++            Log("Tick / " + _diagnosticTickStage, ex);
+             _clockedIn = false; // Fail safely instead of repeatedly charging payroll.
+         }
+     }
+@@ -7670,6 +7693,7 @@ public class GlassHeroesBusiness : Script
+ 
+     private void OnAborted(object sender, EventArgs e)
+     {
++        Log("LIFECYCLE abort requested; last tick phase=" + _diagnosticTickStage, null);
+         // Nothing has been spawned or billed before activation. Do not write
+         // partially initialized defaults over the user's existing Save.ini.
+         if (!_bootGameplayActivated)
+@@ -7692,6 +7716,7 @@ public class GlassHeroesBusiness : Script
+         try { _mechanicModel.MarkAsNoLongerNeeded(); }
+         catch (Exception ex) { Log("Release model", ex); }
+         Save();
++        Log("LIFECYCLE abort cleanup completed", null);
+     }
+ 
+     private static void Notify(string message)
+@@ -7715,15 +7740,98 @@ public class GlassHeroesBusiness : Script
+             message.EndsWith(" returning serviced car to the drop-off.", StringComparison.Ordinal);
+     }
+ 
+-    private static void Log(string context, Exception ex)
+-    {
+-        try
++    // BEGIN ISSUE1 DIAGNOSTIC LOG (also exercised by the standalone test runner)
++    private sealed class DiagnosticLog
++    {
++        private readonly Func<DateTime> _utcNow;
++        private readonly Action<string> _append;
++        private DateTime _nextErrorUtc = DateTime.MinValue;
++        private DateTime _nextTransitionUtc = DateTime.MinValue;
++        private DateTime _nextWriteRetryUtc = DateTime.MinValue;
++        private int _suppressedErrors;
++        private bool _writing;
++        private bool _hasState;
++        private long _lastState;
++
++        internal DiagnosticLog(Func<DateTime> utcNow, Action<string> append)
++        {
++            _utcNow = utcNow;
++            _append = append;
++        }
++
++        internal void RecordTransition(bool shift, bool remote, bool staffInRange,
++            bool menu, int supplierStage, int customers, int remoteJobs)
++        {
++            // Read managed state only, once per existing visual refresh. No GTA
++            // natives, entity scans, string allocations or writes on stable idle.
++            long state = (shift ? 1L : 0L) | (remote ? 2L : 0L) |
++                (staffInRange ? 4L : 0L) | (menu ? 8L : 0L) |
++                ((long)supplierStage << 4) | ((long)customers << 8) |
++                ((long)remoteJobs << 24);
++            if (_hasState && state == _lastState) return;
++            DateTime now = _utcNow();
++            if (now < _nextTransitionUtc) return;
++            // Coalesce rapid changes: this is the latest observed state, not a
++            // complete event history. Never emit a per-frame/per-second heartbeat.
++            _nextTransitionUtc = now.AddSeconds(10);
++            if (Write("STATE shift=" + shift + " remote=" + remote +
++                " staffInRange=" + staffInRange + " menu=" + menu +
++                " supplierStage=" + supplierStage + " customers=" + customers +
++                " remoteJobs=" + remoteJobs, null))
++            {
++                _lastState = state;
++                _hasState = true;
++            }
++        }
++
++        internal bool Write(string context, Exception ex)
+         {
+-            Directory.CreateDirectory(DataDirectory);
+-            File.AppendAllText(Path.Combine(DataDirectory, "Errors.log"),
+-                DateTime.Now.ToString("s") + " | " + context + " | " +
+-                (ex == null ? "no exception" : ex.ToString()) + Environment.NewLine);
++            // The writer can fail or re-enter. Diagnostics must never recurse or
++            // escape into the gameplay loop, including when storage is unavailable.
++            if (_writing) return false;
++            _writing = true;
++            try
++            {
++                DateTime now = _utcNow();
++                if (now < _nextWriteRetryUtc) return false;
++                if (ex != null && now < _nextErrorUtc)
++                {
++                    if (_suppressedErrors < int.MaxValue) _suppressedErrors++;
++                    return false;
++                }
++                if (ex != null) _nextErrorUtc = now.AddSeconds(10);
++                string suppressed = ex != null && _suppressedErrors > 0
++                    ? " | suppressed errors=" + _suppressedErrors : "";
++                _append(now.ToString("s") + "Z | " + context + " | " +
++                    (ex == null ? "no exception" : ex.ToString()) + suppressed +
++                    Environment.NewLine);
++                if (ex != null) _suppressedErrors = 0;
++                return true;
++            }
++            catch
++            {
++                // Back off disk failures as well as exception floods. This clock
++                // governs logging only; no business or delivery timer is changed.
++                try { _nextWriteRetryUtc = _utcNow().AddSeconds(30); }
++                catch { }
++                return false;
++            }
++            finally { _writing = false; }
+         }
+-        catch { /* logging must never crash GTA */ }
++    }
++    // END ISSUE1 DIAGNOSTIC LOG
++
++    private static readonly DiagnosticLog _diagnosticLog = new DiagnosticLog(
++        () => DateTime.UtcNow, AppendDiagnosticLine);
++
++    private static void AppendDiagnosticLine(string line)
++    {
++        Directory.CreateDirectory(DataDirectory);
++        File.AppendAllText(Path.Combine(DataDirectory, "Errors.log"), line);
++    }
++
++    private static void Log(string context, Exception ex)
++    {
++        _diagnosticLog.Write(context, ex);
+     }
+ }

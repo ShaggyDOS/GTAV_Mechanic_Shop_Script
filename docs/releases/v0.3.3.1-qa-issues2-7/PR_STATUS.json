@@ -1,0 +1,74 @@
+[
+  {
+    "issue": "2",
+    "branch": "fix/2-menu-input-parity",
+    "head": "0ed037afe9276e5eafc5d2caa114be85537af76c",
+    "branch_url": "https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/tree/fix/2-menu-input-parity",
+    "target": "development/v0.3.3.1",
+    "draft_requested": true,
+    "creation_exit_code": 1,
+    "pr_url": null,
+    "status": "NOT CREATED: Post \"https://api.github.com/graphql\": Forbidden",
+    "prepared_body": "PR_DRAFTS/issue2.md"
+  },
+  {
+    "issue": "3",
+    "branch": "fix/3-warehouse-ready-cargo",
+    "head": "fcc448369031063ab1e8b8956110e92e89781edf",
+    "branch_url": "https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/tree/fix/3-warehouse-ready-cargo",
+    "target": "development/v0.3.3.1",
+    "draft_requested": true,
+    "creation_exit_code": 1,
+    "pr_url": null,
+    "status": "NOT CREATED: Post \"https://api.github.com/graphql\": Forbidden",
+    "prepared_body": "PR_DRAFTS/issue3.md"
+  },
+  {
+    "issue": "5",
+    "branch": "fix/5-direct-player-handoff",
+    "head": "17b434f34dd9838279feb9d79e4093dac8a2685f",
+    "branch_url": "https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/tree/fix/5-direct-player-handoff",
+    "target": "development/v0.3.3.1",
+    "draft_requested": true,
+    "creation_exit_code": 1,
+    "pr_url": null,
+    "status": "NOT CREATED: Post \"https://api.github.com/graphql\": Forbidden",
+    "prepared_body": "PR_DRAFTS/issue5.md"
+  },
+  {
+    "issue": "6",
+    "branch": "fix/6-hide-legacy-stock-boxes",
+    "head": "3d660a24bdc959fd54c434e644d7ff39d55e0fc8",
+    "branch_url": "https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/tree/fix/6-hide-legacy-stock-boxes",
+    "target": "development/v0.3.3.1",
+    "draft_requested": true,
+    "creation_exit_code": 1,
+    "pr_url": null,
+    "status": "NOT CREATED: Post \"https://api.github.com/graphql\": Forbidden",
+    "prepared_body": "PR_DRAFTS/issue6.md"
+  },
+  {
+    "issue": "4",
+    "branch": "fix/4-parking-heading-markers",
+    "head": "c841beca5f95d8b9d9cf86c48627106086336581",
+    "branch_url": "https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/tree/fix/4-parking-heading-markers",
+    "target": "development/v0.3.3.1",
+    "draft_requested": true,
+    "creation_exit_code": 1,
+    "pr_url": null,
+    "status": "NOT CREATED: Post \"https://api.github.com/graphql\": Forbidden",
+    "prepared_body": "PR_DRAFTS/issue4.md"
+  },
+  {
+    "issue": "7",
+    "branch": "fix/7-direct-mechanic-job-routes",
+    "head": "cc6f3b5a78fa2c56bf381ceafa4f167ff21f30db",
+    "branch_url": "https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/tree/fix/7-direct-mechanic-job-routes",
+    "target": "development/v0.3.3.1",
+    "draft_requested": true,
+    "creation_exit_code": 1,
+    "pr_url": null,
+    "status": "NOT CREATED: Post \"https://api.github.com/graphql\": Forbidden",
+    "prepared_body": "PR_DRAFTS/issue7.md"
+  }
+]

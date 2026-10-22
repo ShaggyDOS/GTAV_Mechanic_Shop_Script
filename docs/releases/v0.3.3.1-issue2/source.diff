@@ -1,0 +1,382 @@
+diff --git a/Install/scripts/GlassHeroesBusiness.2.cs b/Install/scripts/GlassHeroesBusiness.2.cs
+index 73f8043..5f5d8c8 100644
+--- a/Install/scripts/GlassHeroesBusiness.2.cs
++++ b/Install/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,4 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
++﻿// Glass Heroes Business Manager - v0.3.3.1 EXPERIMENTAL (corrective milestone)
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+ 
+@@ -356,8 +356,6 @@ public class GlassHeroesBusiness : Script
+     private DateTime _nextManagerSpawn = DateTime.MinValue;
+     private DateTime _nextManagerTask = DateTime.MinValue;
+     private bool _managerAtPost;
+-    private DateTime _lastKeyboardMenuAt = DateTime.MinValue;
+-    private Keys _lastKeyboardMenuKey = Keys.None;
+     private long _managerWagesDue;
+     private double _managerWageAgeSeconds;
+     private long _managerSavings;
+@@ -486,6 +484,7 @@ public class GlassHeroesBusiness : Script
+     private DateTime _lastControllerAction = DateTime.MinValue;
+     private DateTime _lastControllerToggle = DateTime.MinValue;
+     private readonly HashSet<Keys> _heldKeys = new HashSet<Keys>();
++    private readonly MenuInputGate _menuInput = new MenuInputGate();
+     private string _lastPadDetected = "NONE";
+     private DateTime _lastPadDetectedAt = DateTime.MinValue;
+     private DateTime _lastPadReadErrorAt = DateTime.MinValue;
+@@ -918,7 +917,8 @@ public class GlassHeroesBusiness : Script
+ 
+     private void OnKeyUp(object sender, KeyEventArgs e)
+     {
+-        _heldKeys.Remove(e.KeyCode);
++        if (_heldKeys.Remove(e.KeyCode))
++            _menuInput.ReleaseKeyboard(MenuActionForKey(e.KeyCode), DateTime.UtcNow.Ticks);
+     }
+ 
+     private void OnKeyDown(object sender, KeyEventArgs e)
+@@ -930,6 +930,8 @@ public class GlassHeroesBusiness : Script
+             // The game's key callback may auto-repeat while Enter is held.
+             // A single physical press must cause only one menu selection.
+             if (!_heldKeys.Add(e.KeyCode)) return;
++            int action = MenuActionForKey(e.KeyCode);
++            if (action >= 0 && !_menuInput.TryKeyboard(action, DateTime.UtcNow.Ticks)) return;
+             // Test KeyCode (not KeyData), since KeyData also contains Shift/Ctrl/Alt flags.
+             // When RequireCtrl=false, F2 and Ctrl+F2 both toggle the menu.
+             // When true, ordinary F2 is ignored; Ctrl+F2 is required.
+@@ -953,14 +955,8 @@ public class GlassHeroesBusiness : Script
+             int menuCount = GetMenuItems().Length;
+             if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down)
+             {
+-                DateTime time = DateTime.UtcNow;
+-                bool handledByPad = (time - _lastControllerAction).TotalMilliseconds < 210 &&
+-                    _lastPadDetected == (e.KeyCode == Keys.Up ? "UP" : "DOWN");
+-                _lastKeyboardMenuAt = time;
+-                _lastKeyboardMenuKey = e.KeyCode;
+-                if (!handledByPad)
+-                    _selection = (e.KeyCode == Keys.Up ?
+-                        _selection + menuCount - 1 : _selection + 1) % menuCount;
++                _selection = (e.KeyCode == Keys.Up ?
++                    _selection + menuCount - 1 : _selection + 1) % menuCount;
+             }
+             else if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Return)
+                 ExecuteSelection();
+@@ -968,6 +964,58 @@ public class GlassHeroesBusiness : Script
+         catch (Exception ex) { Log("Key press", ex); }
+     }
+ 
++    // ISSUE2: semantic input arbitration; no gameplay clock or disk access.
++    private sealed class MenuInputGate
++    {
++        private readonly int[] _keyboardHeld = new int[5];
++        private readonly long[] _keyboardAt = { -1, -1, -1, -1, -1 };
++        private readonly long[] _controllerAt = { -1, -1, -1, -1, -1 };
++        private const long EchoTicks = 250 * TimeSpan.TicksPerMillisecond;
++
++        internal bool TryKeyboard(int action, long now)
++        {
++            if (++_keyboardHeld[action] > 1) return false;
++            _keyboardAt[action] = now;
++            return !Recent(_controllerAt[action], now);
++        }
++
++        internal void ReleaseKeyboard(int action, long now)
++        {
++            if (action < 0) return;
++            if (_keyboardHeld[action] > 0) _keyboardHeld[action]--;
++            _keyboardAt[action] = now; // suppress a frontend edge delayed until release
++        }
++
++        internal bool TryController(int action, long now)
++        {
++            if (_keyboardHeld[action] > 0 || Recent(_keyboardAt[action], now)) return false;
++            _controllerAt[action] = now;
++            return true; // controller-only timing remains in PollController
++        }
++
++        private static bool Recent(long last, long now)
++        {
++            return last >= 0 && now >= last && now - last < EchoTicks;
++        }
++    }
++
++    private int MenuActionForKey(Keys key)
++    {
++        if (key == Keys.Up) return 0;
++        if (key == Keys.Down) return 1;
++        if (key == Keys.Enter || key == Keys.Return) return 2;
++        if (key == Keys.Escape || key == Keys.Back) return 3;
++        return key == _menuKey ? 4 : -1;
++    }
++
++    private static string PointEditorActionLabel(int index, bool isSet, bool markers)
++    {
++        if (index == 0) return isSet ? "UPDATE / SAVE" : "SET / SAVE";
++        if (index == 1) return isSet ? "CLEAR" : "NOT SET";
++        if (index == 2) return markers ? "ON" : "OFF";
++        return ">";
++    }
++
+     private string MenuKeyLabel()
+     {
+         return (_requireCtrlForMenu ? "CTRL+" : "") + _menuKey.ToString().ToUpperInvariant();
+@@ -1015,14 +1063,14 @@ public class GlassHeroesBusiness : Script
+                 _menuPage = _editorReturnPage; _selection = _editorReturnSelection; break;
+             case MenuPage.MechanicBays: _menuPage = MenuPage.EmployeePlacements; _selection = 1; break;
+             case MenuPage.EmployeePaths: _menuPage = MenuPage.EmployeeSettings; _selection = 1; break;
+-            case MenuPage.ArrivalWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 1; break;
+-            case MenuPage.ServiceWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 2; break;
+-            case MenuPage.BayApproaches: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 3; break;
++            case MenuPage.ArrivalWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 2; break;
++            case MenuPage.ServiceWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 3; break;
++            case MenuPage.BayApproaches: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 4; break;
+             case MenuPage.RouteRecovery: _menuPage = MenuPage.EmployeeSettings; _selection = 2; break;
+             case MenuPage.PlacementMarkers: _menuPage = MenuPage.EmployeeSettings; _selection = 3; break;
+             case MenuPage.ServiceVehicleBays: _menuPage = _customCarBaysFromDriveOptions ?
+                 MenuPage.VehicleDriveOptions : MenuPage.CustomerPlacements;
+-                _selection = 4; break;
++                _selection = _customCarBaysFromDriveOptions ? 4 : 6; break;
+             case MenuPage.VehicleDriveOptions: _menuPage = MenuPage.Customers; _selection = 3; break;
+             case MenuPage.VehicleAutoLotOptions: _menuPage = MenuPage.VehicleDriveOptions; _selection = 3; break;
+             case MenuPage.Customers: _menuPage = MenuPage.BusinessManagement; _selection = 1; break;
+@@ -1189,7 +1237,7 @@ public class GlassHeroesBusiness : Script
+                 return new string[] { "Bay 1 Final Turn >", "Bay 2 Final Turn >",
+                     "Bay 3 Final Turn >", "< Back to Walking Paths" };
+             case MenuPage.PointEditor:
+-                return new string[] { "Set / Update Position + Facing", "Clear Saved Position",
++                return new string[] { "Set / Save Position + Facing", "Clear Saved Position",
+                     "Marker Preview", "Show Saved Coordinates", "< Back" };
+             case MenuPage.RouteRecovery:
+                 return new string[] { "Blocked-Route Teleport", "Recovery Status", "< Back" };
+@@ -1477,9 +1525,8 @@ public class GlassHeroesBusiness : Script
+             case MenuPage.BayApproaches:
+                 return ">";
+             case MenuPage.PointEditor:
+-                if (index == 0 || index == 1) return Status(_editingPoint);
+-                if (index == 2) return _showPlacementMarkers ? "ON" : "OFF";
+-                return ">";
++                return PointEditorActionLabel(index,
++                    _editingPoint != null && _editingPoint.IsSet, _showPlacementMarkers);
+             case MenuPage.RouteRecovery:
+                 return index == 0 ? (_routeRecoveryEnabled ? "ON" : "OFF") : ">";
+             case MenuPage.Finances:
+@@ -6486,7 +6533,8 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+         if ((now - _lastControllerAction).TotalMilliseconds < 180) return;
+-        if (PadPressed(_controllerOpenModifier) && PadJustPressed(_controllerOpenButton))
++        if (PadPressed(_controllerOpenModifier) && PadJustPressed(_controllerOpenButton) &&
++            _menuInput.TryController(4, now.Ticks))
+         {
+             _lastPadDetected = "OPEN COMBO";
+             _lastPadDetectedAt = now;
+@@ -6498,14 +6546,12 @@ public class GlassHeroesBusiness : Script
+         if (!_showMenu) return;
+         // Unlike keyboard KeyDown, gamepad edges must be polled during Tick.
+         // Some frontend controls are used elsewhere, so suppress only when menu active.
+-        if (PadJustPressed(_controllerBack)) { _lastPadDetected = "BACK"; NavigateBack(); _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerUp) &&
+-            !(_lastKeyboardMenuKey == Keys.Up && (now - _lastKeyboardMenuAt).TotalMilliseconds < 250))
++        if (PadJustPressed(_controllerBack) && _menuInput.TryController(3, now.Ticks)) { _lastPadDetected = "BACK"; NavigateBack(); _lastControllerAction = now; }
++        else if (PadJustPressed(_controllerUp) && _menuInput.TryController(0, now.Ticks))
+         { _lastPadDetected = "UP"; _selection = (_selection - 1 + GetMenuItems().Length) % GetMenuItems().Length; _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerDown) &&
+-            !(_lastKeyboardMenuKey == Keys.Down && (now - _lastKeyboardMenuAt).TotalMilliseconds < 250))
++        else if (PadJustPressed(_controllerDown) && _menuInput.TryController(1, now.Ticks))
+         { _lastPadDetected = "DOWN"; _selection = (_selection + 1) % GetMenuItems().Length; _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerAccept))
++        else if (PadJustPressed(_controllerAccept) && _menuInput.TryController(2, now.Ticks))
+         { _lastPadDetected = "SELECT"; ExecuteSelection(); _lastControllerAction = now; }
+         if (_lastPadDetected != "NONE") _lastPadDetectedAt = now;
+         }
+diff --git a/VisualStudio/scripts/GlassHeroesBusiness.2.cs b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+index 73f8043..5f5d8c8 100644
+--- a/VisualStudio/scripts/GlassHeroesBusiness.2.cs
++++ b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,4 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
++﻿// Glass Heroes Business Manager - v0.3.3.1 EXPERIMENTAL (corrective milestone)
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+ 
+@@ -356,8 +356,6 @@ public class GlassHeroesBusiness : Script
+     private DateTime _nextManagerSpawn = DateTime.MinValue;
+     private DateTime _nextManagerTask = DateTime.MinValue;
+     private bool _managerAtPost;
+-    private DateTime _lastKeyboardMenuAt = DateTime.MinValue;
+-    private Keys _lastKeyboardMenuKey = Keys.None;
+     private long _managerWagesDue;
+     private double _managerWageAgeSeconds;
+     private long _managerSavings;
+@@ -486,6 +484,7 @@ public class GlassHeroesBusiness : Script
+     private DateTime _lastControllerAction = DateTime.MinValue;
+     private DateTime _lastControllerToggle = DateTime.MinValue;
+     private readonly HashSet<Keys> _heldKeys = new HashSet<Keys>();
++    private readonly MenuInputGate _menuInput = new MenuInputGate();
+     private string _lastPadDetected = "NONE";
+     private DateTime _lastPadDetectedAt = DateTime.MinValue;
+     private DateTime _lastPadReadErrorAt = DateTime.MinValue;
+@@ -918,7 +917,8 @@ public class GlassHeroesBusiness : Script
+ 
+     private void OnKeyUp(object sender, KeyEventArgs e)
+     {
+-        _heldKeys.Remove(e.KeyCode);
++        if (_heldKeys.Remove(e.KeyCode))
++            _menuInput.ReleaseKeyboard(MenuActionForKey(e.KeyCode), DateTime.UtcNow.Ticks);
+     }
+ 
+     private void OnKeyDown(object sender, KeyEventArgs e)
+@@ -930,6 +930,8 @@ public class GlassHeroesBusiness : Script
+             // The game's key callback may auto-repeat while Enter is held.
+             // A single physical press must cause only one menu selection.
+             if (!_heldKeys.Add(e.KeyCode)) return;
++            int action = MenuActionForKey(e.KeyCode);
++            if (action >= 0 && !_menuInput.TryKeyboard(action, DateTime.UtcNow.Ticks)) return;
+             // Test KeyCode (not KeyData), since KeyData also contains Shift/Ctrl/Alt flags.
+             // When RequireCtrl=false, F2 and Ctrl+F2 both toggle the menu.
+             // When true, ordinary F2 is ignored; Ctrl+F2 is required.
+@@ -953,14 +955,8 @@ public class GlassHeroesBusiness : Script
+             int menuCount = GetMenuItems().Length;
+             if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down)
+             {
+-                DateTime time = DateTime.UtcNow;
+-                bool handledByPad = (time - _lastControllerAction).TotalMilliseconds < 210 &&
+-                    _lastPadDetected == (e.KeyCode == Keys.Up ? "UP" : "DOWN");
+-                _lastKeyboardMenuAt = time;
+-                _lastKeyboardMenuKey = e.KeyCode;
+-                if (!handledByPad)
+-                    _selection = (e.KeyCode == Keys.Up ?
+-                        _selection + menuCount - 1 : _selection + 1) % menuCount;
++                _selection = (e.KeyCode == Keys.Up ?
++                    _selection + menuCount - 1 : _selection + 1) % menuCount;
+             }
+             else if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Return)
+                 ExecuteSelection();
+@@ -968,6 +964,58 @@ public class GlassHeroesBusiness : Script
+         catch (Exception ex) { Log("Key press", ex); }
+     }
+ 
++    // ISSUE2: semantic input arbitration; no gameplay clock or disk access.
++    private sealed class MenuInputGate
++    {
++        private readonly int[] _keyboardHeld = new int[5];
++        private readonly long[] _keyboardAt = { -1, -1, -1, -1, -1 };
++        private readonly long[] _controllerAt = { -1, -1, -1, -1, -1 };
++        private const long EchoTicks = 250 * TimeSpan.TicksPerMillisecond;
++
++        internal bool TryKeyboard(int action, long now)
++        {
++            if (++_keyboardHeld[action] > 1) return false;
++            _keyboardAt[action] = now;
++            return !Recent(_controllerAt[action], now);
++        }
++
++        internal void ReleaseKeyboard(int action, long now)
++        {
++            if (action < 0) return;
++            if (_keyboardHeld[action] > 0) _keyboardHeld[action]--;
++            _keyboardAt[action] = now; // suppress a frontend edge delayed until release
++        }
++
++        internal bool TryController(int action, long now)
++        {
++            if (_keyboardHeld[action] > 0 || Recent(_keyboardAt[action], now)) return false;
++            _controllerAt[action] = now;
++            return true; // controller-only timing remains in PollController
++        }
++
++        private static bool Recent(long last, long now)
++        {
++            return last >= 0 && now >= last && now - last < EchoTicks;
++        }
++    }
++
++    private int MenuActionForKey(Keys key)
++    {
++        if (key == Keys.Up) return 0;
++        if (key == Keys.Down) return 1;
++        if (key == Keys.Enter || key == Keys.Return) return 2;
++        if (key == Keys.Escape || key == Keys.Back) return 3;
++        return key == _menuKey ? 4 : -1;
++    }
++
++    private static string PointEditorActionLabel(int index, bool isSet, bool markers)
++    {
++        if (index == 0) return isSet ? "UPDATE / SAVE" : "SET / SAVE";
++        if (index == 1) return isSet ? "CLEAR" : "NOT SET";
++        if (index == 2) return markers ? "ON" : "OFF";
++        return ">";
++    }
++
+     private string MenuKeyLabel()
+     {
+         return (_requireCtrlForMenu ? "CTRL+" : "") + _menuKey.ToString().ToUpperInvariant();
+@@ -1015,14 +1063,14 @@ public class GlassHeroesBusiness : Script
+                 _menuPage = _editorReturnPage; _selection = _editorReturnSelection; break;
+             case MenuPage.MechanicBays: _menuPage = MenuPage.EmployeePlacements; _selection = 1; break;
+             case MenuPage.EmployeePaths: _menuPage = MenuPage.EmployeeSettings; _selection = 1; break;
+-            case MenuPage.ArrivalWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 1; break;
+-            case MenuPage.ServiceWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 2; break;
+-            case MenuPage.BayApproaches: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 3; break;
++            case MenuPage.ArrivalWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 2; break;
++            case MenuPage.ServiceWaypoints: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 3; break;
++            case MenuPage.BayApproaches: _menuPage = MenuPage.MechanicWalkingPaths; _selection = 4; break;
+             case MenuPage.RouteRecovery: _menuPage = MenuPage.EmployeeSettings; _selection = 2; break;
+             case MenuPage.PlacementMarkers: _menuPage = MenuPage.EmployeeSettings; _selection = 3; break;
+             case MenuPage.ServiceVehicleBays: _menuPage = _customCarBaysFromDriveOptions ?
+                 MenuPage.VehicleDriveOptions : MenuPage.CustomerPlacements;
+-                _selection = 4; break;
++                _selection = _customCarBaysFromDriveOptions ? 4 : 6; break;
+             case MenuPage.VehicleDriveOptions: _menuPage = MenuPage.Customers; _selection = 3; break;
+             case MenuPage.VehicleAutoLotOptions: _menuPage = MenuPage.VehicleDriveOptions; _selection = 3; break;
+             case MenuPage.Customers: _menuPage = MenuPage.BusinessManagement; _selection = 1; break;
+@@ -1189,7 +1237,7 @@ public class GlassHeroesBusiness : Script
+                 return new string[] { "Bay 1 Final Turn >", "Bay 2 Final Turn >",
+                     "Bay 3 Final Turn >", "< Back to Walking Paths" };
+             case MenuPage.PointEditor:
+-                return new string[] { "Set / Update Position + Facing", "Clear Saved Position",
++                return new string[] { "Set / Save Position + Facing", "Clear Saved Position",
+                     "Marker Preview", "Show Saved Coordinates", "< Back" };
+             case MenuPage.RouteRecovery:
+                 return new string[] { "Blocked-Route Teleport", "Recovery Status", "< Back" };
+@@ -1477,9 +1525,8 @@ public class GlassHeroesBusiness : Script
+             case MenuPage.BayApproaches:
+                 return ">";
+             case MenuPage.PointEditor:
+-                if (index == 0 || index == 1) return Status(_editingPoint);
+-                if (index == 2) return _showPlacementMarkers ? "ON" : "OFF";
+-                return ">";
++                return PointEditorActionLabel(index,
++                    _editingPoint != null && _editingPoint.IsSet, _showPlacementMarkers);
+             case MenuPage.RouteRecovery:
+                 return index == 0 ? (_routeRecoveryEnabled ? "ON" : "OFF") : ">";
+             case MenuPage.Finances:
+@@ -6486,7 +6533,8 @@ public class GlassHeroesBusiness : Script
+         try
+         {
+         if ((now - _lastControllerAction).TotalMilliseconds < 180) return;
+-        if (PadPressed(_controllerOpenModifier) && PadJustPressed(_controllerOpenButton))
++        if (PadPressed(_controllerOpenModifier) && PadJustPressed(_controllerOpenButton) &&
++            _menuInput.TryController(4, now.Ticks))
+         {
+             _lastPadDetected = "OPEN COMBO";
+             _lastPadDetectedAt = now;
+@@ -6498,14 +6546,12 @@ public class GlassHeroesBusiness : Script
+         if (!_showMenu) return;
+         // Unlike keyboard KeyDown, gamepad edges must be polled during Tick.
+         // Some frontend controls are used elsewhere, so suppress only when menu active.
+-        if (PadJustPressed(_controllerBack)) { _lastPadDetected = "BACK"; NavigateBack(); _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerUp) &&
+-            !(_lastKeyboardMenuKey == Keys.Up && (now - _lastKeyboardMenuAt).TotalMilliseconds < 250))
++        if (PadJustPressed(_controllerBack) && _menuInput.TryController(3, now.Ticks)) { _lastPadDetected = "BACK"; NavigateBack(); _lastControllerAction = now; }
++        else if (PadJustPressed(_controllerUp) && _menuInput.TryController(0, now.Ticks))
+         { _lastPadDetected = "UP"; _selection = (_selection - 1 + GetMenuItems().Length) % GetMenuItems().Length; _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerDown) &&
+-            !(_lastKeyboardMenuKey == Keys.Down && (now - _lastKeyboardMenuAt).TotalMilliseconds < 250))
++        else if (PadJustPressed(_controllerDown) && _menuInput.TryController(1, now.Ticks))
+         { _lastPadDetected = "DOWN"; _selection = (_selection + 1) % GetMenuItems().Length; _lastControllerAction = now; }
+-        else if (PadJustPressed(_controllerAccept))
++        else if (PadJustPressed(_controllerAccept) && _menuInput.TryController(2, now.Ticks))
+         { _lastPadDetected = "SELECT"; ExecuteSelection(); _lastControllerAction = now; }
+         if (_lastPadDetected != "NONE") _lastPadDetectedAt = now;
+         }
