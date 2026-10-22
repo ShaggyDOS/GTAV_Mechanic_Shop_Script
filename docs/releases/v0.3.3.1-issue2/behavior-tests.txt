@@ -1,0 +1,18 @@
+/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Program.cs(237,42): warning CS0649: Field 'Harness._financesFromExpenses' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Program.cs(239,10): warning CS0649: Field 'Harness._routeConfigReturning' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Program.cs(238,64): warning CS0649: Field 'Harness._routeConfigSlot' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Program.cs(8,63): warning CS0649: Field 'Harness.KeyEventArgs.Control' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Program.cs(238,21): warning CS0649: Field 'Harness._editingStaffSlot' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Program.cs(235,80): warning CS0649: Field 'Harness._requireCtrlForMenu' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Program.cs(4,42): warning CS0649: Field 'Game.IsPaused' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-40qyhbe4/Tests.csproj]
+PASS #2 keyboard Enter plus held/repeated frontend Accept performs one action
+PASS #2 controller-first mapped keyboard echo does not execute twice
+PASS #2 held Enter cannot satisfy the next confirmation after ten seconds
+PASS #2 controller-only consecutive physical presses remain accepted
+PASS #2 keyboard Back and frontend Back return only one page
+PASS #2 nested editor returns exact saved page and cursor
+PASS #2 all corrected parent rows match source menu positions
+PASS #2 Back aliases hold until both physical keys are released
+PASS #2 point editor labels distinguish unset saved and marker state
+PASS #2 boot gate prevents both input effects and held-key registration
+#2 10/10 PASS; GTA testing NOT RUN
