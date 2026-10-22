@@ -1,0 +1,10 @@
+/workspace/.cloud-setup/tmp/glassheroes-issue5-2lyknxt8/Program.cs(4,53): warning CS0649: Field 'Ped.IsDead' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue5-2lyknxt8/Tests.csproj]
+PASS #5 player handoff bypasses saved waypoints and fixed handoff
+PASS #5 regular drop-off retains configured stops in order
+PASS #5 moving player repaths no more frequently than three seconds
+PASS #5 driver arrival waits with same crate and can follow player moving away
+PASS #5 90-second timeout preserves pending ledger and backs off visuals
+PASS #5 repath count is bounded
+PASS #5 invalid player or lost cargo defers without credit
+PASS #5 waiting nearby after arrival never consumes retry budget or auto-commits
+#5 8/8 PASS; GTA testing NOT RUN

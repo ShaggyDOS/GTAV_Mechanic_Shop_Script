@@ -1,0 +1,17 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_qa-issues2-7_EXPERIMENTAL.zip",
+  "sha256": "c71efa560ab10f34f7dafa1d0c94fc3ccee9d6bdfed2aaa4626344f9c167629c",
+  "zip_crc": "PASS",
+  "sources_match": "PASS",
+  "guide_formats": "MD, DOCX, PDF verified",
+  "included_issues": [
+    "2",
+    "3",
+    "5",
+    "6",
+    "4",
+    "7"
+  ],
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}
