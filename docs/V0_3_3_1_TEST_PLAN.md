@@ -12,7 +12,7 @@
 | P1 | [#3 Warehouse pallet and package](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/3) | Pickup shipment visible when ready, independently of assigned vehicle range |
 | P1 | [#4 Parking outline heading](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/4) | Geometry aligns with saved player heading, visible front arrow |
 | P1 | [#5 Driver handoff routing](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/5) | Direct route to player for handoff, saved stops for standard delivery |
-| P1 | [#6 Shop box grounding](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/6) | Pallet-top boxes aligned to real support surfaces; screenshot pending |
+| P1 | [#6 Legacy stockroom box removal](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/6) | Hide floating legacy pallet-box visuals without altering the correctly placed newly delivered packages |
 | P2 | [#7 Break-to-bay mechanic paths](https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/7) | Simpler default routes, preserved settings and optional advanced paths |
 
 Direct issue URLs use `https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/NUMBER`.
@@ -23,7 +23,7 @@ Direct issue URLs use `https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/is
 - Controller menu currently behaves well; keyboard Enter can duplicate actions and Back can move to the wrong page.
 - Delivery-to-player must go directly to player; route stops remain for regular supplier drop-off.
 - Break -> Bay mechanic route points are unnecessary for normal shop operation.
-- User will provide image illustrating shop/pallet box vertical mismatch.
+- User opted to remove floating legacy stockroom pallet-box visuals for now; no screenshot required. Newly delivered packages were placed correctly and must be preserved.
 
 ## Test matrix (record PASS / FAIL / NOT RUN and attach session logs)
 | ID | Scenario | Required outcome | Current |
@@ -42,7 +42,7 @@ Direct issue URLs use `https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/is
 | D01 | Delivery driver mode: hand directly to player | Driver approaches player, avoids configured waypoints | NOT RUN |
 | D02 | Delivery driver mode: normal drop-off | Configured waypoints remain active | NOT RUN |
 | P01 | Save bay heading north/east/south/west | Rectangle lines up with vehicle facing and front is clearly marked | NOT RUN |
-| P02 | View warehouse/shop boxes with real pallet model at varying elevations | No visible float/sink; still correct after reload | NOT RUN |
+| P02 | At shop, stream in/out and deliver a new package | Legacy floating display boxes absent; newly delivered package remains correctly placed after reload | NOT RUN |
 | M01 | Mechanics return from break to bay in default mode | No spurious multi-waypoint detours or stuck loops | NOT RUN |
 | T01 | Close GTA mid-delivery and restart | Supplier timer has NOT advanced from wall-clock downtime | NOT RUN |
 | R01 | Script reload/quit with active peds, props and orders | Clean ownership disposal and restore, no duplication | NOT RUN |
