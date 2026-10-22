@@ -1,0 +1,7 @@
+# Release documents and archives are binary artifacts.
+*.pdf binary
+*.docx binary
+*.zip binary
+
+# Unified diffs require a single-space prefix on empty context lines.
+docs/releases/*/source.diff whitespace=-blank-at-eol
