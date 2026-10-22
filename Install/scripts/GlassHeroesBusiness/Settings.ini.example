@@ -1,0 +1,276 @@
+﻿; GLASS HEROES BUSINESS MANAGER v0.3.1 combined - configurable controls
+; New settings are OPTIONAL in existing Settings.ini files. Missing settings default to F2.
+[Controls]
+; Valid keys: F1-F24 (use F2 by default). Changes require script reload.
+MenuKey = F2
+; false: F2 alone OR Ctrl+F2 works. true: ONLY Ctrl+F2 opens/closes the menu.
+RequireCtrl = false
+
+; GLASS HEROES BUSINESS MANAGER v0.3.1 combined - staff submenu, break area and scheduled repairs
+; Real-world seconds of unpaused/active gameplay. Timer resets each time you open the shop.
+; This is a test economy, not yet connected to Auto Work payouts.
+[Economy]
+TestStartingFunds = 5000
+MaxMechanics = 3
+HiringCost = 500
+PartUnitCost = 100
+JobRevenue = 500
+SecondsPerEmployeeJob = 120
+; Idle time before the next employee job gets assigned after opening or completion.
+SecondsBetweenEmployeeJobs = 45
+WagePerPeriod = 250
+; Receptionist is hired separately; their wage is added to each normal payroll cycle.
+ReceptionistHiringCost = 350
+ReceptionistWagePerPeriod = 150
+WagePeriodSeconds = 300
+OverheadPerPeriod = 575
+OverheadPeriodSeconds = 600
+; Payroll invoices age only during active, unpaused shop time.
+; Due at 5 minutes; morale falls after a further 5-minute grace.
+; Morale is informational in v0.3.2.4: no job cancellations or resignations.
+PayrollDueSeconds = 300
+PayrollGraceSeconds = 300
+
+; Spawn only if player is nearby, shop open, and bay/entrance/break area are saved.
+; Stand exactly where a worker should work and face the repair point to configure.
+; Repair animations run ONLY while this mod has an active simulated job.
+; These are NOT Auto Work jobs or actual repairs to a physical vehicle.
+[Visuals]
+SmoothWaypointTransitions = true
+SafeTeleportOnStall = true
+MechanicPedModel = s_m_m_autoshop_01
+ReceptionistPedModel = s_f_y_shop_mid
+SpawnDistanceMeters = 65
+
+; Workers spawn ONLY at a saved Employee Entrance, when off-camera and
+; at least 10m from the player. Employees then walk to optional checkpoint
+; and on to their assigned bay. No workers are spawned at the bay itself.
+; Change these only if arrivals feel too rapid or too slow.
+ArrivalSpacingSeconds = 5
+WalkSpeed = 1.0
+
+; Mechanics report to a saved Employee Break Area, wait using an idle scenario,
+; then move to their assigned bay when assigned a repair order.
+; Each worker has a slightly different office standing position by default.
+BreakSpotSpacingMeters = 1.0
+
+; Automatic stuck-route recovery: after two walking retries, the employee moves
+; to the CURRENT user-saved waypoint at its exact Z height (use indoor floor Z).
+; Teleports are capped per route leg; if disabled, the old blocked/paused behavior remains.
+TeleportOnBlockedRoute = true
+RouteNoProgressSeconds = 9
+MaxTeleportsPerRoute = 3
+
+; v0.3.1 combined: colored placement previews are enabled/disabled in F2 > Employees
+; > Employee Settings > Placement Markers. Preview toggle is session-only.
+; New ReceptionApproach point is stored automatically in Save.ini, not here.
+
+; v0.3.1 combined: colored placement previews are enabled/disabled in F2 > Employees
+; > Employee Settings > Placement Markers. Preview toggle is session-only.
+; New ReceptionApproach point is stored automatically in Save.ini, not here.
+
+
+; Combined vehicle + staff release. These are defaults for NEW installations.
+; Existing Settings.ini can keep its current values; missing keys are optional.
+[CustomerService]
+CustomerPedModel = a_m_y_business_01
+CustomerVehicleModel = asea
+SecondsBetweenCustomers = 150
+; v0.3.1.9: up to one live order per hired mechanic (max three), with two physically parked waiting cars; arrival requires a clear drop-off and available staff.
+; Save Waiting Car 2 and Waiting Car 3 positions from F2 > Customers > Customer
+; Placement Settings. Waiting Car 2 falls back to Road Spawn if unset.
+; Waiting Car 3 must be explicitly saved; other pending requests stay virtual.
+; Cars can now enter while earlier jobs are being repaired if a second mechanic
+; is available and the single drop-off spot is vacant.
+; IMPORTANT: roadside spawn must be a safe shoulder/holding area, not moving lane.
+; Customer order interval controls when new queue requests are generated.
+PendingCustomerLimit = 3
+; Radius for checking occupied customer drop-off before a NEW arrival.
+DropoffClearanceMeters = 4.5
+; Keep the player at least this distance from a waiting-car spawn. Prior builds
+; incorrectly used 15m, making queues look broken while observed at the shop.
+QueueSpawnSafetyMeters = 4.0
+CustomerBlipsEnabled = true
+; Drive-in is OFF until you save an exterior road-side spawn point and turn it on.
+DriveInEnabled = false
+DriveArrivalTimeoutSeconds = 65
+DriveSpeed = 9.0
+; v0.3.1.1: after road approach, ask AI to park with saved drop-off heading.
+; Leave this enabled for first tests. Disable to restore older 7-meter exit.
+FineParkingEnabled = true
+ParkingTimeoutSeconds = 25
+ParkingRadiusMeters = 10.0
+
+; Progression is saved per worker in Save.ini under MechanicProfile1..3.
+; Staff leveling/training use the existing [Economy] settings for wages and income.
+; New fixed charges: $750 classroom training, $350 certification per change.
+
+; v0.3.1.2 - OPTIONAL CUSTOMER VEHICLE HANDOFF
+; An assigned mechanic may drive the customer vehicle from exterior drop-off
+; to a separate Vehicle Parking Bay 1-3 that you configure using F2.
+; Parking positions and facing are saved in Save.ini. Keep this OUT of your
+; existing Settings.ini if you want defaults; adding keys is optional.
+; This uses GTA vehicle task navigation; an MLO without vehicle path nodes may
+; NOT be drivable. Disable transfers in F2 without affecting repair orders.
+VehicleTransfersEnabled = true
+VehicleTransferTimeoutSeconds = 90
+VehicleTransferSpeed = 5.0
+; v0.3.1.10: optional cautious reverse for mechanic-controlled departures.
+; OFF by default for compatibility; can also toggle in F2 > Customers > Driving Options.
+ValetReverseOut = false
+; Fewer routine transfer notices leave room for check-ins, quotes and completion notices.
+; Does NOT clear or change other mods' feed notifications.
+CompactNotifications = true
+
+; v0.3.1.4 - VEHICLE DRIVING MODES (optional; in-game changes persist in Save.ini)
+; false = existing CUSTOM MLO (requires Vehicle Parking Bay points).
+; true = AUTO LOT (derive parking from existing mechanic work-bay heading).
+AutomaticLotMode = false
+AutoLotRightSide = true
+AutoLotOffsetMeters = 4.0
+; AUTO LOT approaches at walking/parking speeds, performs one obstruction retry,
+; then cancels safely if GTA has no navigable path. It does NOT drive through props.
+
+; v0.3.1.5 — Employee walking paths (saved per shop in Save.ini).
+; AUTO DIRECT (default) ignores all old staff walk checkpoints and optional corridor stops.
+; CUSTOM MLO enables up to five optional Spawn -> Break and five optional Break -> Bay points.
+; Neither route is mandatory: all unset points are skipped in numerical order.
+; Car pickup reverses saved Spawn -> Break points (5 down to 1) to
+; leave an MLO; after returning the car, the mechanic follows these points
+; FORWARD (1 to 5), then walks to break room. Unset points are ignored.
+; No saved route points means direct pickup. Can disable on the menu.
+; Configure from F2 > Employees > Employee Settings > Employee Walking Paths.
+[EmployeeSettings]
+; Idle mechanic activities (clipboard, phone, cigarette, coffee). Saved per shop.
+BreakAnimationsEnabled = true
+CustomWalkingPaths = false
+; Default true; loaded from Save.ini after user toggles it in F2.
+PickupUseReverseArrivalWaypoints = true
+
+; v0.3.1.6: Mechanics and Receptionist have independent MLO walking modes.
+; Configure each via F2 > Employees > Employee Settings > Employee Walking Paths.
+; Each receptionist route has 0-5 OPTIONAL saved points. Older reception desk
+; approach and staff spawn remain in Save.ini and load unchanged.
+
+; v0.3.1.11 — Expenses & Bills
+; Mechanic/receptionist payroll and rent are now accrued as unpaid invoices.
+; Players settle them via F2 > Business > Expenses & Bills.
+; Outstanding balances persist in Save.ini [BusinessBills] and
+; MechanicProfileN.WagesDue; do not edit Save.ini while in-game.
+; Existing versions start with zero outstanding bills because prior payroll
+; and rent periods had ALREADY been deducted from business cash.
+; Part purchases, hiring, training remain up-front cash payments.
+
+; v0.3.2.0 (opt-in) — controller inputs for on-foot menu and office PC.
+; Inputs are GTA.Control enum names; customize here, restart the script.
+; These may conflict with controller shortcuts in other GTA mods; leave off
+; until you have verified that your other scripts use different combinations.
+[Gamepad]
+Enabled = false
+OpenModifier = FrontendLb
+OpenButton = ScriptPadRight
+MoveUp = FrontendUp
+MoveDown = FrontendDown
+Select = FrontendAccept
+Back = FrontendCancel
+Interact = Context
+
+; v0.3.2.0 — detailed inventory, purchases and office equipment
+; Specialized service filter, brake kit and diagnostic supply stock is stored
+; separately from your prior universal parts [Business] Parts; no migration
+; deletes or converts the existing stock. Supplier and office desk are
+; purchased from the new F2 menus and saved under [Purchasing]/[Equipment].
+; Supplier tiers: Wholesale 90%, Local 100%, Express 125% purchase price.
+; Deliveries arrive after a configured delay in the latest version. Equipment has no resale value.
+
+; v0.3.2.1: All existing job-route waypoint positions stay as previously saved.
+; Per-mechanic Use/Skip masks are toggled from F2 and saved in Save.ini
+; under MechanicProfile1/2/3 as JobOutboundMask and JobReturnMask.
+; Both default to 31 (all five eligible), 0 skips all optional markers.
+; These affect CUSTOM MLO Break <-> Job routes only, not car driving.
+; Visuals settings below are fallback defaults for new saves; existing
+; Save.ini EmployeeSettings values take precedence after toggling in menu.
+
+; Gamepad ON/OFF is an existing per-save setting. Toggle the row with ENTER:
+; do not click the drawn menu with the mouse. Inputs are sampled in
+; gameplay group 0 and frontend group 2. For key binding conflicts with
+; other mods, edit Gamepad controls above and restart the game/script.
+
+; v0.3.2.2 — D-pad RIGHT interacts with the purchased/placed office desk
+; while on foot within 2.5m, even if [Gamepad] Enabled=false in Save.ini.
+; Global controller menu shortcut remains LB+ScriptPadRight when enabled.
+; Each shop upgrade now offers an optional physical placement (tool chest and
+; diagnostic bench+tablet). Locations save automatically to Save.ini.
+; Do not overwrite your existing Save.ini or Settings.ini when installing.
+
+; v0.3.2.3 — supplier lead times in wall-clock seconds. These are OPTIONAL.
+; A placed purchase order charges shop cash immediately, then saves one
+; delivery due time to Save.ini. That stock arrives after the ETA even
+; if the shop is closed; reloading a save after time passes completes it.
+; Only ONE pending order at a time; use Inventory & Suppliers -> Pending Delivery.
+[Suppliers]
+WholesaleDeliverySeconds = 180
+LocalDeliverySeconds = 75
+ExpressDeliverySeconds = 20
+
+; v0.3.2.3 placement: stand on foot, face a clear spot approx 2.2m ahead,
+; then use Place Tool Chest, Place Diagnostic Station, or Place Desk.
+; Props use GTA placement-on-ground; raised MLO collision may still need adjustment.
+; Previously saved item locations remain until you choose Place again.
+
+; v0.3.2.5 — OPTIONAL in [Suppliers]: physical Mule deliveries.
+; 0-3 driver walk points are saved through F2 > Management > Inventory >
+; Mule Delivery Settings. Do NOT hand-edit your live Save.ini during gameplay.
+; The physical truck is used only if road spawn, truck park and parts handoff
+; have all been set. Otherwise paid orders still arrive automatically at ETA.
+; Default MULE variant is mule2 (ramp-door Mule); GTA V model names allowed.
+; PhysicalMuleDeliveries saves in Save.ini after you toggle it in-game.
+PhysicalMuleDeliveries = true
+MuleModel = mule2
+DeliveryDriverModel = s_m_m_trucker_01
+
+; v0.3.2.6 - fleet livery mappings. Supported indices vary by model/mod.
+; Unsupported native livery indices are ignored. Every supplier also receives
+; a distinct base truck color as fallback (Wholesale blue, Local orange,
+; Express yellow) where the vehicle model supports paint colors.
+; Use a trainer to identify livery indices in your installed Mule assets.
+; Physical delivery requires 3 Mule points. Save a separate parts pallet
+; location in the menu to activate PLAYER HANDOFF (press E or D-pad RIGHT
+; at driver to receive the box; carry to pallet and press again). Without
+; a saved pallet the v0.3.2.5 automatic driver handoff still applies.
+WholesaleMuleLivery = 0
+LocalMuleLivery = 1
+ExpressMuleLivery = 2
+
+; v0.3.2.7 Warehouse Missions & Invoiced Pallet Storage:
+; Historical warehouse overrides below are now ignored by the script.
+; Wholesale always spawns at -164.2800,-2676.5900,6.0141.
+; New orders are INVOICED AFTER STOCKING; do not pay at order placement.
+; Existing in-flight orders from previous versions remain PREPAID.
+; Purchase/place up to 4 storage pallets under Mule Delivery Settings ->
+; Pallet Storage & Capacity. Each placed pallet stores 25 part units and 9
+; visible delivered boxes. Existing stock is not truncated by these limits.
+; The existing first SupplierPartsPallet is inherited as pallet 1 (included).
+; The door-open native is best-effort for stock/custom Mule model variations.
+WarehousePickupConfigured = false
+WarehousePickupX = 0
+WarehousePickupY = 0
+WarehousePickupZ = 0
+WarehousePickupHeading = 0
+
+
+; v0.3.2.8 — Manager remote workshop simulation (during active game ONLY)
+[Management]
+AwayDistanceMeters=200
+SecondsPerRemoteRepair=180
+; Optional visual appearance for the physical manager in range of the shop.
+; Manager Workstation is set from Employees > Business Manager.
+ManagerPedModel=a_m_y_business_01
+; Wholesale pickup point is FIXED in source at (-164.2800, -2676.5900, 6.0141)
+; WarehousePickupConfigured and old coordinates (if present) are ignored.
+
+
+; v0.3.3.0 RC1: retain the successful cold-start guard.
+[Diagnostics]
+HoldGameplayTick = false
+StartupDelaySeconds = 30

@@ -1,0 +1,856 @@
+--- GlassHeroesBusiness_v0.3.2.9a_DIAGNOSTIC.2.cs
++++ GlassHeroesBusiness_v0.3.3.0_RC1.2.cs
+@@ -1,4 +1,4 @@
+-// Glass Heroes Business Manager - v0.3.2.9a DIAGNOSTIC (boot guard and tick isolation)
++// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+ 
+@@ -35,7 +35,7 @@
+         VehicleAutoLotOptions, BusinessExpenses, MechanicInvoices, CustomerWalkingRoutes,
+         InventoryManagement, EquipmentManagement, ControllerSettings, MechanicRouteRoster,
+         MechanicRouteDirection, MechanicRoutePoints, SupplierDeliverySetup, SupplierDriverWaypoints,
+-        HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster
++        HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints
+     }
+     private const int VisibleMenuRows = 10;
+     // Compact F2 menu (75% of the previous layout), anchored to upper-left.
+@@ -266,6 +266,7 @@
+     private bool _routeConfigReturning;
+     private bool _mechanicPathsFromManagement;
+     private bool _receptionPathsFromManagement;
++    private bool _managerPathsFromManagement;
+     private bool _mechanicRosterFromManagement;
+     // Receptionist routes are independent of mechanic routes. Preserve older saved
+     // reception checkpoint/approach until the player chooses DIRECT or sets new points.
+@@ -342,6 +343,16 @@
+     private Ped _managerWorker;
+     private Model _managerPedModel;
+     private readonly WorkBay _managerWorkstation = new WorkBay();
++    // v0.3.3: independent receptionist-style manager entrance-to-desk route.
++    private readonly WorkBay _managerApproach = new WorkBay();
++    private readonly WorkBay[] _managerRoute = { new WorkBay(), new WorkBay(), new WorkBay(), new WorkBay(), new WorkBay() };
++    private bool _customManagerWalkingPaths;
++    private readonly List<Vector3> _managerPathNodes = new List<Vector3>();
++    private int _managerNodeIndex;
++    private DateTime _managerNodeSince = DateTime.MinValue;
++    private float _managerLastDistanceSq = float.MaxValue;
++    private DateTime _managerLastProgress = DateTime.MinValue;
++    private int _managerRouteRetries;
+     private DateTime _nextManagerSpawn = DateTime.MinValue;
+     private DateTime _nextManagerTask = DateTime.MinValue;
+     private bool _managerAtPost;
+@@ -382,7 +393,10 @@
+     private int _deliveryQuantity;
+     private int _deliverySupplier;
+     private long _deliveryCost;
+-    private long _deliveryDueUtcTicks;
++    private long _deliveryDueUtcTicks; // order identity / legacy migration only; never gates delivery
++    private double _deliveryRemainingGameSeconds; // persists; only unpaused GTA gameplay decrements
++    private double _supplierTimerSaveSeconds;
++    private DateTime _cancelSupplierConfirmUntil = DateTime.MinValue;
+     // Mule delivery is optional for Local and Express; Wholesale becomes a manual
+     // warehouse pickup mission when its location is configured. Legacy paid orders survive.
+     private bool _physicalMuleDeliveries = true;
+@@ -403,6 +417,7 @@
+     private readonly List<Prop> _storedCrateProps = new List<Prop>();
+     private bool _palletVisualDirty = true;
+     private readonly WorkBay _wholesaleWarehousePickup = new WorkBay();
++    private Prop _wholesaleWarehousePallet; // visual-only, never counted as shop storage
+     private const float WholesalePickupX = -164.2800f;
+     private const float WholesalePickupY = -2676.5900f;
+     private const float WholesalePickupZ = 6.0141f;
+@@ -655,10 +670,15 @@
+             }
+             _palletVisualDirty = true;
+             _deliveryDueUtcTicks = data.GetValue("Purchasing", "DeliveryDueUtcTicks", 0L);
++            // Legacy saves lack a game-time remaining-duration key. Restart that
++            // pending delivery's lead time rather than crediting time GTA was closed.
++            _deliveryRemainingGameSeconds = data.GetValue("Purchasing", "DeliveryRemainingGameSeconds", -1.0);
++            if (_deliveryRemainingGameSeconds < 0 || _deliveryRemainingGameSeconds > 604800)
++                _deliveryRemainingGameSeconds = _deliveryKind == -2 ? 0 : SupplierDeliverySeconds(_deliverySupplier);
+             _completedSupplierDeliveries = Math.Max(0L, data.GetValue("Purchasing", "CompletedDeliveries", 0L));
+             if (_deliveryKind < -1 || _deliveryKind > 2 || _deliveryQuantity == 0 ||
+                 _deliveryDueUtcTicks < DateTime.MinValue.Ticks || _deliveryDueUtcTicks > DateTime.MaxValue.Ticks)
+-            { _deliveryKind = -2; _deliveryQuantity = 0; _deliveryDueUtcTicks = 0L; }
++            { _deliveryKind = -2; _deliveryQuantity = 0; _deliveryDueUtcTicks = 0L; _deliveryRemainingGameSeconds = 0; }
+             if (_deliveryKind == -2) { _wholesaleCargoLoaded = false; _wholesaleCargoUnloaded = false; }
+             else if (_deliverySupplier == 0 && _wholesaleCargoUnloaded)
+             {
+@@ -694,6 +714,10 @@
+             _remoteJobsCompleted = Math.Max(0L, data.GetValue("Management", "RemoteCompleted", 0L));
+             _remotePartsConsumed = Math.Max(0L, data.GetValue("Management", "RemotePartsConsumed", 0L));
+             LoadPoint(data, "ManagerWorkstation", _managerWorkstation);
++            LoadPoint(data, "ManagerApproach", _managerApproach);
++            _customManagerWalkingPaths = data.GetValue("EmployeeSettings", "CustomManagerPaths", false);
++            for (int i = 0; i < OptionalPathPointCount; i++)
++                LoadPoint(data, "ManagerWaypoint" + (i + 1), _managerRoute[i]);
+             LoadPoint(data, "ReceptionistResumePost", _receptionist.SavedPost);
+             _receptionWageUnpaidSeconds = Math.Max(0d, data.GetValue("BusinessBills", "ReceptionAgeSeconds", 0d));
+             _rentUnpaidSeconds = Math.Max(0d, data.GetValue("BusinessBills", "RentAgeSeconds", 0d));
+@@ -843,6 +867,15 @@
+             }
+             else if (_remoteMode) LeaveRemoteOperations();
+             if (_clockedIn && seconds > 0) ProcessEconomy(seconds);
++            // Advance supplier ETA only while GTA is actively running and unpaused.
++            // Persist every 15 seconds of gameplay to avoid per-frame disk writes.
++            if (_deliveryKind != -2 && activeGameSeconds > 0 && _deliveryRemainingGameSeconds > 0)
++            {
++                _deliveryRemainingGameSeconds = Math.Max(0, _deliveryRemainingGameSeconds - activeGameSeconds);
++                _supplierTimerSaveSeconds += activeGameSeconds;
++                if (_deliveryRemainingGameSeconds <= 0 || _supplierTimerSaveSeconds >= 15)
++                { _supplierTimerSaveSeconds = 0; Save(); }
++            }
+             if (_clockedIn && activeGameSeconds > 0 && (_remoteMode || _remoteJobs.Count > 0))
+                 ProcessRemoteOperations(activeGameSeconds);
+             if (_showMenu && _controllerEnabled) DisableControllerControlsWhileMenuOpen();
+@@ -863,6 +896,7 @@
+                 UpdateOfficeDeskVisuals();
+                 UpdateEquipmentVisuals();
+                 UpdateSupplierPalletVisual();
++                UpdateWholesalePalletVisual();
+             }
+             // GTA help text is transient. Render it each game tick while the menu is open.
+             // This affects UI presentation only; ProcessEconomy still uses elapsed seconds.
+@@ -957,6 +991,11 @@
+             case MenuPage.ReceptionistManagement: _menuPage = MenuPage.Employees; _selection = 2; break;
+             case MenuPage.ReceptionistProfile: _menuPage = MenuPage.ReceptionistManagement; _selection = 0; break;
+             case MenuPage.ManagerManagement: _menuPage = MenuPage.Employees; _selection = 3; break;
++            case MenuPage.ManagerProfile: _menuPage = MenuPage.ManagerManagement; _selection = 0; break;
++            case MenuPage.ManagerWalkingPaths:
++                _menuPage = _managerPathsFromManagement ? MenuPage.ManagerManagement : MenuPage.EmployeePaths;
++                _selection = 2; _managerPathsFromManagement = false; break;
++            case MenuPage.ManagerWaypoints: _menuPage = MenuPage.ManagerWalkingPaths; _selection = 1; break;
+             case MenuPage.HireManagerRoster: _menuPage = MenuPage.ManagerManagement; _selection = 1; break;
+             case MenuPage.EmployeeSettings: _menuPage = MenuPage.Employees; _selection = 4; break;
+             case MenuPage.EmployeePlacements: _menuPage = MenuPage.EmployeeSettings; _selection = 0; break;
+@@ -1077,9 +1116,18 @@
+                 return new string[] { "Employee Status", "Mechanics >", "Receptionist >",
+                     "Business Manager >", "Employee Settings >", "< Back to Business Management" };
+             case MenuPage.ManagerManagement:
+-                return new string[] { "Manager Profile & Reports", "Hire Business Manager >",
+-                    "Train Manager (+40 XP)", "Pay Manager Wage Invoice",
+-                    "Dismiss Manager", "Manager Workstation >", "< Back to Employees" };
++                return new string[] { "Manager Profile >", "Hire Business Manager >",
++                    "Manager Walking Paths >", "< Back to Employees" };
++            case MenuPage.ManagerProfile:
++                return new string[] { "Profile & Business Reports", "Train Manager (+40 XP)",
++                    "Pay Manager Wage Invoice", "Dismiss Manager", "< Back to Manager" };
++            case MenuPage.ManagerWalkingPaths:
++                return new string[] { "Manager Walking Mode", "Spawn -> Workstation Waypoints >",
++                    "Final Workstation Approach >", "< Back to Walking Paths" };
++            case MenuPage.ManagerWaypoints:
++                return new string[] { "Manager Stop 1 / 5 >", "Manager Stop 2 / 5 >",
++                    "Manager Stop 3 / 5 >", "Manager Stop 4 / 5 >",
++                    "Manager Stop 5 / 5 >", "< Back to Manager Paths" };
+             case MenuPage.HireManagerRoster:
+                 return new string[] { "Assistant Manager — 3% discount",
+                     "Experienced Manager — 6% discount", "General Manager — 10% discount",
+@@ -1098,11 +1146,11 @@
+                     "Blocked Path Recovery >", "Placement Markers >", "Break-Time Animations", "< Back to Employees" };
+             case MenuPage.EmployeePlacements:
+                 return new string[] { "Staff Break Area >", "Mechanic Workstations >",
+-                    "Receptionist Desk >", "Receptionist Desk Approach >", "Staff Spawn / Entry >",
+-                    "< Back to Employee Settings" };
++                    "Receptionist Desk >", "Receptionist Desk Approach >", "Manager Workstation >",
++                    "Manager Workstation Approach >", "Staff Spawn / Entry >", "< Back to Employee Settings" };
+             case MenuPage.EmployeePaths:
+                 return new string[] { "Mechanic Walking Paths >", "Receptionist Walking Paths >",
+-                    "< Back to Employee Settings" };
++                    "Manager Walking Paths >", "< Back to Employee Settings" };
+             case MenuPage.MechanicWalkingPaths:
+                 return new string[] { "Mechanic Walking Mode", "Pickup + Return Exit Route",
+                     "Spawn -> Break Waypoints >", "Break -> Bay Waypoints >",
+@@ -1141,7 +1189,7 @@
+                 return new string[] { "Bay 1 Final Turn >", "Bay 2 Final Turn >",
+                     "Bay 3 Final Turn >", "< Back to Walking Paths" };
+             case MenuPage.PointEditor:
+-                return new string[] { "Save Position + Facing", "Clear Saved Position",
++                return new string[] { "Set / Update Position + Facing", "Clear Saved Position",
+                     "Marker Preview", "Show Saved Coordinates", "< Back" };
+             case MenuPage.RouteRecovery:
+                 return new string[] { "Blocked-Route Teleport", "Recovery Status", "< Back" };
+@@ -1192,7 +1240,8 @@
+                 return new string[] { "Physical Mule Delivery", "Mule Road Spawn >", "Truck Unloading Spot >",
+                     "Driver Box Handoff >", "Pallet Storage & Capacity >", "Driver Walk Stops (0-3) >",
+                     "Wholesale Warehouse: Fixed", "Assign Current Pickup Vehicle",
+-                    "Assigned Vehicle / Cargo Status", "Delivery Route / Stock Status", "< Back to Inventory" };
++                    "Assigned Vehicle / Cargo Status", "Delivery Route / Stock Status",
++                    "Recover Stuck Shipment", "Cancel Pending Order (press twice)", "< Back to Inventory" };
+             case MenuPage.SupplierPalletStorage:
+                 return new string[] { "Storage Capacity Status", "Purchase Additional Pallet ($750)",
+                     "Place / Move Pallet 1 >", "Place / Move Pallet 2 >", "Place / Move Pallet 3 >",
+@@ -1237,10 +1286,20 @@
+             case MenuPage.ManagerManagement:
+                 if (index == 0) return _managerTier < 0 ? "VACANT" : _managerName;
+                 if (index == 1) return _managerTier < 0 ? "OPEN" : "EMPLOYED";
+-                if (index == 2) return _managerTier < 0 ? "N/A" : "$" + ManagerAdjustedExpense(750).ToString("N0");
+-                if (index == 3) return "$" + _managerWagesDue.ToString("N0");
+-                if (index == 5) return Status(_managerWorkstation);
++                if (index == 2) return _managerTier < 0 ? "DIRECT" : (_customManagerWalkingPaths ? "CUSTOM" : "DIRECT");
+                 return ">";
++            case MenuPage.ManagerProfile:
++                if (index == 0) return _managerTier < 0 ? "VACANT" : _managerName;
++                if (index == 1) return _managerTier < 0 ? "N/A" : "$" + (750L * (100 - ManagerDiscountPercent()) / 100).ToString("N0");
++                if (index == 2) return "$" + _managerWagesDue.ToString("N0");
++                return ">";
++            case MenuPage.ManagerWalkingPaths:
++                if (index == 0) return _customManagerWalkingPaths ? "CUSTOM MLO" : "AUTO DIRECT";
++                if (index == 1) return CountSet(_managerRoute) + "/5";
++                if (index == 2) return Status(_managerApproach);
++                return ">";
++            case MenuPage.ManagerWaypoints:
++                return index < OptionalPathPointCount ? Status(_managerRoute[index]) : ">";
+             case MenuPage.HireManagerRoster:
+                 return index < 3 ? "$" + ManagerCandidateCost(index).ToString("N0") : ">";
+             case MenuPage.Employees:
+@@ -1312,6 +1371,8 @@
+                 if (index == 7) return HasWholesaleVehicle() ? "CHANGE" : "ASSIGN";
+                 if (index == 8) return _wholesaleCargoLoaded ? "LOADED" : HasWholesaleVehicle() ? "REGISTERED" : "NONE";
+                 if (index == 9) return _deliveryKind == -2 ? "READY" : MuleStageName();
++                if (index == 10) return _deliveryKind == -2 ? "NONE" : "RESET";
++                if (index == 11) return _deliveryKind == -2 ? "NONE" : "CONFIRM";
+                 return ">";
+             case MenuPage.SupplierDriverWaypoints:
+                 return index < 3 ? Status(_supplierDriverWaypoints[index]) : ">";
+@@ -1377,11 +1438,14 @@
+                     case 1: return CountSet(_bays) + "/3";
+                     case 2: return Status(_receptionDesk);
+                     case 3: return Status(_receptionApproach);
+-                    case 4: return Status(_employeeEntrance);
++                    case 4: return Status(_managerWorkstation);
++                    case 5: return Status(_managerApproach);
++                    case 6: return Status(_employeeEntrance);
+                     default: return ">";
+                 }
+             case MenuPage.EmployeePaths: return index == 0 ? (_customEmployeeWalkingPaths ? "CUSTOM" : "DIRECT") :
+-                index == 1 ? (_customReceptionWalkingPaths ? "CUSTOM" : "DIRECT") : ">";
++                index == 1 ? (_customReceptionWalkingPaths ? "CUSTOM" : "DIRECT") :
++                index == 2 ? (_customManagerWalkingPaths ? "CUSTOM" : "DIRECT") : ">";
+             case MenuPage.MechanicWalkingPaths:
+                 if (index == 7) return _smoothMechanicWaypoints ? "ON" : "OFF";
+                 if (index == 8) return _safeTeleportOnStall ? "ON" : "OFF";
+@@ -1508,6 +1572,13 @@
+             return "Where receptionist stands behind the service counter.";
+         if (_editingPoint == _receptionApproach)
+             return "Staff-side approach, NOT where customers queue.";
++        if (_editingPoint == _managerWorkstation)
++            return "Manager clipboard workstation; configured in Employee Placements.";
++        if (_editingPoint == _managerApproach)
++            return "Final optional manager approach before workstation (CUSTOM MLO).";
++        foreach (WorkBay stop in _managerRoute)
++            if (Object.ReferenceEquals(stop, _editingPoint))
++                return "Optional manager-only entry-to-workstation walking stop.";
+         if (_editingPoint == _supplierTruckSpawn) return "Truck spawns here on the ROAD, facing outward toward shop.";
+         if (_editingPoint == _supplierTruckPark) return "Truck parks here to unload; allow 8m+ clearance for a Mule.";
+         if (_editingPoint == _supplierHandoff) return "Driver waits here with box; press E to accept before carrying it to storage.";
+@@ -1598,7 +1669,9 @@
+                 return _selection == 0 ? "DIRECT goes straight to desk; CUSTOM follows saved route." :
+                     "Receptionist-only 0/5 route and desk approach.";
+             case MenuPage.ReceptionWaypoints: return "OPTIONAL receptionist-only stops, staff entry to desk.";
+-            case MenuPage.EmployeePlacements: return "Set employee spawn, break, mechanic bay, receptionist points.";
++            case MenuPage.ManagerWalkingPaths: return "DIRECT follows navmesh; CUSTOM visits saved manager stops and final approach.";
++            case MenuPage.ManagerWaypoints: return "Optional 0-5 manager-only route stops from staff entrance to workstation.";
++            case MenuPage.EmployeePlacements: return "Set spawn, mechanic bays, receptionist and manager workstations and approaches.";
+             case MenuPage.CustomerPlacements: return "Road spawn, two waiting-car spaces, drop-off and optional customer path.";
+             case MenuPage.CustomerWalkingRoutes: return "Optional 0-3 walking stops in order from drop-off to reception; reverse on pickup.";
+             case MenuPage.CustomerQueueSettings: return "Cars 2 and 3 stage roadside. Multiple staffed bays can repair while arrivals take turns at drop-off.";
+@@ -1631,19 +1704,23 @@
+                     "Assign the CURRENT vehicle (plate and model) for wholesale cargo missions.",
+                     "View registered vehicle, loaded cargo and active wholesale order.",
+                     "Truck route, warehouse pickup, box carry, supplier invoices and capacity.",
+-                    "Return to Inventory & Suppliers." }[Math.Min(_selection, 10)];
++                    "Recover original pending shipment; no new order or stock credit.",
++                    "Press twice within 12 seconds to cancel; legacy prepayments are refunded.",
++                    "Return to Inventory & Suppliers." }[Math.Min(_selection, 12)];
+             case MenuPage.SupplierPalletStorage:
+                 return "Each placed pallet holds 25 parts and 9 delivered boxes. Buy and place more to expand.";
+             case MenuPage.SupplierDriverWaypoints: return "Optional driver walk stops from the truck to parts handoff.";
+             case MenuPage.ManagerManagement:
+-                return new string[] {
+-                    "Manager level, savings rate, salary, remote jobs and accumulated revenue.",
+-                    "Recruit a new manager. Dismiss the current manager before replacing.",
+-                    "Spend business cash on manager XP; discounts lower the actual price.",
+-                    "Pay outstanding manager wages without changing employee pay rates.",
+-                    "Dismiss the manager; outstanding wages transfer to former staff bills.",
+-                    "Set the manager's physical desk/post; fallback is the office computer desk.",
+-                    "Return to Employees." }[Math.Min(_selection, 6)];
++                return new string[] { "Review manager finances, skills and wages.",
++                    "Hire or replace an existing manager after dismissal.",
++                    "Open manager-only walking settings; placement is under Employee Settings.",
++                    "Return to Employees." }[Math.Min(_selection, 3)];
++            case MenuPage.ManagerProfile:
++                return new string[] { "Manager level, savings, offsite jobs and revenue.",
++                    "Train manager to improve experience and savings.",
++                    "Pay currently owed manager wages.",
++                    "Dismiss manager; unpaid wages move to former staff.",
++                    "Return to Manager." }[Math.Min(_selection, 4)];
+             case MenuPage.HireManagerRoster: return "Recruit a manager: higher tiers reduce expenses and improve offsite shop efficiency.";
+             case MenuPage.HireMechanicRoster: return "Candidates have different starting skill, specialty, hiring price and wages.";
+             case MenuPage.HireReceptionistRoster: return "Recruit a receptionist; skills permit one, two or three pending customers.";
+@@ -1733,6 +1810,9 @@
+             case MenuPage.BusinessManagement: return "BUSINESS MANAGEMENT";
+             case MenuPage.Employees: return "EMPLOYEES";
+             case MenuPage.ManagerManagement: return "BUSINESS MANAGER";
++            case MenuPage.ManagerProfile: return "MANAGER PROFILE";
++            case MenuPage.ManagerWalkingPaths: return "MANAGER WALKING";
++            case MenuPage.ManagerWaypoints: return "MANAGER ROUTE (0-5)";
+             case MenuPage.HireManagerRoster: return "MANAGEMENT CANDIDATES";
+             case MenuPage.MechanicManagement: return "MECHANIC MANAGEMENT";
+             case MenuPage.ReceptionistManagement: return "RECEPTION MANAGEMENT";
+@@ -1868,6 +1948,8 @@
+             case MenuPage.BusinessManagement: ExecuteManagementSelection(); break;
+             case MenuPage.Employees: ExecuteEmployeeSelection(); break;
+             case MenuPage.ManagerManagement: ExecuteManagerManagement(); break;
++            case MenuPage.ManagerProfile: ExecuteManagerProfile(); break;
++            case MenuPage.ManagerWalkingPaths: ExecuteManagerWalkingSelection(); break;
+             case MenuPage.HireManagerRoster: ExecuteHireManagerRoster(); break;
+             case MenuPage.MechanicManagement: ExecuteMechanicManagement(); break;
+             case MenuPage.ReceptionistManagement: ExecuteReceptionistManagement(); break;
+@@ -1890,6 +1972,7 @@
+             case MenuPage.ServiceVehicleBays:
+             case MenuPage.ArrivalWaypoints:
+             case MenuPage.ReceptionWaypoints:
++            case MenuPage.ManagerWaypoints:
+             case MenuPage.ServiceWaypoints:
+             case MenuPage.BayApproaches: ExecutePointListSelection(); break;
+             case MenuPage.EmployeePaths: ExecuteEmployeePathsSelection(); break;
+@@ -2804,7 +2887,9 @@
+             case 1: _menuPage = MenuPage.MechanicBays; _selection = 0; break;
+             case 2: OpenPointEditor(_receptionDesk, "Receptionist Desk", -1, false); break;
+             case 3: OpenPointEditor(_receptionApproach, "Receptionist Desk Approach", -1, true); break;
+-            case 4: OpenPointEditor(_employeeEntrance, "Staff Spawn / Entry", -1, false); break;
++            case 4: OpenPointEditor(_managerWorkstation, "Manager Workstation", -1, true); break;
++            case 5: OpenPointEditor(_managerApproach, "Manager Final Workstation Approach", -1, true); break;
++            case 6: OpenPointEditor(_employeeEntrance, "Staff Spawn / Entry", -1, false); break;
+             default: NavigateBack(); break;
+         }
+     }
+@@ -2813,6 +2898,7 @@
+     {
+         if (_selection == 0) { _mechanicPathsFromManagement = false; _menuPage = MenuPage.MechanicWalkingPaths; _selection = 0; }
+         else if (_selection == 1) { _receptionPathsFromManagement = false; _menuPage = MenuPage.ReceptionWalkingPaths; _selection = 0; }
++        else if (_selection == 2) { _managerPathsFromManagement = false; _menuPage = MenuPage.ManagerWalkingPaths; _selection = 0; }
+         else NavigateBack();
+     }
+ 
+@@ -2918,11 +3004,27 @@
+         }
+     }
+ 
++    private void ExecuteManagerWalkingSelection()
++    {
++        switch (_selection)
++        {
++            case 0:
++                if (_clockedIn) { Notify("Close shop before changing manager walking mode."); return; }
++                _customManagerWalkingPaths = !_customManagerWalkingPaths;
++                Save(); Notify("Manager walking: " + (_customManagerWalkingPaths ? "CUSTOM MLO" : "AUTO DIRECT") + ".");
++                break;
++            case 1: _menuPage = MenuPage.ManagerWaypoints; _selection = 0; break;
++            case 2: OpenPointEditor(_managerApproach, "Manager Final Workstation Approach", -1, true); break;
++            default: NavigateBack(); break;
++        }
++    }
++
+     private void ExecutePointListSelection()
+     {
+         int maxSlots = (_menuPage == MenuPage.ArrivalWaypoints ||
+             _menuPage == MenuPage.ServiceWaypoints ||
+-            _menuPage == MenuPage.ReceptionWaypoints) ? OptionalPathPointCount : VisualBayCount;
++            _menuPage == MenuPage.ReceptionWaypoints ||
++            _menuPage == MenuPage.ManagerWaypoints) ? OptionalPathPointCount : VisualBayCount;
+         if (_selection >= maxSlots) { NavigateBack(); return; }
+         int slot = _selection;
+         if (_menuPage == MenuPage.MechanicBays)
+@@ -2935,6 +3037,8 @@
+             OpenPointEditor(_serviceRoute[slot], "Work Bay: Stop " + (slot + 1) + "/5 (optional)", -1, true);
+         else if (_menuPage == MenuPage.ReceptionWaypoints)
+             OpenPointEditor(_receptionRoute[slot], "Reception: Stop " + (slot + 1) + "/5 (optional)", -1, true);
++        else if (_menuPage == MenuPage.ManagerWaypoints)
++            OpenPointEditor(_managerRoute[slot], "Manager: Stop " + (slot + 1) + "/5 (optional)", -1, true);
+         else if (_menuPage == MenuPage.BayApproaches)
+             OpenPointEditor(_bayApproaches[slot], "Bay " + (slot + 1) + " Approach", -1, true);
+     }
+@@ -2950,6 +3054,8 @@
+                 else if (_editingBayIndex >= 0) ConfigureWorkBay(_editingBayIndex);
+                 else if (_editingRoutePoint) ConfigureRoutePoint(_editingPoint, _editingPointLabel);
+                 else ConfigureArrivalPoint(_editingPoint, _editingPointLabel);
++                if (_editingPoint.IsSet)
++                    _showPlacementMarkers = true; // SET always enables saved-point preview
+                 // Pallet markers/boxes follow edited stockroom positions immediately.
+                 if (Object.ReferenceEquals(_editingPoint, _supplierPartsPallet) ||
+                     Array.IndexOf(_extraStoragePallets, _editingPoint) >= 0)
+@@ -3014,8 +3120,9 @@
+         {
+             case 0:
+                 _showPlacementMarkers = !_showPlacementMarkers;
+-                Notify("Placement markers " + (_showPlacementMarkers ? "ON" : "OFF") +
+-                    ". They remain visible after " + MenuKeyLabel() + " closes until toggled off.");
++                Notify(_showPlacementMarkers && !_placed ? "Set the shop location first: no placement points can be previewed yet." :
++                    "Placement markers " + (_showPlacementMarkers ? "ON" : "OFF") +
++                    (_showPlacementMarkers ? ". Visible within 80m of your shop when points are SET." : "."));
+                 break;
+             case 1:
+                 Notify("BLUE: mechanic bays | TEAL: customer vehicle parking | GREEN: break" +
+@@ -3118,7 +3225,8 @@
+         _bays[index].Heading = Game.Player.Character.Heading;
+         Save();
+         _visualRefreshClock = 1.0;
+-        Notify("Mechanic Bay " + (index + 1) + " SAVED at " + FormatPosition(here) + ".");
++        _showPlacementMarkers = true;
++        Notify("Mechanic Bay " + (index + 1) + " SAVED at " + FormatPosition(here) + ". Markers ON.");
+     }
+ 
+     // Customer vehicle spots are NOT employee arrival routes. Capturing them
+@@ -3189,7 +3297,8 @@
+         point.Heading = Game.Player.Character.Heading;
+         Save();
+         _warnedMissingEntrance = false;
+-        Notify(name + " SAVED at " + FormatPosition(here) + ".");
++        _showPlacementMarkers = true;
++        Notify(name + " SAVED at " + FormatPosition(here) + ". Markers ON.");
+     }
+ 
+     // Optional route markers are captured at the player's standing position.
+@@ -3213,7 +3322,8 @@
+         point.Position = here;
+         point.Heading = Game.Player.Character.Heading;
+         Save();
+-        Notify(label + " SAVED: " + FormatPosition(here));
++        _showPlacementMarkers = true;
++        Notify(label + " SAVED: " + FormatPosition(here) + ". Markers ON.");
+     }
+ 
+     // The previews are ephemeral, drawn per-frame only when enabled.
+@@ -3244,6 +3354,10 @@
+             if (_customReceptionWalkingPaths)
+                 foreach (WorkBay stop in _receptionRoute)
+                     MarkPoint(stop, Color.FromArgb(185, 180, 135, 248));
++            if (_customManagerWalkingPaths)
++                foreach (WorkBay stop in _managerRoute)
++                    MarkPoint(stop, Color.FromArgb(195, 92, 195, 255));
++            MarkPoint(_managerApproach, Color.FromArgb(195, 115, 210, 248));
+             MarkPoint(_receptionApproach, Color.FromArgb(190, 172, 110, 239));
+             MarkPoint(_receptionDesk, pink);
+             MarkPoint(_managerWorkstation, Color.FromArgb(195, 129, 195, 255));
+@@ -3309,9 +3423,9 @@
+     {
+         if (point == null || !point.IsSet) return;
+         Vector3 basePos = new Vector3(point.Position.X, point.Position.Y,
+-            point.Position.Z - 0.035f);
++            point.Position.Z + 0.06f);
+         World.DrawMarker((MarkerType)1, basePos, new Vector3(), new Vector3(),
+-            new Vector3(0.43f, 0.43f, 0.045f), color);
++            new Vector3(0.48f, 0.48f, 0.16f), color);
+         // Heading remains saved for parking and ped facing, but debug previews
+         // intentionally show ONLY the position circle to avoid visual clutter.
+     }
+@@ -4034,6 +4148,47 @@
+         catch (Exception ex) { Log("Manager visual cleanup", ex); }
+         _managerWorker = null;
+         _managerAtPost = false;
++        _managerPathNodes.Clear();
++        _managerNodeIndex = 0;
++        _managerRouteRetries = 0;
++    }
++
++    private void StartManagerRoute(DateTime now, bool resumed = false)
++    {
++        if (_managerWorker == null || !_managerWorker.Exists()) return;
++        _managerPathNodes.Clear();
++        if (_customManagerWalkingPaths && !resumed)
++        {
++            foreach (WorkBay point in _managerRoute)
++                if (point.IsSet) _managerPathNodes.Add(point.Position);
++            if (_managerApproach.IsSet) _managerPathNodes.Add(_managerApproach.Position);
++        }
++        WorkBay post = CurrentManagerWorkstation();
++        _managerPathNodes.Add(post.Position);
++        _managerNodeIndex = 0;
++        _managerAtPost = false;
++        _managerRouteRetries = 0;
++        WalkManagerRouteNode(now);
++    }
++
++    private void WalkManagerRouteNode(DateTime now)
++    {
++        if (_managerWorker == null || !_managerWorker.Exists() ||
++            _managerNodeIndex >= _managerPathNodes.Count) return;
++        Vector3 target = _managerPathNodes[_managerNodeIndex];
++        _managerNodeSince = now;
++        _managerLastProgress = now;
++        _managerLastDistanceSq = DistanceSquared(_managerWorker.Position, target);
++        WorkBay post = CurrentManagerWorkstation();
++        GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, _managerWorker.Handle);
++        if (_customManagerWalkingPaths)
++            GTA.Native.Function.Call(GTA.Native.Hash.TASK_GO_STRAIGHT_TO_COORD,
++                _managerWorker.Handle, target.X, target.Y, target.Z,
++                _walkSpeed, -1, post.Heading, 0.3f);
++        else
++            GTA.Native.Function.Call(GTA.Native.Hash.TASK_FOLLOW_NAV_MESH_TO_COORD,
++                _managerWorker.Handle, target.X, target.Y, target.Z,
++                _walkSpeed, -1, 0.3f, 0, post.Heading);
+     }
+ 
+     private void UpdateVisualManager(DateTime now)
+@@ -4063,31 +4218,45 @@
+                 _managerWorker.IsPersistent = true;
+                 _managerWorker.BlockPermanentEvents = true;
+                 _managerWorker.AlwaysKeepTask = true;
+-                _managerAtPost = false;
+-                _nextManagerTask = DateTime.MinValue;
++                StartManagerRoute(now);
+             }
+             catch (Exception ex) { Log("Manager spawn", ex); DismissVisualManager(); return; }
+         }
+-        if (DistanceSquared(_managerWorker.Position, post.Position) <= 2.25f)
+-        {
+-            if (!_managerAtPost)
+-            {
+-                _managerAtPost = true;
+-                GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, _managerWorker.Handle);
+-                GTA.Native.Function.Call(GTA.Native.Hash.TASK_START_SCENARIO_AT_POSITION,
+-                    _managerWorker.Handle, "WORLD_HUMAN_CLIPBOARD",
+-                    post.Position.X, post.Position.Y, post.Position.Z,
+-                    post.Heading, -1, false, true);
+-            }
+-        }
+-        else if (now >= _nextManagerTask)
+-        {
+-            _managerAtPost = false;
+-            _nextManagerTask = now.AddSeconds(12);
+-            GTA.Native.Function.Call(GTA.Native.Hash.TASK_GO_STRAIGHT_TO_COORD,
+-                _managerWorker.Handle, post.Position.X, post.Position.Y, post.Position.Z,
+-                1f, -1, post.Heading, 0.5f);
+-        }
++        if (_managerAtPost || _managerPathNodes.Count == 0) return;
++        try
++        {
++            Vector3 destination = _managerPathNodes[_managerNodeIndex];
++            float remainingSq = DistanceSquared(_managerWorker.Position, destination);
++            bool finalNode = _managerNodeIndex == _managerPathNodes.Count - 1;
++            if (remainingSq < (finalNode ? 0.49f : 2.25f))
++            {
++                _managerNodeIndex++;
++                _managerRouteRetries = 0;
++                if (_managerNodeIndex < _managerPathNodes.Count)
++                    WalkManagerRouteNode(now);
++                else
++                {
++                    _managerAtPost = true;
++                    GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, _managerWorker.Handle);
++                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_START_SCENARIO_AT_POSITION,
++                        _managerWorker.Handle, "WORLD_HUMAN_CLIPBOARD",
++                        post.Position.X, post.Position.Y, post.Position.Z,
++                        post.Heading, -1, false, true);
++                }
++                return;
++            }
++            if (remainingSq + 0.09f < _managerLastDistanceSq)
++            { _managerLastProgress = now; _managerLastDistanceSq = remainingSq; }
++            // One retry per 10s; after 3 failed retries stop issuing tasks.
++            // Never infinite-loop or teleport an employee across an indoor MLO.
++            if ((now - _managerLastProgress).TotalSeconds >= Math.Max(8, _stallSeconds) &&
++                (now - _managerNodeSince).TotalSeconds >= 8 && _managerRouteRetries < 3)
++            {
++                _managerRouteRetries++;
++                WalkManagerRouteNode(now);
++            }
++        }
++        catch (Exception ex) { Log("Manager route", ex); DismissVisualManager(); _nextManagerSpawn = now.AddSeconds(25); }
+     }
+ 
+     private void CleanupVisualMechanics()
+@@ -5768,6 +5937,16 @@
+     {
+         switch (_selection)
+         {
++            case 0: _menuPage = MenuPage.ManagerProfile; _selection = 0; break;
++            case 1: _menuPage = MenuPage.HireManagerRoster; _selection = 0; break;
++            case 2: _managerPathsFromManagement = true; _menuPage = MenuPage.ManagerWalkingPaths; _selection = 0; break;
++            default: NavigateBack(); break;
++        }
++    }
++    private void ExecuteManagerProfile()
++    {
++        switch (_selection)
++        {
+             case 0:
+                 ShowStatusNotice("BUSINESS MANAGER",
+                     _managerTier < 0 ? "No manager hired" : _managerName + " | level " + ManagerLevel(),
+@@ -5779,16 +5958,17 @@
+                     "Remote jobs " + _remoteJobsCompleted + " | Revenue $" + _remoteSales.ToString("N0") +
+                         " | Parts used " + _remotePartsConsumed);
+                 break;
+-            case 1: _menuPage = MenuPage.HireManagerRoster; _selection = 0; break;
+-            case 2:
++            case 1:
+                 if (_managerTier < 0) { Notify("Hire a manager first."); break; }
+-                if (_cash < 750) { Notify("Manager training requires $750."); break; }
++                long managerTrainingQuote = 750L * (100 - ManagerDiscountPercent()) / 100;
++                if (_cash < managerTrainingQuote)
++                { Notify("Manager training requires $" + managerTrainingQuote.ToString("N0") + "."); break; }
+                 long managerTrainingActual = ManagerAdjustedExpense(750);
+                 _cash -= managerTrainingActual; _trainingSpend += managerTrainingActual; _managerXp += 40;
+                 Save(); Notify(_managerName + " trained: level " + ManagerLevel() + ", " + ManagerDiscountPercent() + "% expense savings.");
+                 break;
+-            case 3: PayInvoice(ref _managerWagesDue, true, "Manager wages"); break;
+-            case 4:
++            case 2: PayInvoice(ref _managerWagesDue, true, "Manager wages"); break;
++            case 3:
+                 if (_managerTier < 0) { Notify("No manager employed."); break; }
+                 if (_remoteMode || _remoteJobs.Count > 0)
+                 { Notify("Return to the shop and complete remote jobs before dismissing the manager."); break; }
+@@ -5796,7 +5976,6 @@
+                 DismissVisualManager();
+                 _managerTier = -1; _managerXp = 0; _managerName = "";
+                 Save(); Notify("Manager dismissed. Any unpaid wages moved to former-staff bills."); break;
+-            case 5: OpenPointEditor(_managerWorkstation, "Manager Workstation", -1, true); break;
+             default: NavigateBack(); break;
+         }
+     }
+@@ -6021,6 +6200,31 @@
+             AttachWholesaleBoxToVehicle(vehicle);
+     }
+ 
++    private Vector3 WarehousePackagePosition()
++    {
++        Vector3 floor = _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists() ?
++            _wholesaleWarehousePallet.Position : _wholesaleWarehousePickup.Position;
++        return floor + new Vector3(0f, 0f, 0.28f);
++    }
++
++    // Only one pallet spawned near the live warehouse pickup. Never persists.
++    private void UpdateWholesalePalletVisual()
++    {
++        Ped player = Game.Player.Character;
++        bool show = _deliveryKind != -2 && _deliverySupplier == 0 &&
++            _supplierVisualStage == 7 && !_wholesaleCargoLoaded && !_supplierPlayerCarrying &&
++            player != null && player.Exists() &&
++            DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 6400f;
++        if (!show)
++        { DeleteOwnedProp(ref _wholesaleWarehousePallet); return; }
++        if (_wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists()) return;
++        _wholesaleWarehousePallet = CreateFixedEquipmentProp("prop_pallet_02a",
++            _wholesaleWarehousePickup.Position, _wholesaleWarehousePickup.Heading, true);
++        if (_wholesaleWarehousePallet == null)
++            _wholesaleWarehousePallet = CreateFixedEquipmentProp("prop_pallet_01a",
++                _wholesaleWarehousePickup.Position, _wholesaleWarehousePickup.Heading, true);
++    }
++
+     private void DrawWholesalePackageMarker()
+     {
+         if (_deliveryKind == -2 || _deliverySupplier != 0 ||
+@@ -6070,6 +6274,10 @@
+             data.SetValue("Management", "XP", _managerXp);
+             data.SetValue("Management", "Name", _managerName);
+             SavePoint(data, "ManagerWorkstation", _managerWorkstation);
++            SavePoint(data, "ManagerApproach", _managerApproach);
++            data.SetValue("EmployeeSettings", "CustomManagerPaths", _customManagerWalkingPaths);
++            for (int i = 0; i < OptionalPathPointCount; i++)
++                SavePoint(data, "ManagerWaypoint" + (i + 1), _managerRoute[i]);
+             SavePoint(data, "ReceptionistResumePost", _receptionist.SavedPost);
+             data.SetValue("Management", "WagesDue", _managerWagesDue);
+             data.SetValue("Management", "WageAgeSeconds", _managerWageAgeSeconds);
+@@ -6108,6 +6316,7 @@
+                 data.SetValue("Storage", "BoxCount" + (pallet + 1), _storedDeliveryCrates[pallet]);
+             }
+             data.SetValue("Purchasing", "DeliveryDueUtcTicks", _deliveryDueUtcTicks);
++            data.SetValue("Purchasing", "DeliveryRemainingGameSeconds", _deliveryRemainingGameSeconds);
+             data.SetValue("Purchasing", "CompletedDeliveries", _completedSupplierDeliveries);
+             data.SetValue("SupplierVisuals", "PhysicalMuleDeliveries", _physicalMuleDeliveries);
+             SavePoint(data, "SupplierTruckSpawn", _supplierTruckSpawn);
+@@ -6340,7 +6549,7 @@
+                 "New orders are invoiced after arrival/stocking; pay under Expenses.");
+             return;
+         }
+-        double remain = Math.Max(0, (_deliveryDueUtcTicks - DateTime.UtcNow.Ticks) / (double)TimeSpan.TicksPerSecond);
++        double remain = Math.Max(0, _deliveryRemainingGameSeconds);
+         ShowStatusNotice("SUPPLIER DELIVERY",
+             _deliveryQuantity + " " + DeliveryItemName(_deliveryKind) + " | " + SupplierName(_deliverySupplier),
+             (_deliveryPrepaid ? "PREPAID" : "BILL AFTER STOCKING") + " $" + _deliveryCost.ToString("N0") +
+@@ -6381,6 +6590,7 @@
+         try { if (_supplierDriver != null && _supplierDriver.Exists()) _supplierDriver.Delete(); } catch { }
+         try { if (_supplierTruck != null && _supplierTruck.Exists()) _supplierTruck.Delete(); } catch { }
+         _supplierCrate = null;
++        DeleteOwnedProp(ref _wholesaleWarehousePallet);
+         _supplierPlayerCarrying = false;
+         _supplierDriver = null;
+         _supplierTruck = null;
+@@ -6573,6 +6783,8 @@
+         _deliveryKind = -2;
+         _deliveryQuantity = 0;
+         _deliveryDueUtcTicks = 0L;
++        _deliveryRemainingGameSeconds = 0;
++        _supplierTimerSaveSeconds = 0;
+         _deliveryCost = 0;
+         _deliveryPrepaid = false;
+         _wholesaleCargoLoaded = false;
+@@ -6601,8 +6813,9 @@
+                 _supplierTruck == null || !_supplierTruck.Exists()) DeleteSupplierVisuals();
+             return;
+         }
+-        if (_deliveryKind == -2) { if (_supplierVisualStage > 0) DeleteSupplierVisuals(); return; }
+-        if (_deliveryDueUtcTicks > now.Ticks) return;
++        if (_deliveryKind == -2)
++        { if (_supplierVisualStage > 0) DeleteSupplierVisuals(); DeleteOwnedProp(ref _wholesaleWarehousePallet); return; }
++        if (_deliveryRemainingGameSeconds > 0) return;
+         if (_deliveryQuantity <= 0) { _deliveryKind = -2; Save(); DeleteSupplierVisuals(); return; }
+         MaintainSupplierCarryPose(now);
+         if (_supplierVisualStage == 6 && _supplierPlayerCarrying) return; // No vehicle required during player handoff.
+@@ -6617,9 +6830,19 @@
+                 DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 6400f &&
+                 FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null)
+             {
+-                if (_supplierCrate == null || !_supplierCrate.Exists())
++                UpdateWholesalePalletVisual();
++                if ((_supplierCrate == null || !_supplierCrate.Exists()) &&
++                    _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists())
++                {
+                     _supplierCrate = CreateFixedEquipmentProp("prop_cs_cardbox_01",
+-                        _wholesaleWarehousePickup.Position, _wholesaleWarehousePickup.Heading, false);
++                        WarehousePackagePosition(), _wholesaleWarehousePickup.Heading, false);
++                    if (_supplierCrate != null && _supplierCrate.Exists())
++                    {
++                        GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
++                            _supplierCrate.Handle, false, false);
++                        _supplierCrate.FreezePosition = true;
++                    }
++                }
+             }
+             else if (!_supplierPlayerCarrying) DeleteOwnedProp(ref _supplierCrate);
+             return;
+@@ -6737,6 +6960,8 @@
+             "Vehicle model " + _wholesaleVehicleModel + " | Cargo " + (_wholesaleCargoLoaded ? "LOADED" : "EMPTY"),
+             "Order " + (_deliverySupplier == 0 && _deliveryKind != -2 ? "WHOLESALE ACTIVE" : "NONE"),
+             "Drive to warehouse, load box, return to shop, unload and stock.");
++        else if (_selection == 10) RecoverSupplierShipment();
++        else if (_selection == 11) CancelSupplierOrderWithConfirmation();
+         else if (_selection == 9) ShowStatusNotice("SUPPLIER DELIVERY ROUTE",
+             "Model " + _muleModelName + " | Physical " + (_physicalMuleDeliveries ? "ON" : "OFF"),
+             "Truck spawn " + Status(_supplierTruckSpawn) + " | unload " + Status(_supplierTruckPark),
+@@ -6747,6 +6972,67 @@
+                 " | Warehouse " + Status(_wholesaleWarehousePickup) +
+                 " | Storage " + StoredPartsTotal() + "/" + TotalStorageCapacity());
+         else NavigateBack();
++    }
++
++    // Recovery never credits inventory, pays an invoice or starts a second order.
++    private void RecoverSupplierShipment()
++    {
++        if (_deliveryKind == -2) { Notify("No supplier shipment to recover."); return; }
++        try
++        {
++            Ped player = Game.Player.Character;
++            if (player != null && player.Exists() && _supplierPlayerCarrying)
++                GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
++        }
++        catch (Exception ex) { Log("Supplier recovery pose cleanup", ex); }
++        DeleteSupplierVisuals();
++        _wholesaleCargoLoaded = false;
++        _wholesaleCargoUnloaded = false;
++        _cachedWholesaleVehicle = null;
++        _nextWholesaleVehicleLookup = DateTime.MinValue;
++        _supplierVisualStage = 0;
++        Save();
++        SupplierCheckpoint("manual recover - original order retained");
++        Notify(_deliverySupplier == 0 ?
++            "Wholesale shipment reset. Collect original order at warehouse when ETA reaches zero." :
++            "Mule shipment reset. Original order will be retried after ETA.");
++    }
++
++    // Two intentional presses required; no stock or invoices were booked yet.
++    private void CancelSupplierOrderWithConfirmation()
++    {
++        if (_deliveryKind == -2) { Notify("No pending supplier order to cancel."); return; }
++        DateTime now = DateTime.UtcNow;
++        if (now > _cancelSupplierConfirmUntil)
++        {
++            _cancelSupplierConfirmUntil = now.AddSeconds(12);
++            Notify("Press CANCEL PENDING ORDER again within 12 seconds to confirm. No stock will be added.");
++            return;
++        }
++        _cancelSupplierConfirmUntil = DateTime.MinValue;
++        try
++        {
++            Ped player = Game.Player.Character;
++            if (player != null && player.Exists() && _supplierPlayerCarrying)
++                GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
++        }
++        catch (Exception ex) { Log("Supplier cancellation pose cleanup", ex); }
++        long refund = _deliveryPrepaid ? _deliveryCost : 0L;
++        DeleteSupplierVisuals();
++        _wholesaleCargoLoaded = false;
++        _wholesaleCargoUnloaded = false;
++        _cachedWholesaleVehicle = null;
++        _deliveryKind = -2;
++        _deliveryQuantity = 0;
++        _deliveryCost = 0;
++        _deliveryPrepaid = false;
++        _deliveryDueUtcTicks = 0L;
++        _deliveryRemainingGameSeconds = 0;
++        _supplierTimerSaveSeconds = 0;
++        if (refund > 0) _cash += refund; // legacy prepayment refunded once
++        Save();
++        SupplierCheckpoint("manual cancellation");
++        Notify("Supplier order cancelled" + (refund > 0 ? "; prepaid refund $" + refund.ToString("N0") : "; no invoice created") + ".");
+     }
+ 
+     private void ExecuteSupplierDriverWaypoints()
+@@ -6859,7 +7145,10 @@
+         int supplierPct = _selectedSupplier == 0 ? 90 : _selectedSupplier == 1 ? 100 : 125;
+         long noManagerQuote = ((long)baseUnit * quantity * supplierPct + 99) / 100;
+         _managerSavings += Math.Max(0L, noManagerQuote - cost);
+-        _deliveryDueUtcTicks = DateTime.UtcNow.AddSeconds(SupplierDeliverySeconds(_selectedSupplier)).Ticks;
++        // Keep the old field as an order identity for Mule visual lifecycle only.
++        _deliveryDueUtcTicks = DateTime.UtcNow.Ticks;
++        _deliveryRemainingGameSeconds = SupplierDeliverySeconds(_selectedSupplier);
++        _supplierTimerSaveSeconds = 0;
+         if (_selectedSupplier == 0 && _wholesaleWarehousePickup.IsSet)
+             try { GTA.Native.Function.Call(GTA.Native.Hash.SET_NEW_WAYPOINT,
+                 _wholesaleWarehousePickup.Position.X, _wholesaleWarehousePickup.Position.Y); }
+@@ -7031,7 +7320,10 @@
+         float localY = ((boxIndex / 3) % 3 == 0 ? -0.07f : 0.11f);
+         int layer = boxIndex / 3;
+         float cos = (float)Math.Cos(theta), sin = (float)Math.Sin(theta);
+-        return pallet.Position + new Vector3(localX * cos - localY * sin,
++        Vector3 palletGround = _storagePalletProps[palletSlot] != null &&
++            _storagePalletProps[palletSlot].Exists() ?
++                _storagePalletProps[palletSlot].Position : pallet.Position;
++        return palletGround + new Vector3(localX * cos - localY * sin,
+             localX * sin + localY * cos, 0.28f + layer * 0.37f);
+     }
+ 
+@@ -7086,9 +7378,15 @@
+         }
+         if (atDriver || atWarehouse)
+         {
++            if (atWarehouse)
++            {
++                UpdateWholesalePalletVisual();
++                if (_wholesaleWarehousePallet == null || !_wholesaleWarehousePallet.Exists())
++                { Notify("Warehouse pallet is loading; try collecting the box again."); return true; }
++            }
+             if (_supplierCrate == null || !_supplierCrate.Exists())
+                 _supplierCrate = CreateFixedEquipmentProp("prop_cs_cardbox_01",
+-                    atWarehouse ? _wholesaleWarehousePickup.Position : _supplierHandoff.Position,
++                    atWarehouse ? WarehousePackagePosition() : _supplierHandoff.Position,
+                     atWarehouse ? _wholesaleWarehousePickup.Heading : _supplierHandoff.Heading, false);
+             if (_supplierCrate == null || !_supplierCrate.Exists())
+             { Notify("Supplier box model is loading. Try again in a moment."); return true; }
+@@ -7120,6 +7418,14 @@
+             if (slot < 0) return false;
+             if (!CanStoreShipment(_deliveryQuantity))
+             { Notify("Pallet storage FULL. Purchase/place another pallet before stocking."); return true; }
++            // The physical stockroom pallet must exist before we freeze a box in
++            // the display stack; this prevents a saved-Z floating crate.
++            if (_storagePalletProps[slot] == null || !_storagePalletProps[slot].Exists())
++            {
++                UpdateSupplierPalletVisual();
++                if (_storagePalletProps[slot] == null || !_storagePalletProps[slot].Exists())
++                { Notify("Stockroom pallet is loading. Try placing the box again."); return true; }
++            }
+             int nextBox = _storedDeliveryCrates[slot];
+             if (!CommitSupplierDelivery(slot)) return true;
+             SupplierCheckpoint("package deposited on pallet / invoice issued");

@@ -1,0 +1,3 @@
+# Visual Studio source — v0.3.2.8a
+
+Open `GlassHeroesBusiness.sln` targeting .NET Framework 4.8 and ScriptHookVDotNet2 2.11.6. The working `.2.cs` is included in `VisualStudio/scripts/`. This hotfix changes only two lines of v0.3.2.8 for the training-expense ledger. See `../SourceDiff_v0.3.2.8_to_v0.3.2.8a.patch` and `../Docs/GlassHeroesBusiness_v0.3.2.8a_Developer_Guide.docx` for exact source changes. Test compilation on Windows and inspect `ScriptHookVDotNet.log` after installing the source script. Do not place both the source script and a compiled DLL of the same business script in `scripts/`.
