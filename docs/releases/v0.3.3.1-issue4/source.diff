@@ -1,0 +1,118 @@
+diff --git a/Install/scripts/GlassHeroesBusiness.2.cs b/Install/scripts/GlassHeroesBusiness.2.cs
+index 73f8043..40627c6 100644
+--- a/Install/scripts/GlassHeroesBusiness.2.cs
++++ b/Install/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,4 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
++﻿// Glass Heroes Business Manager - v0.3.3.1 EXPERIMENTAL (corrective milestone)
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+ 
+@@ -3395,25 +3395,34 @@ public class GlassHeroesBusiness : Script
+         }
+     }
+ 
+-    private static void MarkParkingSquare(WorkBay point, Color color)
++    private static Vector3[] ParkingOutlineVertices(Vector3 position, float heading)
+     {
+-        if (point == null || !point.IsSet) return;
+-        // A flat car-length rectangular outline, rotated by saved heading.
+-        float radians = point.Heading * (float)Math.PI / 180f;
++        // SHVDN/GTA: forward at 0 degrees is +Y, at 90 degrees is -X.
++        // This is the inverse of Vector3.ToHeading, not a mirrored +X rotation.
++        float radians = heading * (float)Math.PI / 180f;
+         float sin = (float)Math.Sin(radians), cos = (float)Math.Cos(radians);
+-        Vector3[] corners = new Vector3[4];
+-        float[] length = { -2.55f, -2.55f, 2.55f, 2.55f };
+-        float[] width = { -1.18f, 1.18f, 1.18f, -1.18f };
+-        for (int i = 0; i < 4; i++)
++        Vector3[] points = new Vector3[7];
++        for (int i = 0; i < points.Length; i++)
+         {
+-            float x = length[i] * sin + width[i] * cos;
+-            float y = length[i] * cos - width[i] * sin;
+-            corners[i] = new Vector3(point.Position.X + x, point.Position.Y + y,
+-                point.Position.Z + 0.025f);
++            float length = i < 4 ? (i < 2 ? -2.55f : 2.55f) : (i == 4 ? 2.15f : 0.85f);
++            float width = i < 4 ? (i == 0 || i == 3 ? -1.18f : 1.18f) :
++                (i == 4 ? 0f : (i == 5 ? -0.60f : 0.60f));
++            points[i] = new Vector3(position.X - length * sin + width * cos,
++                position.Y + length * cos + width * sin, position.Z + 0.025f);
+         }
+-        for (int i = 0; i < 4; i++)
++        return points;
++    }
++
++    private static void MarkParkingSquare(WorkBay point, Color color)
++    {
++        if (point == null || !point.IsSet) return;
++        Vector3[] points = ParkingOutlineVertices(point.Position, point.Heading);
++        // Four outline edges, then two arms of a clear forward-facing arrow.
++        // Existing placement-preview distance/toggles remain in the caller.
++        for (int i = 0; i < 6; i++)
+         {
+-            Vector3 a = corners[i], b = corners[(i + 1) % 4];
++            Vector3 a = i < 4 ? points[i] : points[4];
++            Vector3 b = i < 4 ? points[(i + 1) % 4] : points[i + 1];
+             GTA.Native.Function.Call(GTA.Native.Hash.DRAW_LINE,
+                 a.X, a.Y, a.Z, b.X, b.Y, b.Z, (int)color.R, (int)color.G, (int)color.B, (int)color.A);
+         }
+diff --git a/VisualStudio/scripts/GlassHeroesBusiness.2.cs b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+index 73f8043..40627c6 100644
+--- a/VisualStudio/scripts/GlassHeroesBusiness.2.cs
++++ b/VisualStudio/scripts/GlassHeroesBusiness.2.cs
+@@ -1,4 +1,4 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
++﻿// Glass Heroes Business Manager - v0.3.3.1 EXPERIMENTAL (corrective milestone)
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+ 
+@@ -3395,25 +3395,34 @@ public class GlassHeroesBusiness : Script
+         }
+     }
+ 
+-    private static void MarkParkingSquare(WorkBay point, Color color)
++    private static Vector3[] ParkingOutlineVertices(Vector3 position, float heading)
+     {
+-        if (point == null || !point.IsSet) return;
+-        // A flat car-length rectangular outline, rotated by saved heading.
+-        float radians = point.Heading * (float)Math.PI / 180f;
++        // SHVDN/GTA: forward at 0 degrees is +Y, at 90 degrees is -X.
++        // This is the inverse of Vector3.ToHeading, not a mirrored +X rotation.
++        float radians = heading * (float)Math.PI / 180f;
+         float sin = (float)Math.Sin(radians), cos = (float)Math.Cos(radians);
+-        Vector3[] corners = new Vector3[4];
+-        float[] length = { -2.55f, -2.55f, 2.55f, 2.55f };
+-        float[] width = { -1.18f, 1.18f, 1.18f, -1.18f };
+-        for (int i = 0; i < 4; i++)
++        Vector3[] points = new Vector3[7];
++        for (int i = 0; i < points.Length; i++)
+         {
+-            float x = length[i] * sin + width[i] * cos;
+-            float y = length[i] * cos - width[i] * sin;
+-            corners[i] = new Vector3(point.Position.X + x, point.Position.Y + y,
+-                point.Position.Z + 0.025f);
++            float length = i < 4 ? (i < 2 ? -2.55f : 2.55f) : (i == 4 ? 2.15f : 0.85f);
++            float width = i < 4 ? (i == 0 || i == 3 ? -1.18f : 1.18f) :
++                (i == 4 ? 0f : (i == 5 ? -0.60f : 0.60f));
++            points[i] = new Vector3(position.X - length * sin + width * cos,
++                position.Y + length * cos + width * sin, position.Z + 0.025f);
+         }
+-        for (int i = 0; i < 4; i++)
++        return points;
++    }
++
++    private static void MarkParkingSquare(WorkBay point, Color color)
++    {
++        if (point == null || !point.IsSet) return;
++        Vector3[] points = ParkingOutlineVertices(point.Position, point.Heading);
++        // Four outline edges, then two arms of a clear forward-facing arrow.
++        // Existing placement-preview distance/toggles remain in the caller.
++        for (int i = 0; i < 6; i++)
+         {
+-            Vector3 a = corners[i], b = corners[(i + 1) % 4];
++            Vector3 a = i < 4 ? points[i] : points[4];
++            Vector3 b = i < 4 ? points[(i + 1) % 4] : points[i + 1];
+             GTA.Native.Function.Call(GTA.Native.Hash.DRAW_LINE,
+                 a.X, a.Y, a.Z, b.X, b.Y, b.Z, (int)color.R, (int)color.G, (int)color.B, (int)color.A);
+         }
