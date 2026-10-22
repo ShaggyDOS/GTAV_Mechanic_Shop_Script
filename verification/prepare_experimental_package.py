@@ -157,6 +157,7 @@ if args.include_diagnostics:
     files += [repo/'verification/run_diagnostics_tests.py',repo/'verification/diagnostics_tests.cs',repo/'verification/pr9_diagnostics_reference.json']
 files += [repo/'verification/r2_method_reference.json']
 files += sorted(p for p in (repo/'verification/forensic-audit').glob('*') if p.is_file())
+files += [repo/'verification/forensic-audit/api-il/IL.csproj',repo/'verification/forensic-audit/api-il/Program.cs']
 files += [repo/'docs/coordination/CODEX_QA_R2_STACK_OVERFLOW_FORENSICS.md']
 files += sorted(p for p in release.rglob('*') if p.is_file())
 with zipfile.ZipFile(package,'w',zipfile.ZIP_DEFLATED) as z:

@@ -27,6 +27,9 @@ class Program {
     Console.WriteLine("Constructor " + ctor.Identifier + " calls: " + string.Join(", ",ctor.DescendantNodes().OfType<InvocationExpressionSyntax>().Select(x=>x.Expression.ToString()).Distinct().DefaultIfEmpty("<none>")));
   foreach(var node in root.DescendantNodes().OfType<InvocationExpressionSyntax>().Where(x=>x.Expression.ToString().Contains("Request") || x.Expression.ToString().Contains("World.Create") || x.Expression.ToString().Contains("World.GetNearby") || x.Expression.ToString().Contains("OnTick") || x.Expression.ToString().Contains("OnAborted")))
     Console.WriteLine("Review line " + (node.GetLocation().GetLineSpan().StartLinePosition.Line+1) + ": " + node.ToString().Replace("\n", " "));
+  foreach(var ctor in root.DescendantNodes().OfType<ConstructorDeclarationSyntax>())
+    foreach(var obj in ctor.DescendantNodes().OfType<ObjectCreationExpressionSyntax>().Where(x=>x.Type.ToString()=="Model"))
+      Console.WriteLine("Constructor API boundary line " + (obj.GetLocation().GetLineSpan().StartLinePosition.Line+1) + ": " + obj.ToString());
   Console.WriteLine("Limits: no semantic/native/other-script/dynamic event/delegate analysis; cycles absent is not proof of no recursion.");
  }
 }

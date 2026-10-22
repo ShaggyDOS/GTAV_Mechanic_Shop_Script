@@ -33,4 +33,11 @@ Review line 7833: World.CreateProp(deskModel, _officeDeskLocation.Position, fals
 Review line 7838: World.CreateProp(laptopModel, laptopPos, false, false)
 Review line 7862: model.Request(250)
 Review line 7866: World.CreateProp(model, pos, false, placeOnGround)
+Constructor API boundary line 560: new Model(_muleModelName)
+Constructor API boundary line 564: new Model(_configuration.GetValue("Suppliers", "DeliveryDriverModel", "s_m_m_trucker_01"))
+Constructor API boundary line 588: new Model(_pedModelName)
+Constructor API boundary line 590: new Model(_receptionistModelName)
+Constructor API boundary line 591: new Model(_configuration.GetValue("Management", "ManagerPedModel", "a_m_y_business_01"))
+Constructor API boundary line 592: new Model(_configuration.GetValue("CustomerService", "CustomerPedModel", "a_m_y_business_01"))
+Constructor API boundary line 593: new Model(_configuration.GetValue("CustomerService", "CustomerVehicleModel", "asea"))
 Limits: no semantic/native/other-script/dynamic event/delegate analysis; cycles absent is not proof of no recursion.
