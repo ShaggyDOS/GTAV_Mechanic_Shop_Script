@@ -1,4 +1,4 @@
-﻿// Glass Heroes Business Manager - v0.3.3.0 RC1 (manager routing, pallet grounding, shipment recovery)
+﻿// Glass Heroes Business Manager - v0.3.3.1 EXPERIMENTAL (corrective milestone)
 // Original project. Does not reference or modify Auto Work or its data.
 // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
 
@@ -414,7 +414,11 @@ public class GlassHeroesBusiness : Script
     private readonly WorkBay[] _extraStoragePallets = { new WorkBay(), new WorkBay(), new WorkBay() };
     private readonly int[] _storedDeliveryCrates = new int[MaxStoragePallets];
     private readonly Prop[] _storagePalletProps = new Prop[MaxStoragePallets];
-    private readonly List<Prop> _storedCrateProps = new List<Prop>();
+    private readonly List<Prop> _storedCrateProps = new List<Prop>(); // obsolete display ownership only
+    private readonly Prop[] _deliveredPackageProps = new Prop[MaxStoragePallets * CratesPerPallet];
+    private readonly int[] _deliveredPackageMasks = new int[MaxStoragePallets];
+    private DateTime _nextStorageVisualAttempt = DateTime.MinValue;
+    private int _storageVisualAttempts;
     private bool _palletVisualDirty = true;
     private readonly WorkBay _wholesaleWarehousePickup = new WorkBay();
     private Prop _wholesaleWarehousePallet; // visual-only, never counted as shop storage
@@ -667,6 +671,8 @@ public class GlassHeroesBusiness : Script
                 if (pallet > 0) LoadPoint(data, "SupplierStoragePallet" + (pallet + 1), _extraStoragePallets[pallet - 1]);
                 _storedDeliveryCrates[pallet] = Math.Max(0, Math.Min(CratesPerPallet,
                     data.GetValue("Storage", "BoxCount" + (pallet + 1), 0)));
+                _deliveredPackageMasks[pallet] = CompatiblePackageVisualMask(_storedDeliveryCrates[pallet],
+                    data.GetValue("Storage", "DeliveredPackageMask" + (pallet + 1), 0));
             }
             _palletVisualDirty = true;
             _deliveryDueUtcTicks = data.GetValue("Purchasing", "DeliveryDueUtcTicks", 0L);
@@ -6314,6 +6320,7 @@ public class GlassHeroesBusiness : Script
             {
                 if (pallet > 0) SavePoint(data, "SupplierStoragePallet" + (pallet + 1), _extraStoragePallets[pallet - 1]);
                 data.SetValue("Storage", "BoxCount" + (pallet + 1), _storedDeliveryCrates[pallet]);
+                data.SetValue("Storage", "DeliveredPackageMask" + (pallet + 1), _deliveredPackageMasks[pallet]);
             }
             data.SetValue("Purchasing", "DeliveryDueUtcTicks", _deliveryDueUtcTicks);
             data.SetValue("Purchasing", "DeliveryRemainingGameSeconds", _deliveryRemainingGameSeconds);
@@ -6777,7 +6784,12 @@ public class GlassHeroesBusiness : Script
         long invoice = _deliveryPrepaid ? 0L : _deliveryCost;
         if (kind < 0) _parts += quantity;
         else _specialStock[kind] += quantity;
-        if (palletSlot >= 0) _storedDeliveryCrates[palletSlot]++;
+        if (palletSlot >= 0)
+        {
+            _deliveredPackageMasks[palletSlot] |= 1 << _storedDeliveryCrates[palletSlot];
+            _storedDeliveryCrates[palletSlot]++;
+            _palletVisualDirty = true;
+        }
         _supplierInvoicesDue += invoice;
         _completedSupplierDeliveries++;
         _deliveryKind = -2;
@@ -7436,8 +7448,10 @@ public class GlassHeroesBusiness : Script
                 _supplierCrate.Heading = StoragePalletPoint(slot).Heading;
                 _supplierCrate.FreezePosition = true;
                 GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, _supplierCrate.Handle, false, false);
-                _storedCrateProps.Add(_supplierCrate);
-                _supplierCrate = null; // now belongs to persistent pallet display, not Mule lifecycle
+                int packageIndex = slot * CratesPerPallet + nextBox;
+                DeleteOwnedProp(ref _deliveredPackageProps[packageIndex]);
+                _deliveredPackageProps[packageIndex] = _supplierCrate;
+                _supplierCrate = null; // delivered parcel ownership is separate from obsolete displays
             }
             GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
             _supplierPlayerCarrying = false;
@@ -7507,12 +7521,29 @@ public class GlassHeroesBusiness : Script
         }
     }
 
-    private void DeleteStoragePalletVisuals()
+    private static int CompatiblePackageVisualMask(int storedBoxes, int savedMask)
     {
-        for (int i = 0; i < MaxStoragePallets; i++) DeleteOwnedProp(ref _storagePalletProps[i]);
+        int count = Math.Max(0, Math.Min(CratesPerPallet, storedBoxes));
+        return savedMask & ((1 << count) - 1);
+    }
+
+    private void DeleteLegacyStockroomDisplayBoxes()
+    {
+        // Only our obsolete display list. Never touch live cargo, delivered
+        // parcel ownership, warehouse props, world/MLO entities or stock counts.
         foreach (Prop crate in _storedCrateProps)
             try { if (crate != null && crate.Exists()) crate.Delete(); } catch { }
         _storedCrateProps.Clear();
+    }
+
+    private void DeleteStoragePalletVisuals()
+    {
+        for (int i = 0; i < MaxStoragePallets; i++) DeleteOwnedProp(ref _storagePalletProps[i]);
+        DeleteLegacyStockroomDisplayBoxes();
+        for (int i = 0; i < _deliveredPackageProps.Length; i++)
+            DeleteOwnedProp(ref _deliveredPackageProps[i]);
+        _storageVisualAttempts = 0;
+        _nextStorageVisualAttempt = DateTime.MinValue;
         _palletVisualDirty = true;
     }
 
@@ -7523,29 +7554,45 @@ public class GlassHeroesBusiness : Script
         for (int i = 0; i < _ownedStoragePallets; i++)
             if (StoragePalletPoint(i).IsSet && player != null && player.Exists() &&
                 DistanceSquared(player.Position, StoragePalletPoint(i).Position) < 6400f) nearby = true;
-        if (!nearby) { if (_storedCrateProps.Count > 0 || _palletVisualDirty == false)
-            DeleteStoragePalletVisuals(); return; }
+        if (!nearby)
+        {
+            if (_storageVisualAttempts > 0 || !_palletVisualDirty || _storedCrateProps.Count > 0)
+                DeleteStoragePalletVisuals();
+            return;
+        }
+        DeleteLegacyStockroomDisplayBoxes();
         if (!_palletVisualDirty) return;
-        DeleteStoragePalletVisuals();
+        DateTime now = DateTime.UtcNow;
+        if (_storageVisualAttempts >= 5 || now < _nextStorageVisualAttempt) return;
+        _storageVisualAttempts++;
+        _nextStorageVisualAttempt = now.AddSeconds(3);
         bool complete = true;
         for (int i = 0; i < _ownedStoragePallets; i++)
         {
             WorkBay point = StoragePalletPoint(i);
             if (!point.IsSet) continue;
-            _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_02a",
-                point.Position, point.Heading, true);
-            if (_storagePalletProps[i] == null)
-                _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_01a",
+            if (_storagePalletProps[i] == null || !_storagePalletProps[i].Exists())
+            {
+                _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_02a",
                     point.Position, point.Heading, true);
+                if (_storagePalletProps[i] == null)
+                    _storagePalletProps[i] = CreateFixedEquipmentProp("prop_pallet_01a",
+                        point.Position, point.Heading, true);
+            }
             if (_storagePalletProps[i] == null) { complete = false; continue; }
+            // BoxCount remains authoritative capacity data. Only parcels with
+            // delivery provenance may be reconstructed, never legacy displays.
             for (int b = 0; b < _storedDeliveryCrates[i]; b++)
             {
+                if ((_deliveredPackageMasks[i] & (1 << b)) == 0) continue;
+                int index = i * CratesPerPallet + b;
+                if (_deliveredPackageProps[index] != null && _deliveredPackageProps[index].Exists()) continue;
                 Prop visual = CreateFixedEquipmentProp("prop_cs_cardbox_01",
                     StoredBoxPosition(i, b), point.Heading, false);
                 if (visual != null)
                 {
                     GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, visual.Handle, false, false);
-                    _storedCrateProps.Add(visual);
+                    _deliveredPackageProps[index] = visual;
                 }
                 else complete = false;
             }
