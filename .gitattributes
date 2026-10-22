@@ -1,0 +1,5 @@
+*.pdf binary
+*.docx binary
+*.zip binary
+# Unified source patches require whitespace on empty context lines.
+docs/releases/*/source.diff whitespace=-blank-at-eol
