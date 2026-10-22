@@ -1,0 +1,40 @@
+name: Glass Heroes PR19 cleanup verification
+
+on:
+  push:
+    branches:
+      - reviewfix/qa-r2-wholesale-blip-cleanup
+  pull_request:
+    branches:
+      - feature/qa-r2-wholesale-cargo-map-blip
+
+permissions:
+  contents: read
+
+jobs:
+  code-and-parity:
+    name: Build / behavior / preservation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Source parity — install and project
+        shell: bash
+        run: |
+          cmp Install/scripts/GlassHeroesBusiness.2.cs VisualStudio/scripts/GlassHeroesBusiness.2.cs
+          sha256sum Install/scripts/GlassHeroesBusiness.2.cs VisualStudio/scripts/GlassHeroesBusiness.2.cs
+      - name: Production net48 C#7.3 build (managed only, no GTA launch)
+        run: dotnet build VisualStudio/GlassHeroesBusiness.csproj -c Release --nologo
+      - name: All extracted production-member behavior tests (including #19)
+        run: python3 verification/run_issue_tests.py
+      - name: Original logger regression tests
+        run: python3 verification/run_diagnostics_tests.py
+      - name: Static verification
+        run: python3 verification/run_static_checks.py
+      - name: Financial, Save, lifecycle and upstream R2 source preservation
+        run: python3 verification/check_preservation.py
