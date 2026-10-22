@@ -1,0 +1,12 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_issue5_EXPERIMENTAL.zip",
+  "sha256": "069790a6d9d82da3bc5457848a03ede5abb0dc069dcd97605f9d79c9beddd9db",
+  "zip_crc": "PASS",
+  "sources_match": "PASS",
+  "guide_formats": "MD, DOCX, PDF verified",
+  "included_issues": [
+    "5"
+  ],
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

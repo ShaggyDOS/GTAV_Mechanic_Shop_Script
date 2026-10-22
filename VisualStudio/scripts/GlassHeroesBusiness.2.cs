@@ -447,6 +447,11 @@ public class GlassHeroesBusiness : Script
     private Prop _supplierCrate;
     private int _supplierVisualStage; // 0 absent, 1 drive, 2 exit, 3 walk, 4 await handoff, 5 depart, 6 player carrying
     private int _supplierRouteIndex;
+    private bool _supplierDirectToPlayer;
+    private DateTime _supplierPlayerApproachDeadline = DateTime.MinValue;
+    private DateTime _nextSupplierPlayerRepath = DateTime.MinValue;
+    private DateTime _nextSupplierVisualRetryUtc = DateTime.MinValue;
+    private int _supplierPlayerRepaths;
     private bool _supplierExitIssued, _supplierDepartIssued;
     private DateTime _supplierStageAt = DateTime.MinValue;
     private long _supplierVisualOrderTicks;
@@ -6683,6 +6688,8 @@ public class GlassHeroesBusiness : Script
         _supplierDepartIssued = false;
         _supplierRouteIndex = 0;
         _supplierWalkingNodes.Clear();
+        _supplierDirectToPlayer = false;
+        _supplierPlayerRepaths = 0;
         _supplierBoxAttachedToDriver = false;
         _muleRearDoorsOpened = false;
     }
@@ -6829,13 +6836,63 @@ public class GlassHeroesBusiness : Script
     private void BeginSupplierDriverWalk(DateTime now)
     {
         _supplierWalkingNodes.Clear();
-        foreach (WorkBay point in _supplierDriverWaypoints)
-            if (point.IsSet) _supplierWalkingNodes.Add(point.Position);
-        _supplierWalkingNodes.Add(_supplierHandoff.Position);
+        _supplierDirectToPlayer = _supplierPartsPallet.IsSet;
+        if (_supplierDirectToPlayer)
+        {
+            Ped player = Game.Player.Character;
+            if (player == null || !player.Exists())
+            { DeferSupplierPlayerHandoff(now); return; }
+            _supplierWalkingNodes.Add(player.Position);
+            _supplierPlayerApproachDeadline = now.AddSeconds(90);
+            _nextSupplierPlayerRepath = now.AddSeconds(3);
+            _supplierPlayerRepaths = 0;
+        }
+        else
+        {
+            // Regular automatic drop-off retains every configured route stop.
+            foreach (WorkBay point in _supplierDriverWaypoints)
+                if (point.IsSet) _supplierWalkingNodes.Add(point.Position);
+            _supplierWalkingNodes.Add(_supplierHandoff.Position);
+        }
         _supplierRouteIndex = 0;
         _supplierVisualStage = 3;
         _supplierStageAt = now;
         TaskSupplierWalkingNode();
+    }
+
+    private void UpdateSupplierPlayerApproach(DateTime now)
+    {
+        Ped player = Game.Player.Character;
+        if (player == null || !player.Exists() || player.IsDead ||
+            _supplierDriver == null || !_supplierDriver.Exists() ||
+            _supplierCrate == null || !_supplierCrate.Exists() || !_supplierBoxAttachedToDriver)
+        { DeferSupplierPlayerHandoff(now); return; }
+        float distance = DistanceSquared(_supplierDriver.Position, player.Position);
+        if (distance < 4f)
+        {
+            if (_supplierVisualStage != 4)
+            { _supplierVisualStage = 4; _supplierStageAt = now; }
+            return; // hold the attached box for the player's explicit action
+        }
+        if (now >= _supplierPlayerApproachDeadline || distance > 10000f || _supplierPlayerRepaths >= 15)
+        { DeferSupplierPlayerHandoff(now); return; }
+        _supplierVisualStage = 3;
+        if (now < _nextSupplierPlayerRepath) return;
+        _nextSupplierPlayerRepath = now.AddSeconds(3);
+        _supplierPlayerRepaths++;
+        _supplierWalkingNodes.Clear();
+        _supplierWalkingNodes.Add(player.Position);
+        _supplierRouteIndex = 0;
+        TaskSupplierWalkingNode();
+    }
+
+    private void DeferSupplierPlayerHandoff(DateTime now)
+    {
+        // Cleanup owns visuals only. The paid/pending order and invoice ledger
+        // remain authoritative, and respawn cannot spin on the following tick.
+        DeleteSupplierVisuals();
+        _nextSupplierVisualRetryUtc = now.AddSeconds(30);
+        Log("Supplier player handoff deferred; pending order preserved", null);
     }
 
     private void TaskSupplierWalkingNode()
@@ -6920,7 +6977,11 @@ public class GlassHeroesBusiness : Script
             CommitSupplierDelivery();
             return;
         }
-        if (_supplierVisualStage == 0) { StartMuleDelivery(now); return; }
+        if (_supplierVisualStage == 0)
+        {
+            if (now >= _nextSupplierVisualRetryUtc) StartMuleDelivery(now);
+            return;
+        }
         if (_supplierDriver == null || !_supplierDriver.Exists() ||
             _supplierTruck == null || !_supplierTruck.Exists())
         {
@@ -6928,6 +6989,11 @@ public class GlassHeroesBusiness : Script
             return;
         }
         double elapsed = (now - _supplierStageAt).TotalSeconds;
+        if (_supplierDirectToPlayer && (_supplierVisualStage == 3 || _supplierVisualStage == 4))
+        {
+            UpdateSupplierPlayerApproach(now);
+            return;
+        }
         if (_supplierVisualStage == 1)
         {
             if (DistanceSquared(_supplierTruck.Position, _supplierTruckPark.Position) <= 120f)
