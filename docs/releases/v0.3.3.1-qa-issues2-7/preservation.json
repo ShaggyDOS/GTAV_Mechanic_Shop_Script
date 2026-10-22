@@ -1,0 +1,42 @@
+{
+  "unchanged_production_methods": [
+    "OnTick",
+    "OnAborted",
+    "ProcessEconomy",
+    "ProcessRemoteOperations",
+    "EnterRemoteOperations",
+    "LeaveRemoteOperations",
+    "TransferPlayerMoney",
+    "CancelSupplierOrderWithConfirmation",
+    "RecoverSupplierShipment",
+    "MatchesWholesaleVehicle",
+    "FindAssignedWholesaleVehicle"
+  ],
+  "ledger_change": "visual slot provenance only; all financial operations identical",
+  "old_literal_save_config_keys_preserved": true,
+  "added_literal_key_prefixes": {
+    "GetValue": [
+      [
+        "EmployeeSettings",
+        "CustomJobRoutes"
+      ],
+      [
+        "Storage",
+        "DeliveredPackageMask"
+      ]
+    ],
+    "SetValue": [
+      [
+        "EmployeeSettings",
+        "CustomJobRoutes"
+      ],
+      [
+        "Storage",
+        "DeliveredPackageMask"
+      ]
+    ]
+  },
+  "native_constructor_count": "covered by original static suite",
+  "scope": "source preservation guard; does not execute GTA or prove file persistence",
+  "gta_testing": "NOT RUN"
+}

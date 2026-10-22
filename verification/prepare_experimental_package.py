@@ -15,6 +15,7 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--label', required=True)
 parser.add_argument('--issues', nargs='+', required=True)
 parser.add_argument('--base', default='development/v0.3.3.1')
+parser.add_argument('--artifacts-only', action='store_true')
 args=parser.parse_args()
 repo=Path(__file__).resolve().parents[1]
 release=repo/f'docs/releases/v0.3.3.1-{args.label}'
@@ -34,12 +35,21 @@ def run(command, filename):
         raise SystemExit(result.returncode)
     return result.stdout
 
-with tempfile.TemporaryDirectory(prefix='glassheroes-build-') as tmp:
-    build=run(['dotnet','build','VisualStudio/GlassHeroesBusiness.csproj','--configuration','Release',
-        '--property:BaseIntermediateOutputPath='+tmp+'/obj/','--property:OutputPath='+tmp+'/bin/',
-        '--maxcpucount:2','--verbosity','minimal'],'build.txt')
-checks=run([sys.executable,'verification/run_static_checks.py',str(release)],'static-checks.txt')
-tests=run([sys.executable,'verification/run_issue_tests.py',*args.issues],'behavior-tests.txt')
+previous_validation = None
+if args.artifacts_only:
+    previous_validation=json.loads((release/'validation.json').read_text())
+    assert previous_validation['source_sha256']==hashes, 'Source changed; rerun all validation'
+    build=(release/'build.txt').read_text()
+    tests=(release/'behavior-tests.txt').read_text()
+else:
+    with tempfile.TemporaryDirectory(prefix='glassheroes-build-') as tmp:
+        build=run(['dotnet','build','VisualStudio/GlassHeroesBusiness.csproj','--configuration','Release',
+            '--property:BaseIntermediateOutputPath='+tmp+'/obj/','--property:OutputPath='+tmp+'/bin/',
+            '--maxcpucount:2','--verbosity','minimal'],'build.txt')
+    checks=run([sys.executable,'verification/run_static_checks.py',str(release)],'static-checks.txt')
+    tests=run([sys.executable,'verification/run_issue_tests.py',*args.issues],'behavior-tests.txt')
+    if args.label.startswith('qa'):
+        run([sys.executable,'verification/check_preservation.py',str(release/'preservation.json')],'preservation-checks.txt')
 static=json.loads((release/'StaticVerification.json').read_text())
 counts=re.findall(r'#(\d+) (\d+)/(\d+) PASS;',tests)
 assert set(x[0] for x in counts)==set(args.issues), 'Missing executed issue tests'
@@ -57,7 +67,7 @@ with tempfile.TemporaryDirectory(prefix='glassheroes-patch-') as tmp:
 run(['git','diff','--check',args.base],'whitespace-check.txt')
 validation={
  'version':'v0.3.3.1 EXPERIMENTAL / QA ONLY','label':args.label,'included_issues':args.issues,
- 'created_utc':datetime.now(timezone.utc).isoformat(),
+ 'created_utc':previous_validation['created_utc'] if previous_validation else datetime.now(timezone.utc).isoformat(),
  'base_commit':subprocess.check_output(['git','rev-parse',args.base],cwd=repo,text=True).strip(),
  'sdk':subprocess.check_output(['dotnet','--version'],text=True).strip(),
  'target':'net48 / C# 7.3 / ScriptHookVDotNet2 2.11.6',
@@ -118,9 +128,15 @@ files=[repo/p for p in [*sources,'VisualStudio/GlassHeroesBusiness.csproj','Visu
  'SourceDiff_v0.3.2.9a_to_v0.3.3.0_RC1.patch','Verification/static_verify.py',
  'verification/run_issue_tests.py','verification/run_static_checks.py','verification/prepare_experimental_package.py']]
 files += [repo/f'verification/issue{i}_tests.cs' for i in args.issues]
-files += sorted(p for p in release.iterdir() if p.is_file())
+if args.label.startswith('qa'):
+    files += [repo/'verification/check_preservation.py']
+    for issue in args.issues:
+        files += sorted(p for p in (repo/f'docs/releases/v0.3.3.1-issue{issue}').iterdir() if p.is_file())
+files += sorted(p for p in release.rglob('*') if p.is_file())
 with zipfile.ZipFile(package,'w',zipfile.ZIP_DEFLATED) as z:
     for file in files:z.write(file,str(file.relative_to(repo)))
+    if args.label.startswith('qa'):
+        z.write(release/'READ_ME_FIRST.txt','READ_ME_FIRST.txt')
 with zipfile.ZipFile(package) as z:
     assert z.testzip() is None
     assert all(z.read(p)==(repo/p).read_bytes() for p in sources)
