@@ -432,6 +432,8 @@ public class GlassHeroesBusiness : Script
     private Vector3 _lastWholesaleLookupCenter;
     private DateTime _nextSupplierInteractionHint = DateTime.MinValue;
     private DateTime _lastSupplierCheckpoint = DateTime.MinValue;
+    private DateTime _nextWarehouseVisualAttempt = DateTime.MinValue;
+    private int _warehouseVisualAttempts;
     private long _supplierInvoicesDue; // Earned at stocking, paid only in Expenses.
     private bool _deliveryPrepaid; // Legacy pending orders were paid up-front; no second charge.
     private Prop _supplierPalletProp; // legacy field retained for cleanup compatibility
@@ -6259,22 +6261,56 @@ public class GlassHeroesBusiness : Script
     {
         Ped player = Game.Player.Character;
         bool show = _deliveryKind != -2 && _deliverySupplier == 0 &&
+            _deliveryRemainingGameSeconds <= 0 && _wholesaleWarehousePickup.IsSet &&
             _supplierVisualStage == 7 && !_wholesaleCargoLoaded && !_supplierPlayerCarrying &&
             player != null && player.Exists() &&
             DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 6400f;
         if (!show)
-        { DeleteOwnedProp(ref _wholesaleWarehousePallet); return; }
-        if (_wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists()) return;
-        _wholesaleWarehousePallet = CreateFixedEquipmentProp("prop_pallet_02a",
+        {
+            DeleteOwnedProp(ref _wholesaleWarehousePallet);
+            // This crate belongs to this pickup only; never delete carried,
+            // vehicle-attached or non-wholesale delivery cargo here.
+            if (_deliverySupplier == 0 && _supplierVisualStage == 7 &&
+                !_wholesaleCargoLoaded && !_supplierPlayerCarrying)
+                DeleteOwnedProp(ref _supplierCrate);
+            _warehouseVisualAttempts = 0;
+            _nextWarehouseVisualAttempt = DateTime.MinValue;
+            return;
+        }
+        bool palletExists = _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists();
+        bool boxExists = _supplierCrate != null && _supplierCrate.Exists();
+        if (palletExists && boxExists) return;
+        DateTime now = DateTime.UtcNow;
+        if (_warehouseVisualAttempts >= 5 || now < _nextWarehouseVisualAttempt) return;
+        _warehouseVisualAttempts++;
+        _nextWarehouseVisualAttempt = now.AddSeconds(3);
+        if (!palletExists) _wholesaleWarehousePallet = CreateWarehousePallet();
+        if (!boxExists && _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists())
+        {
+            _supplierCrate = CreateFixedEquipmentProp("prop_cs_cardbox_01",
+                WarehousePackagePosition(), _wholesaleWarehousePickup.Heading, false);
+            if (_supplierCrate != null && _supplierCrate.Exists())
+            {
+                GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
+                    _supplierCrate.Handle, false, false);
+                _supplierCrate.FreezePosition = true;
+            }
+        }
+    }
+
+    private Prop CreateWarehousePallet()
+    {
+        Prop pallet = CreateFixedEquipmentProp("prop_pallet_02a",
             _wholesaleWarehousePickup.Position, _wholesaleWarehousePickup.Heading, true);
-        if (_wholesaleWarehousePallet == null)
-            _wholesaleWarehousePallet = CreateFixedEquipmentProp("prop_pallet_01a",
+        if (pallet == null)
+            pallet = CreateFixedEquipmentProp("prop_pallet_01a",
                 _wholesaleWarehousePickup.Position, _wholesaleWarehousePickup.Heading, true);
+        return pallet;
     }
 
     private void DrawWholesalePackageMarker()
     {
-        if (_deliveryKind == -2 || _deliverySupplier != 0 ||
+        if (_deliveryKind == -2 || _deliverySupplier != 0 || _deliveryRemainingGameSeconds > 0 ||
             _supplierPlayerCarrying || _wholesaleCargoLoaded || _wholesaleCargoUnloaded ||
             !_wholesaleWarehousePickup.IsSet || _supplierVisualStage != 7) return;
         Ped player = Game.Player.Character;
@@ -6636,6 +6672,8 @@ public class GlassHeroesBusiness : Script
         try { if (_supplierDriver != null && _supplierDriver.Exists()) _supplierDriver.Delete(); } catch { }
         try { if (_supplierTruck != null && _supplierTruck.Exists()) _supplierTruck.Delete(); } catch { }
         _supplierCrate = null;
+        _warehouseVisualAttempts = 0;
+        _nextWarehouseVisualAttempt = DateTime.MinValue;
         DeleteOwnedProp(ref _wholesaleWarehousePallet);
         _supplierPlayerCarrying = false;
         _supplierDriver = null;
@@ -6871,26 +6909,9 @@ public class GlassHeroesBusiness : Script
             if (_wholesaleCargoUnloaded) { _supplierVisualStage = 6; return; }
             // Wholesale replaces the Mule with a physical pickup mission.
             _supplierVisualStage = 7;
-            Ped player = Game.Player.Character;
-            if (player != null && player.Exists() &&
-                DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 6400f &&
-                FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null)
-            {
-                UpdateWholesalePalletVisual();
-                if ((_supplierCrate == null || !_supplierCrate.Exists()) &&
-                    _wholesaleWarehousePallet != null && _wholesaleWarehousePallet.Exists())
-                {
-                    _supplierCrate = CreateFixedEquipmentProp("prop_cs_cardbox_01",
-                        WarehousePackagePosition(), _wholesaleWarehousePickup.Heading, false);
-                    if (_supplierCrate != null && _supplierCrate.Exists())
-                    {
-                        GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
-                            _supplierCrate.Handle, false, false);
-                        _supplierCrate.FreezePosition = true;
-                    }
-                }
-            }
-            else if (!_supplierPlayerCarrying) DeleteOwnedProp(ref _supplierCrate);
+            // Ready cargo is streamed by player distance, independently of
+            // the assigned vehicle. Vehicle identity is checked when LOADING.
+            UpdateWholesalePalletVisual();
             return;
         }
         if (!_physicalMuleDeliveries || !MuleRouteConfigured())
@@ -7382,8 +7403,7 @@ public class GlassHeroesBusiness : Script
             _supplierDriver.Exists() && DistanceSquared(player.Position, _supplierDriver.Position) < 10f;
         bool atWarehouse = _supplierVisualStage == 7 && _deliverySupplier == 0 &&
             _wholesaleWarehousePickup.IsSet && !_wholesaleCargoLoaded &&
-            DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 10f &&
-            FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null;
+            DistanceSquared(player.Position, _wholesaleWarehousePickup.Position) < 10f;
         Vehicle assignedNearPlayer = FindAssignedWholesaleVehicle(player.Position, 8f);
         bool loadWholesale = _supplierVisualStage == 6 && _supplierPlayerCarrying &&
             _deliverySupplier == 0 && !_wholesaleCargoUnloaded && assignedNearPlayer != null;
@@ -7518,8 +7538,7 @@ public class GlassHeroesBusiness : Script
             _supplierDriver.Exists() &&
             DistanceSquared(Game.Player.Character.Position, _supplierDriver.Position) < 10f;
         bool nearWarehouse = _supplierVisualStage == 7 && _wholesaleWarehousePickup.IsSet &&
-            DistanceSquared(Game.Player.Character.Position, _wholesaleWarehousePickup.Position) < 10f &&
-            FindAssignedWholesaleVehicle(_wholesaleWarehousePickup.Position, 24f) != null;
+            DistanceSquared(Game.Player.Character.Position, _wholesaleWarehousePickup.Position) < 10f;
         bool nearCargoVehicle = (_supplierVisualStage == 9 && _wholesaleCargoLoaded ||
             _supplierVisualStage == 6 && _supplierPlayerCarrying && _deliverySupplier == 0 && !_wholesaleCargoUnloaded) &&
             FindAssignedWholesaleVehicle(Game.Player.Character.Position, 8f) != null;
@@ -7534,6 +7553,7 @@ public class GlassHeroesBusiness : Script
         string prompt = nearPallet ? "STOCK this box at the pallet." :
             nearCargoVehicle && _wholesaleCargoLoaded ? "UNLOAD the box from the assigned vehicle." :
             nearCargoVehicle && _supplierPlayerCarrying ? "LOAD the box into the assigned vehicle." :
+            nearWarehouse ? "PICK UP the warehouse box; use your assigned vehicle to LOAD it." :
             "PICK UP the supplier package.";
         UI.ShowSubtitle("~b~Glass Heroes~s~: ~y~E~s~ / ~b~D-pad RIGHT~s~ to " + prompt, 1750);
     }
