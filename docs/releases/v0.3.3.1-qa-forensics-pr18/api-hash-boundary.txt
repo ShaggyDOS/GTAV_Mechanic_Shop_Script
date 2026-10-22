@@ -1,0 +1,16 @@
+Offline IL audit: pinned ScriptHookVDotNet2 2.11.6 API assembly
+Assembly SHA256: fe834372be56f904b29174af06445602e33f8baf488d09b0766f35ab347b2426
+GTA.Model::.ctor signature=20010108
+  IL_0002 call GTA.Model::set_Hash
+GTA.Model::.ctor signature=2001010E
+  IL_0002 call GTA.Game::GenerateHash
+  IL_0007 call GTA.Model::.ctor
+GTA.Model::.ctor signature=200101118384
+  IL_0002 call GTA.Model::.ctor
+GTA.Model::.ctor signature=200101118390
+  IL_0002 call GTA.Model::.ctor
+GTA.Model::.ctor signature=200101118388
+  IL_0002 call GTA.Model::.ctor
+GTA.Game::GenerateHash signature=0001080E
+  IL_0001 call System.String::IsNullOrEmpty
+  IL_000b call SHVDN.NativeMemory::GetHashKey

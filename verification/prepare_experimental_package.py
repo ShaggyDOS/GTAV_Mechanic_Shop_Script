@@ -77,7 +77,8 @@ with tempfile.TemporaryDirectory(prefix='glassheroes-patch-') as tmp:
     assert all((root/p).read_bytes()==(repo/p).read_bytes() for p in sources)
 run(['git','diff','--check',args.base],'whitespace-check.txt')
 validation={
- 'version':'v0.3.3.1 EXPERIMENTAL / QA ONLY','label':args.label,'included_issues':(['1'] if args.include_diagnostics else [])+args.issues,
+ 'version':'v0.3.3.1 EXPERIMENTAL / QA ONLY','label':args.label,'included_issues':(['1'] if args.include_diagnostics else [])+[i for i in args.issues if i in {'2','3','4','5','6','7'}],
+ 'additional_pr_test_suites':[i for i in args.issues if i not in {'2','3','4','5','6','7'}],
  'created_utc':previous_validation['created_utc'] if previous_validation else datetime.now(timezone.utc).isoformat(),
  'base_commit':subprocess.check_output(['git','rev-parse',args.base],cwd=repo,text=True).strip(),
  'sdk':subprocess.check_output(['dotnet','--version'],text=True).strip(),
@@ -101,7 +102,7 @@ text=guide.read_text().split('\n## Recorded automated results\n')[0]
 text+='\n## Recorded automated results\n\n'
 text+=f'Real Release build: PASS. SDK {validation["sdk"]}; net48 / C# 7.3 / SHVDN2 2.11.6. Two existing production warnings: CS0649 and CS0169.\n\n'
 text+=f'Existing static checks: {static["passed"]}/{static["total"]} PASS. '
-text+='; '.join(f'Issue #{i}: {p}/{t} behavioral tests PASS' for i,p,t in counts)+'.\n\n'
+text+='; '.join(f'Suite #{i}: {p}/{t} behavioral tests PASS' for i,p,t in counts)+'.\n\n'
 if diagnostic_counts:
     text+=f'PR #9 diagnostic logger tests: {diagnostic_counts["passed"]}/{diagnostic_counts["total"]} PASS; total behavioral tests: {validation["behavior_test_passed"]}/{validation["behavior_test_total"]} PASS.\n\n'
 text+='Install and Visual Studio sources have equal SHA256: '+next(iter(hashes.values()))+'.\n\n'
@@ -154,6 +155,10 @@ if args.label.startswith('qa'):
             files += sorted(p for p in (repo/f'docs/releases/v0.3.3.1-issue{issue}').iterdir() if p.is_file())
 if args.include_diagnostics:
     files += [repo/'verification/run_diagnostics_tests.py',repo/'verification/diagnostics_tests.cs',repo/'verification/pr9_diagnostics_reference.json']
+files += [repo/'verification/r2_method_reference.json']
+files += sorted(p for p in (repo/'verification/forensic-audit').glob('*') if p.is_file())
+files += [repo/'verification/forensic-audit/api-il/IL.csproj',repo/'verification/forensic-audit/api-il/Program.cs']
+files += [repo/'docs/coordination/CODEX_QA_R2_STACK_OVERFLOW_FORENSICS.md']
 files += sorted(p for p in release.rglob('*') if p.is_file())
 with zipfile.ZipFile(package,'w',zipfile.ZIP_DEFLATED) as z:
     for file in files:

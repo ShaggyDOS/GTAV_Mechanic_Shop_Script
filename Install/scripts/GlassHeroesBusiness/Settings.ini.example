@@ -274,3 +274,7 @@ ManagerPedModel=a_m_y_business_01
 [Diagnostics]
 HoldGameplayTick = false
 StartupDelaySeconds = 30
+
+; PR18 only: optional QA forensics, never copy this example over live settings.
+; In your existing [Diagnostics] section add ForensicsEnabled = true to opt in.
+; Missing/false disables the additional stream. Reload scripts to apply.

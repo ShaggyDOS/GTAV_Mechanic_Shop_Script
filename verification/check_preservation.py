@@ -16,8 +16,10 @@ assert hashlib.sha256(baseline.read_bytes()).hexdigest()=='030a44cfe4afc199c7865
 base=baseline.read_text(encoding='utf-8-sig')
 lexer=next(n for n in ast.parse((repo/'Verification/static_verify.py').read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='strip_literals')
 ns={};exec(compile(ast.Module(body=[lexer],type_ignores=[]),'lexer','exec'),ns)
+_clean_cache={}
 def method(text,name):
-    clean,_=ns['strip_literals'](text)
+    if text not in _clean_cache: _clean_cache[text]=ns['strip_literals'](text)[0]
+    clean=_clean_cache[text]
     match=re.search(r'^    private\s+(?:static\s+)?[^\n]+\b'+name+r'\(',clean,re.M)
     assert match, name
     opening=clean.index('{',match.start());depth=1;end=opening+1
@@ -28,6 +30,22 @@ unchanged=['ProcessEconomy','ProcessRemoteOperations','EnterRemoteOperations',
  'LeaveRemoteOperations','TransferPlayerMoney','CancelSupplierOrderWithConfirmation','RecoverSupplierShipment',
  'MatchesWholesaleVehicle','FindAssignedWholesaleVehicle']
 for name in unchanged:assert method(base,name)==method(current,name),name+' changed unexpectedly'
+# Approved PR18 instrumentation is removed narrowly before comparing to the
+# immutable PR9 methods. All other gameplay statements must still match exactly.
+for snippet in [
+    '                _forensicProbe.Lifecycle("gameplay gate passed");\n',
+    '            // Managed values already sampled above; no additional GTA calls or I/O.\n'
+    '            _forensicProbe.Observe(activeGameSeconds, _diagnosticTickStage, _clockedIn,\n'
+    '                _remoteMode, _showMenu, _supplierVisualStage, _activeCustomerOrders.Count,\n'
+    '                _remoteJobs.Count);\n',
+    '        if (_forensicProbe != null) _forensicProbe.Lifecycle("abort requested; last phase=" + _diagnosticTickStage);\n',
+    '        if (_forensicProbe != null) _forensicProbe.Lifecycle("abort cleanup completed");\n',
+]:
+    assert current.count(snippet)==1, 'Missing/duplicated approved forensic hook'
+    current=current.replace(snippet,'')
+r2_reference=json.loads((repo/'verification/r2_method_reference.json').read_text())
+for name,expected in r2_reference['methods'].items():
+    assert hashlib.sha256(method(current,name).encode()).hexdigest()==expected, name+' differs from protected QA R2 beyond approved hooks'
 reference=json.loads((repo/'verification/pr9_diagnostics_reference.json').read_text())
 a=current.index('    // BEGIN ISSUE1 DIAGNOSTIC LOG'); b=current.index('    // END ISSUE1 DIAGNOSTIC LOG',a)
 assert hashlib.sha256(current[a:b].encode()).hexdigest()==reference['diagnostic_region_sha256'], 'Logger differs from PR9'
@@ -60,9 +78,11 @@ for op in ['GetValue','SetValue']:
     previous=keys(base,op);present=keys(current,op)
     assert previous<=present,op+' removed an old literal key'
     delta=present-previous
-    assert delta=={('Storage','DeliveredPackageMask'),('EmployeeSettings','CustomJobRoutes')},(op,delta)
+    expected={('Storage','DeliveredPackageMask'),('EmployeeSettings','CustomJobRoutes')}
+    if op=='GetValue': expected.add(('Diagnostics','ForensicsEnabled'))
+    assert delta==expected,(op,delta)
     added[op]=sorted(delta)
-result={'unchanged_production_methods':unchanged,'diagnostic_only_methods_normalized_to_base':['OnTick','OnAborted'],'diagnostics_match_pr9':True,'pr9_commit':reference['commit'],'ledger_change':'visual slot provenance only; all financial operations identical',
+result={'r2_methods_verified':len(r2_reference['methods']),'unchanged_production_methods':unchanged,'diagnostic_only_methods_normalized_to_base':['OnTick','OnAborted'],'diagnostics_match_pr9_after_explicit_forensic_hook_removal':True,'pr9_commit':reference['commit'],'ledger_change':'visual slot provenance only; all financial operations identical',
  'old_literal_save_config_keys_preserved':True,'added_literal_key_prefixes':added,
  'native_constructor_count':'covered by original static suite',
  'scope':'source preservation guard; does not execute GTA or prove file persistence','gta_testing':'NOT RUN'}
