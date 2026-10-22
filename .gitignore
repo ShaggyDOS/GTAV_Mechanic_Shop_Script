@@ -1,0 +1,33 @@
+# Visual Studio
+.vs/
+bin/
+obj/
+*.user
+*.suo
+
+# Build output
+*.dll
+*.pdb
+
+# NuGet
+packages/
+
+# Runtime / local test junk
+Save.ini
+Errors.log
+*.log
+Test/
+Testing/
+Backups/
+
+# GTA installation-specific local files
+# Uncomment these only if they are not meant to be tracked in the repo.
+# GTA5.exe
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Common editor files
+*.swp
+*.tmp

@@ -1,36 +1,77 @@
-# Glass Heroes Business Manager | v0.3.3.0 RC1 (EXPERIMENTAL)
-GTA V Legacy 1.0.3889.0 | ScriptHookVDotNet 2.11.6 | .NET Framework 4.8
+# GlassHeroes Business Script
 
-**STATUS:** SOURCE ONLY. No in-game compiler or GTA V test available in this environment.
-This is a release candidate that MUST pass a full cold-start test before replacing v0.3.2.9a.
+A GTA V script / mod project focused on a mechanic shop business system, including manager palette and order flows.
 
-## Baseline
-Built from exact v0.3.2.9a diagnostic source, sha256 recorded in BASELINE_SHA256.txt.
-v0.3.2.9a is the last user-tested baseline: 73 scripts/plugins with LS RED, manager hiring and wholesale delivery operational. Crash-free in this reported test only; repeated cold-start validation still outstanding.
+This repository is organized as a scratch/project workspace for developing and tracking a GTA V gameplay script. It is meant to be used with a local GTA V modding workflow and can be expanded with additional scripts, docs, and assets as the project grows.
 
-## Install
-1. BACK UP scripts/GlassHeroesBusiness.2.cs and scripts/GlassHeroesBusiness/{Settings.ini,Save.ini}.
-2. Install ONLY Install/scripts/GlassHeroesBusiness.2.cs into your GTA V scripts folder.
-3. Remove prior copies of GlassHeroesBusiness.2.cs and any compiled GlassHeroesBusiness.dll before loading. Do NOT run duplicate versions.
-4. Leave existing Save.ini and Settings.ini unchanged. Do NOT copy Settings.ini.example over Settings.ini.
-5. Retain [Diagnostics] HoldGameplayTick=false; StartupDelaySeconds=30.
-6. Start Story Mode, keep unpaused >=45 seconds, press F2; do not test in GTA Online.
-7. If cold-start crash recurs, replace only the .2.cs with your saved v0.3.2.9a file and send logs.
+## Project Goal
 
-## Implemented changes
-- Warehouse box sits atop a locally spawned, ground-placed pallet (visual-only).
-- Delivered stockroom boxes reference actual grounded pallet entity position.
-- Manager menu/profile mirrors receptionist, manager workstation and approach moved to Employee Placement Settings.
-- Manager supports DIRECT navmesh or CUSTOM 0-5 waypoint routing with final approach and bounded retries.
-- Point editor enables marker preview after saves, markers raised for visibility; toggle clarifies saved shop/distance prerequisites.
-- Supplier recovery and two-click cancellation, no stock credited on recover/cancel; legacy prepaid refund.
-- Supplier ETA now counts active, unpaused in-game time only; pending legacy ETA restarts as configured lead time.
-- Removed hidden savings mutation from manager training-price display.
+Provide a structured foundation for a mechanic shop / business management-style GTA V script, including:
 
-## Changed saved keys (additive)
-[EmployeeSettings] CustomManagerPaths
-[ManagerApproach] Set,X,Y,Z,Heading
-[ManagerWaypoint1-5] Set,X,Y,Z,Heading
-[Purchasing] DeliveryRemainingGameSeconds
+- business script logic
+- manager interaction flow
+- order / palette handling
+- configuration and documentation for future expansion
 
-See Docs/ for the complete Word/PDF developer guide, full before-after excerpts, tests and known limitations.
+## Repository Layout
+
+```text
+.
+├── .gitignore
+├── README.md
+├── docs/
+├── scripts/
+├── assets/
+├── config/
+└── tools/
+```
+
+## Quick Start
+
+1. Clone the repository.
+2. Place your GTA V mod/script files in the appropriate folders.
+3. Keep source files in `scripts/`, config data in `config/`, and documentation in `docs/`.
+4. Test locally in your GTA V modding environment.
+
+## Recommended Folder Structure
+
+```text
+scripts/
+  mechanic_shop.lua
+  config.lua
+  manager_palette.lua
+
+docs/
+  README.md
+  ROADMAP.md
+  RELEASE_NOTES.md
+
+assets/
+  icons/
+  images/
+
+config/
+  settings.ini
+```
+
+## Notes
+
+- This project is currently set up as a working mod project repository.
+- Local build artifacts, logs, and GTA install-specific files are intentionally ignored via `.gitignore`.
+- To keep the repo clean, do not commit generated binaries or local test output unless you specifically want them tracked.
+
+## Suggested Future Improvements
+
+- add structured configuration files
+- break logic into script modules
+- add testing notes and verification steps
+- document install and usage steps for mod users
+- track changelog and roadmap entries in `docs/`
+
+## License
+
+This project does not include a formal license yet. If you intend to share or distribute the mod publicly, consider adding an appropriate license file such as MIT or GPL.
+
+## Maintainer
+
+ShaggyDOS
