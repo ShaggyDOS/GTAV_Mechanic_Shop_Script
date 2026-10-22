@@ -101,7 +101,7 @@ text=guide.read_text().split('\n## Recorded automated results\n')[0]
 text+='\n## Recorded automated results\n\n'
 text+=f'Real Release build: PASS. SDK {validation["sdk"]}; net48 / C# 7.3 / SHVDN2 2.11.6. Two existing production warnings: CS0649 and CS0169.\n\n'
 text+=f'Existing static checks: {static["passed"]}/{static["total"]} PASS. '
-text+='; '.join(f'Issue #{i}: {p}/{t} behavioral tests PASS' for i,p,t in counts)+'.\n\n'
+text+='; '.join(f'Suite #{i}: {p}/{t} behavioral tests PASS' for i,p,t in counts)+'.\n\n'
 if diagnostic_counts:
     text+=f'PR #9 diagnostic logger tests: {diagnostic_counts["passed"]}/{diagnostic_counts["total"]} PASS; total behavioral tests: {validation["behavior_test_passed"]}/{validation["behavior_test_total"]} PASS.\n\n'
 text+='Install and Visual Studio sources have equal SHA256: '+next(iter(hashes.values()))+'.\n\n'
@@ -154,6 +154,9 @@ if args.label.startswith('qa'):
             files += sorted(p for p in (repo/f'docs/releases/v0.3.3.1-issue{issue}').iterdir() if p.is_file())
 if args.include_diagnostics:
     files += [repo/'verification/run_diagnostics_tests.py',repo/'verification/diagnostics_tests.cs',repo/'verification/pr9_diagnostics_reference.json']
+files += [repo/'verification/r2_method_reference.json']
+files += sorted(p for p in (repo/'verification/forensic-audit').glob('*') if p.is_file())
+files += [repo/'docs/coordination/CODEX_QA_R2_STACK_OVERFLOW_FORENSICS.md']
 files += sorted(p for p in release.rglob('*') if p.is_file())
 with zipfile.ZipFile(package,'w',zipfile.ZIP_DEFLATED) as z:
     for file in files:

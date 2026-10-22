@@ -1,0 +1,20 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_qa-forensics-pr18_EXPERIMENTAL.zip",
+  "sha256": "93956d1673f3dc5ecbdb3e3b19835f5f1f5a935e210ab52409295464f99b45cb",
+  "zip_crc": "PASS",
+  "sources_match": "PASS",
+  "guide_formats": "MD, DOCX, PDF verified",
+  "included_issues": [
+    "1",
+    "2",
+    "3",
+    "5",
+    "6",
+    "4",
+    "7",
+    "18"
+  ],
+  "behavior_test_total": 74,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

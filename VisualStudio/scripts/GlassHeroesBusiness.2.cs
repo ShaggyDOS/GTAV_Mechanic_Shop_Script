@@ -1,4 +1,4 @@
-﻿// Glass Heroes Business Manager - v0.3.3.1 QA R2 / EXPERIMENTAL (#1 diagnostics + #2-#7)
+﻿// Glass Heroes Business Manager - v0.3.3.1 PR18 FORENSICS / EXPERIMENTAL (QA R2 base)
 // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
 // Original project. Does not reference or modify Auto Work or its data.
 // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
@@ -298,6 +298,7 @@ public class GlassHeroesBusiness : Script
     private DateTime _bootGateUntilUtc = DateTime.MinValue;
     private bool _bootGameplayActivated;
     private string _diagnosticTickStage = "startup gate";
+    private ForensicProbe _forensicProbe;
     private bool _diagnosticHoldGameplayTick;
     private int _diagnosticDelaySeconds = 30;
     private bool _showMenu;
@@ -519,8 +520,19 @@ public class GlassHeroesBusiness : Script
         try
         {
             Directory.CreateDirectory(DataDirectory);
-            Log("BOOT v0.3.3.1 QA R2 EXPERIMENTAL (#1 diagnostics + #2-#7) / constructor entered", null);
+            Log("BOOT v0.3.3.1 PR18 FORENSICS EXPERIMENTAL (QA R2 base) / constructor entered", null);
             _configuration = ScriptSettings.Load(SettingsFile);
+            // PR18: explicitly opt in; no background work or extra file when absent/false.
+            var forensicWriter = new DiagnosticLog(() => DateTime.UtcNow, line =>
+            {
+                Directory.CreateDirectory(DataDirectory);
+                File.AppendAllText(Path.Combine(DataDirectory, "Forensics.log"), line);
+            });
+            _forensicProbe = new ForensicProbe(
+                _configuration.GetValue("Diagnostics", "ForensicsEnabled", false),
+                action => System.Threading.ThreadPool.QueueUserWorkItem(_ => action()),
+                line => forensicWriter.Write(line, null), Guid.NewGuid().ToString("N"));
+            _forensicProbe.Lifecycle("constructor configured");
             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
                 _configuration.GetValue("Diagnostics", "StartupDelaySeconds", 30)));
@@ -859,6 +871,7 @@ public class GlassHeroesBusiness : Script
                 _lastTick = DateTime.UtcNow;
                 _bootGameplayActivated = true;
                 Log("BOOT gameplay gate passed; OnTick systems enabled", null);
+                _forensicProbe.Lifecycle("gameplay gate passed");
                 Notify("Loaded. Press " + MenuKeyLabel() + " for business management. Stand at your shop to set its location.");
                 return;
             }
@@ -945,6 +958,10 @@ public class GlassHeroesBusiness : Script
             _diagnosticTickStage = "placement rendering";
             if (_showPlacementMarkers || _autoLotPreview) DrawPlacementMarkers();
             _diagnosticTickStage = "idle between ticks";
+            // Managed values already sampled above; no additional GTA calls or I/O.
+            _forensicProbe.Observe(activeGameSeconds, _diagnosticTickStage, _clockedIn,
+                _remoteMode, _showMenu, _supplierVisualStage, _activeCustomerOrders.Count,
+                _remoteJobs.Count);
         }
         catch (Exception ex)
         {
@@ -7905,6 +7922,7 @@ public class GlassHeroesBusiness : Script
 
     private void OnAborted(object sender, EventArgs e)
     {
+        if (_forensicProbe != null) _forensicProbe.Lifecycle("abort requested; last phase=" + _diagnosticTickStage);
         Log("LIFECYCLE abort requested; last tick phase=" + _diagnosticTickStage, null);
         // Nothing has been spawned or billed before activation. Do not write
         // partially initialized defaults over the user's existing Save.ini.
@@ -7929,6 +7947,7 @@ public class GlassHeroesBusiness : Script
         catch (Exception ex) { Log("Release model", ex); }
         Save();
         Log("LIFECYCLE abort cleanup completed", null);
+        if (_forensicProbe != null) _forensicProbe.Lifecycle("abort cleanup completed");
     }
 
     private static void Notify(string message)
@@ -7950,6 +7969,79 @@ public class GlassHeroesBusiness : Script
             message.EndsWith(" driving car into service.", StringComparison.Ordinal) ||
             message.EndsWith(" returning car to drop-off.", StringComparison.Ordinal) ||
             message.EndsWith(" returning serviced car to the drop-off.", StringComparison.Ordinal);
+    }
+
+    // PR18: bounded managed-only forensic stream. Independent writer preserves
+    // PR9 throttles/backoff; callbacks never access GTA objects or the business save.
+    private sealed class ForensicProbe
+    {
+        private readonly bool _enabled;
+        private readonly Func<Action, bool> _queue;
+        private readonly Action<string> _write;
+        private readonly string _instance;
+        private int _pending;
+        private int _dropped;
+        private long _completedTicks;
+        private double _activeSeconds;
+        private double _nextHeartbeat = 120;
+        private double _nextTransition;
+        private bool _hasState;
+        private long _lastState;
+
+        internal ForensicProbe(bool enabled, Func<Action, bool> queue, Action<string> write, string instance)
+        { _enabled = enabled; _queue = queue; _write = write; _instance = instance; }
+
+        internal void Lifecycle(string phase)
+        {
+            if (!_enabled) return;
+            Publish("LIFECYCLE " + phase);
+        }
+
+        internal void Observe(double seconds, string phase, bool shift, bool remote,
+            bool menu, int supplierStage, int customers, int remoteJobs)
+        {
+            if (!_enabled) return;
+            _completedTicks++;
+            // No wall-clock catch-up and no NaN/Infinity poisoning. Never modify
+            // gameplay clocks. Paused samples (zero) produce no steady heartbeat.
+            if (!double.IsNaN(seconds) && !double.IsInfinity(seconds) && seconds > 0)
+                _activeSeconds += Math.Min(2, seconds);
+            long state = (shift ? 1L : 0L) | (remote ? 2L : 0L) | (menu ? 4L : 0L) |
+                ((long)supplierStage << 4) | ((long)customers << 8) | ((long)remoteJobs << 24);
+            bool heartbeat = _activeSeconds >= _nextHeartbeat;
+            bool changed = (!_hasState || state != _lastState) && _activeSeconds >= _nextTransition;
+            if (!heartbeat && !changed) return;
+            if (heartbeat) _nextHeartbeat = _activeSeconds + 120;
+            _nextTransition = _activeSeconds + 10;
+            _lastState = state;
+            _hasState = true;
+            Publish((heartbeat ? "HEARTBEAT" : "STATE") + " completedPhase=" + phase +
+                " activeSeconds=" + _activeSeconds.ToString("F1", System.Globalization.CultureInfo.InvariantCulture) +
+                " completedTicks=" + _completedTicks + " shift=" + shift + " remote=" + remote +
+                " menu=" + menu + " supplierStage=" + supplierStage + " customers=" + customers +
+                " remoteJobs=" + remoteJobs);
+        }
+
+        private void Publish(string snapshot)
+        {
+            // Single outstanding callback: a slow/full disk cannot build a queue.
+            // No waits, locks, synchronous file writes or exception recursion here.
+            if (System.Threading.Interlocked.CompareExchange(ref _pending, 1, 0) != 0)
+            { if (_dropped < int.MaxValue) _dropped++; return; }
+            int dropped = _dropped;
+            _dropped = 0;
+            try
+            {
+                if (_queue(() =>
+                {
+                    try { _write("FORENSICS instance=" + _instance + " " + snapshot + " dropped=" + dropped); }
+                    catch { /* A diagnostic failure must never call Log recursively. */ }
+                    finally { System.Threading.Interlocked.Exchange(ref _pending, 0); }
+                })) return;
+            }
+            catch { }
+            System.Threading.Interlocked.Exchange(ref _pending, 0);
+        }
     }
 
     // BEGIN ISSUE1 DIAGNOSTIC LOG (also exercised by the standalone test runner)
