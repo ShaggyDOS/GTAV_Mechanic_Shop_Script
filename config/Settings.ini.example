@@ -1,0 +1,17 @@
+# Configuration
+
+Use this file as a template for local settings or example configuration values.
+
+```ini
+[Settings]
+BusinessName = GlassHeroes Business
+Version = 0.3.3.0
+ManagerEnabled = true
+OrdersEnabled = true
+PaletteEnabled = true
+DebugMode = false
+```
+
+Notes:
+- Rename this file if needed for your actual script settings.
+- Keep local secrets or machine-specific values out of Git if they are not meant to be shared.

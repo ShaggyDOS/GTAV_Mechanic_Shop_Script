@@ -1,17 +1,16 @@
 # GlassHeroes Business Script
 
-A GTA V script / mod project focused on a mechanic shop business system, including manager palette and order flows.
+A GTA V mod project focused on a business / mechanic shop script system.
 
-This repository is organized as a scratch/project workspace for developing and tracking a GTA V gameplay script. It is meant to be used with a local GTA V modding workflow and can be expanded with additional scripts, docs, and assets as the project grows.
+## Purpose
 
-## Project Goal
+This repository is organized as a clean working project for the GlassHeroes Business script, including:
 
-Provide a structured foundation for a mechanic shop / business management-style GTA V script, including:
-
-- business script logic
-- manager interaction flow
-- order / palette handling
-- configuration and documentation for future expansion
+- business logic
+- manager / palette interactions
+- order flow and script structure
+- documentation and setup notes
+- local verification and installation references
 
 ## Repository Layout
 
@@ -19,58 +18,47 @@ Provide a structured foundation for a mechanic shop / business management-style 
 .
 ├── .gitignore
 ├── README.md
+├── LICENSE
 ├── docs/
-├── scripts/
-├── assets/
+│   ├── START_HERE.md
+│   ├── ROADMAP.md
+│   └── RELEASE_NOTES.md
 ├── config/
-└── tools/
+│   └── Settings.ini.example
+├── scripts/
+│   └── README.md
+├── assets/
+│   └── README.md
+├── install/
+│   └── README.md
+├── verification/
+│   └── README.md
+├── visualstudio/
+│   └── README.md
+└── build/
+    └── README.md
 ```
 
-## Quick Start
+## Recommended Use
 
-1. Clone the repository.
-2. Place your GTA V mod/script files in the appropriate folders.
-3. Keep source files in `scripts/`, config data in `config/`, and documentation in `docs/`.
-4. Test locally in your GTA V modding environment.
-
-## Recommended Folder Structure
-
-```text
-scripts/
-  mechanic_shop.lua
-  config.lua
-  manager_palette.lua
-
-docs/
-  README.md
-  ROADMAP.md
-  RELEASE_NOTES.md
-
-assets/
-  icons/
-  images/
-
-config/
-  settings.ini
-```
+- Put all source script files in `scripts/`
+- Put settings/example config in `config/`
+- Put design and notes in `docs/`
+- Keep packaged or install-ready files in `install/`
+- Keep verification/test notes in `verification/`
+- Keep generated build output out of Git via `.gitignore`
 
 ## Notes
 
-- This project is currently set up as a working mod project repository.
-- Local build artifacts, logs, and GTA install-specific files are intentionally ignored via `.gitignore`.
-- To keep the repo clean, do not commit generated binaries or local test output unless you specifically want them tracked.
+This repo is intended to be a clean GitHub-ready version of the local GTA V mod project. It is not a game-install folder and should not contain generated binary output, local build artifacts, or test logs.
 
-## Suggested Future Improvements
+## Next Steps
 
-- add structured configuration files
-- break logic into script modules
-- add testing notes and verification steps
-- document install and usage steps for mod users
-- track changelog and roadmap entries in `docs/`
-
-## License
-
-This project does not include a formal license yet. If you intend to share or distribute the mod publicly, consider adding an appropriate license file such as MIT or GPL.
+1. Add or move the actual source files into `scripts/`
+2. Add config values to `config/Settings.ini.example`
+3. Update `docs/RELEASE_NOTES.md` with your current version notes
+4. Expand `docs/ROADMAP.md` as the project grows
+5. Test in your local GTA V modding environment before releasing
 
 ## Maintainer
 
