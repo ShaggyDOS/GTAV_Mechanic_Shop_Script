@@ -1,0 +1,42 @@
+{
+  "version": "v0.3.3.1 issue #1 DIAGNOSTIC / EXPERIMENTAL",
+  "issue": "https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/issues/1",
+  "utc_completed": "2026-10-22T06:46:40.647436+00:00",
+  "integration_base": "d7bfb559d0f86a0cf0116b7b0486e0b2f45ab8e4",
+  "source_sha256": {
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "479b321a6626458697de40c3b4f2f01557942cbd594b93323b652d26de241b38",
+    "Install/scripts/GlassHeroesBusiness.2.cs": "479b321a6626458697de40c3b4f2f01557942cbd594b93323b652d26de241b38"
+  },
+  "source_copies_equal": true,
+  "historical_rc1_sha256_unchanged": true,
+  "sdk": "8.0.426",
+  "msbuild": "17.11.69",
+  "framework": "net48",
+  "language_version": "7.3",
+  "scripthookvdotnet2": "2.11.6",
+  "release_build": {
+    "exit_code": 0,
+    "errors": 0,
+    "warnings": [
+      "CS0649",
+      "CS0169"
+    ],
+    "log": "build.txt"
+  },
+  "static_checks": {
+    "passed": 21,
+    "total": 21,
+    "result": "StaticVerification.json"
+  },
+  "logger_behavior_tests": {
+    "passed": 9,
+    "total": 9,
+    "log": "diagnostics-tests.txt",
+    "runtime": "net8.0; extracted production logger; no GTA natives"
+  },
+  "git_diff_check": "PASS",
+  "gta_tests": "NOT RUN",
+  "windows_build": "NOT RUN",
+  "crash_root_cause": "UNCONFIRMED",
+  "crash_resolved": false
+}

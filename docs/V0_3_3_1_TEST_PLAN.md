@@ -54,5 +54,9 @@ Direct issue URLs use `https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/is
 - Developer Guide (.docx + .pdf), install source, Visual Studio source, unified diff, versioned changelog, migration/rollback and known limitations supplied together.
 - User tests release candidate. **Do not merge into main until approved.**
 
+## Issue #1 diagnostic branch
+
+`fix/1-idle-crash-diagnostics` adds bounded managed-state transitions, recoverable tick phase context and logging backoff. Actual cloud Release compilation, 21 static checks and nine logger behavior tests pass. No GTA tests have run and the crash remains unconfirmed. Versioned guides, exact results and the source diff are in `releases/v0.3.3.1-issue1/`; the experimental source package is in `build/releases/`. Other issues remain separate work.
+
 ## Crash forensics
 Oct 22, 2026 at 00:34:33 local: 0xC00000FD stack overflow `clr.dll+0x19E9DD`, 18m06s after start, during shop idle. SHVDN shows compilation/start success and no managed exception. Business log shows previous successful wholesale state transitions, not a cause. No crash dump was saved. Keep this as open pending A/B reproduction, not a resolved diagnosis.
