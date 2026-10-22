@@ -1,3 +1,5 @@
-# Visual Studio source — v0.3.2.8a
+# Visual Studio source — v0.3.3.1 issue #1 DIAGNOSTIC
 
-Open `GlassHeroesBusiness.sln` targeting .NET Framework 4.8 and ScriptHookVDotNet2 2.11.6. The working `.2.cs` is included in `VisualStudio/scripts/`. This hotfix changes only two lines of v0.3.2.8 for the training-expense ledger. See `../SourceDiff_v0.3.2.8_to_v0.3.2.8a.patch` and `../Docs/GlassHeroesBusiness_v0.3.2.8a_Developer_Guide.docx` for exact source changes. Test compilation on Windows and inspect `ScriptHookVDotNet.log` after installing the source script. Do not place both the source script and a compiled DLL of the same business script in `scripts/`.
+EXPERIMENTAL: idle crash cause remains unconfirmed. Open `GlassHeroesBusiness.sln`, targeting .NET Framework 4.8 / C# 7.3 and ScriptHookVDotNet2 2.11.6. The project compiles `scripts/GlassHeroesBusiness.2.cs`, which must match the `Install/scripts/` deployment source byte-for-byte. The original root RC1 source remains a historical reference.
+
+A real cloud Release build passed with zero errors and two existing warnings. GTA execution and a Windows build are not verified. See `../docs/releases/v0.3.3.1-issue1/DEVELOPER_GUIDE.md` and validation artifacts for exact results, changed methods, full diff, rollback and manual regression steps. Install only the deployment .2.cs, preserving user saves/settings. Never install both source and its compiled business DLL.

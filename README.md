@@ -1,5 +1,7 @@
 # GlassHeroes Business Script
 
+Current experimental development: `VisualStudio/scripts/GlassHeroesBusiness.2.cs` (v0.3.3.1 issue #1 diagnostics). Compile it through the existing solution; deploy only the identical `Install/scripts/` copy. See [the developer guide](docs/releases/v0.3.3.1-issue1/DEVELOPER_GUIDE.md) for verified checks, source matching, package contents and pending GTA validation. The root RC1 source and archive are historical reference artifacts.
+
 A GTA V mod project focused on a business / mechanic shop script system.
 
 ## Purpose
