@@ -1,3 +1,7 @@
+# PR19 wholesale package blip — EXPERIMENTAL
+
+Draft PR #19 adds one persistent WHOLESALE package map icon on QA R2. Physical first and second wholesale deliveries were owner-confirmed on R2. This new candidate has GTA testing NOT RUN; crash cause UNPROVEN. No PR18 code, save/settings changes, merge or deployment. See [developer guide](docs/releases/v0.3.3.1-qa-wholesale-blip-pr19/DEVELOPER_GUIDE.md).
+
 # v0.3.3.1 QA R2 — EXPERIMENTAL / FINAL CHATGPT REVIEW PENDING
 
 Address PR #16 feedback: replace permanent warehouse retry exhaustion with bounded renewing batches (five attempts, three-second spacing, thirty-second cooldown). Retain successful pallet/box identity, ready marker, ownership and pending financial state. Explicitly integrate PR #9 diagnostics from 4727bdabdf67efd07810f5a62e5d1fdb202464e3 into PR #16's combined #2–#7 source; identify R2 in the boot banner. No new save/config keys/defaults relative to R1.
