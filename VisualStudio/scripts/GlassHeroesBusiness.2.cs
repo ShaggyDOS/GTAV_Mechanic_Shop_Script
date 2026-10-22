@@ -259,6 +259,7 @@ public class GlassHeroesBusiness : Script
     // When true, newly arriving staff and mechanic bay travel may follow optional points.
     // Customer-car pickup is ALWAYS direct, whichever walking mode is selected.
     private bool _customEmployeeWalkingPaths;
+    private bool _customMechanicJobRoutes; // opt-in; saved route points stay intact
     private bool _pickupUsesArrivalExit = true;
     private bool _smoothMechanicWaypoints = true;
     private bool _safeTeleportOnStall = true;
@@ -748,6 +749,7 @@ public class GlassHeroesBusiness : Script
             _routeRecoveryEnabled = data.GetValue("EmployeeSettings", "TeleportOnBlockedRoute",
                 _configuration.GetValue("Visuals", "TeleportOnBlockedRoute", true));
             _customEmployeeWalkingPaths = data.GetValue("EmployeeSettings", "CustomWalkingPaths", false);
+            _customMechanicJobRoutes = data.GetValue("EmployeeSettings", "CustomJobRoutes", false);
             _pickupUsesArrivalExit = data.GetValue("EmployeeSettings", "PickupUseReverseArrivalWaypoints",
                 _configuration.GetValue("EmployeeSettings", "PickupUseReverseArrivalWaypoints", true));
             _smoothMechanicWaypoints = data.GetValue("EmployeeSettings", "SmoothWaypointTransitions",
@@ -1217,7 +1219,7 @@ public class GlassHeroesBusiness : Script
                     "Spawn -> Break Waypoints >", "Break -> Bay Waypoints >",
                     "Final Bay Approaches >", "Legacy Staff Checkpoint (MLO) >",
                     "Choose Job Waypoints by Mechanic >", "Smooth Through-Waypoints",
-                    "Teleport Stuck Pedestrians", "< Back to Walking Paths" };
+                    "Teleport Stuck Pedestrians", "Advanced Break <-> Bay Routes", "< Back to Walking Paths" };
             case MenuPage.ReceptionWalkingPaths:
                 return new string[] { "Receptionist Walking Mode", "Spawn -> Desk Waypoints >",
                     "Final Desk Approach >", "< Back to Walking Paths" };
@@ -1508,6 +1510,7 @@ public class GlassHeroesBusiness : Script
                 index == 1 ? (_customReceptionWalkingPaths ? "CUSTOM" : "DIRECT") :
                 index == 2 ? (_customManagerWalkingPaths ? "CUSTOM" : "DIRECT") : ">";
             case MenuPage.MechanicWalkingPaths:
+                if (index == 9) return _customMechanicJobRoutes ? "SAVED WAYPOINTS" : "DIRECT";
                 if (index == 7) return _smoothMechanicWaypoints ? "ON" : "OFF";
                 if (index == 8) return _safeTeleportOnStall ? "ON" : "OFF";
                 switch (index)
@@ -1715,6 +1718,7 @@ public class GlassHeroesBusiness : Script
                     case 6: return "Choose a separate set of existing job-route stops for each mechanic.";
                     case 7: return "Advance ~1.9m before intermediate waypoints; final target unchanged.";
                     case 8: return "Recover stuck workers beside saved points rather than cancelling jobs.";
+                    case 9: return "Default DIRECT Break <-> Bay; opt in to existing saved job stops and approaches.";
                     default: return "Return to separate employee walking settings.";
                 }
             case MenuPage.MechanicRouteRoster:
@@ -2990,6 +2994,13 @@ public class GlassHeroesBusiness : Script
                 Notify("Smooth mechanic route transitions " + (_smoothMechanicWaypoints ? "ON" : "OFF") + "."); break;
             case 8: _safeTeleportOnStall = !_safeTeleportOnStall; Save();
                 Notify("Safe stuck-ped teleport " + (_safeTeleportOnStall ? "ON" : "OFF") + "."); break;
+            case 9:
+                if (_clockedIn) { Notify("Close shop before changing job routes."); break; }
+                _customMechanicJobRoutes = !_customMechanicJobRoutes;
+                Save();
+                Notify("Break / Bay routes: " + (_customMechanicJobRoutes ?
+                    "SAVED WAYPOINTS" : "DIRECT") + ". Existing points and masks are preserved.");
+                break;
             default: NavigateBack(); break;
         }
     }
@@ -3706,15 +3717,17 @@ public class GlassHeroesBusiness : Script
             if (_customEmployeeWalkingPaths)
             {
                 if (CountSet(_arrivalRoute) > 0)
+                {
                     foreach (WorkBay step in _arrivalRoute)
                         if (step.IsSet) result.Add(step.Position);
+                }
                 else if (_walkCheckpoint.IsSet) result.Add(_walkCheckpoint.Position);
             }
         }
         else if (phase == PhaseToBreak) result.Add(GetBreakSpot(slot));
         else if (phase == PhaseToBay)
         {
-            if (_customEmployeeWalkingPaths)
+            if (_customMechanicJobRoutes)
             {
                 int routeMask = slot < _mechanics.Count ? _mechanics[slot].JobOutboundMask : 31;
                 for (int i = 0; i < _serviceRoute.Length; i++)
@@ -3726,7 +3739,7 @@ public class GlassHeroesBusiness : Script
         }
         else if (phase == PhaseReturningToBreak)
         {
-            if (_customEmployeeWalkingPaths)
+            if (_customMechanicJobRoutes)
             {
                 if (_bayApproaches[slot].IsSet) result.Add(_bayApproaches[slot].Position);
                 int routeMask = slot < _mechanics.Count ? _mechanics[slot].JobReturnMask : 31;
@@ -3739,10 +3752,10 @@ public class GlassHeroesBusiness : Script
         return result;
     }
 
-    private void IssueEmployeeWalkTask(Ped worker, Vector3 target, float heading, bool forceStraight = false)
+    private void IssueEmployeeWalkTask(Ped worker, Vector3 target, float heading, bool forceStraight = false, bool directJob = false)
     {
         if (worker == null || !worker.Exists()) return;
-        if (_customEmployeeWalkingPaths || forceStraight)
+        if ((_customEmployeeWalkingPaths && !directJob) || forceStraight)
             GTA.Native.Function.Call(GTA.Native.Hash.TASK_GO_STRAIGHT_TO_COORD,
                 worker.Handle, target.X, target.Y, target.Z,
                 _walkSpeed, -1, heading, 0.3f);
@@ -3764,7 +3777,8 @@ public class GlassHeroesBusiness : Script
             _walkCheckpoint.Heading : _breakArea.Heading;
         GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, employee.Worker.Handle);
         IssueEmployeeWalkTask(employee.Worker, target, heading,
-            employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0);
+            employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0,
+            !_customMechanicJobRoutes && (employee.ArrivalPhase == PhaseToBay || employee.ArrivalPhase == PhaseReturningToBreak));
         employee.RouteSince = now;
         employee.LastProgressAt = now;
         employee.LastDistanceSquared = DistanceSquared(employee.Worker.Position, target);
@@ -3951,7 +3965,8 @@ public class GlassHeroesBusiness : Script
             }
             // Reissue the current node, NOT a direct route to the final bay.
             IssueEmployeeWalkTask(employee.Worker, target, employee.Worker.Heading,
-                employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0);
+                employee.ReturningFromCustomerCar && _pickupUsesArrivalExit && CountSet(_arrivalRoute) > 0,
+            !_customMechanicJobRoutes && (employee.ArrivalPhase == PhaseToBay || employee.ArrivalPhase == PhaseReturningToBreak));
             employee.LastProgressAt = now;
             employee.RouteRetries++;
         }
@@ -6476,6 +6491,7 @@ public class GlassHeroesBusiness : Script
             data.SetValue("EmployeeSettings", "TeleportOnBlockedRoute", _routeRecoveryEnabled);
             data.SetValue("EmployeeSettings", "BreakAnimationsEnabled", _breakAnimationsEnabled);
             data.SetValue("EmployeeSettings", "CustomWalkingPaths", _customEmployeeWalkingPaths);
+            data.SetValue("EmployeeSettings", "CustomJobRoutes", _customMechanicJobRoutes);
             data.SetValue("EmployeeSettings", "PickupUseReverseArrivalWaypoints", _pickupUsesArrivalExit);
             data.SetValue("EmployeeSettings", "SmoothWaypointTransitions", _smoothMechanicWaypoints);
             data.SetValue("EmployeeSettings", "SafeTeleportOnStall", _safeTeleportOnStall);

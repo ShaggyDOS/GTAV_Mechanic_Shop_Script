@@ -1,0 +1,13 @@
+/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Program.cs(204,64): warning CS0649: Field 'Harness._safeTeleportOnStall' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Program.cs(7,85): warning CS0649: Field 'Harness.WorkBay.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Program.cs(5,52): warning CS0649: Field 'Ped.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Program.cs(204,40): warning CS0649: Field 'Harness._breakAnimationsEnabled' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Program.cs(5,73): warning CS0649: Field 'Ped.Handle' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue7-gsrpx_tc/Tests.csproj]
+PASS #7 default job paths bypass existing MLO stops and approaches
+PASS #7 advanced opt-in restores sparse outbound and reverse masked routes
+PASS #7 arrival remains custom without duplicating legacy checkpoint at unset gaps
+PASS #7 direct job leg uses navmesh even with custom arrival mode
+PASS #7 mechanic moves break to working and back with finite transitions
+PASS #7 blocked direct route stops after bounded retries without losing job
+PASS #7 advanced job opt-in is independent from arrival mode
+#7 7/7 PASS; GTA testing NOT RUN
