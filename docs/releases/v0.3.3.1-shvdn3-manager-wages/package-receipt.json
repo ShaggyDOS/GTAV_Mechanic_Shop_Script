@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_SHVDN3_manager-wages_EXPERIMENTAL.zip",
+  "sha256": "1b886221fd111dce9cdcceb925816225ac66e0aeec8027990c1493bb5e8230f4",
+  "source_sha256": "1dd086cb589f52a41fad6125bf7e6845e35e00b215c36dd24b3f810e4731b801",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 191,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

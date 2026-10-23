@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_SHVDN3_manual-parts-sales_EXPERIMENTAL.zip",
+  "sha256": "b91b02f4f71ce798e9637c13b29d87054e9d29ea4d74d674ecb1e33769d488ef",
+  "source_sha256": "72b054679ecaf20c712812759b9af2268060fb6f59141641b774d05f6f18c87d",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 146,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

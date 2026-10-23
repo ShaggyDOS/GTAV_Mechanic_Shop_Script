@@ -1,0 +1,95 @@
+diff --git a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+index 397d403..0869e5f 100644
+--- a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
++++ b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -1,7 +1,7 @@
+-// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 PALLET STACKING / EXPERIMENTAL (#20 + #27)
++// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES / EXPERIMENTAL (#20, #27, #25)
+ // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+-// GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
++// GTA V Story Mode only | ScriptHookVDotNet3 3.6.0 / .NET Framework 4.8
+ 
+ using System;
+ using System.Collections.Generic;
+@@ -530,7 +530,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             RequireExclusiveBusinessInstallation(File.Exists);
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.3.1 SHVDN3 PALLET STACKING EXPERIMENTAL (#27) / constructor entered", null);
++            Log("BOOT v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES EXPERIMENTAL (#27, #25) / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -1305,7 +1305,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 return new string[] { "Outstanding Bills", "Mechanic Wage Invoices >",
+                     "Pay Receptionist Wages", "Pay Rent & Utilities", "Pay Supplier Invoices",
+                     "Pay All Bills", "Order 10 Universal Parts", "Equipment & Office >",
+-                    "Financial Reports >", "< Back to Business Management" };
++                    "Financial Reports >", "Pay Manager Wages", "< Back to Business Management" };
+             case MenuPage.InventoryManagement:
+                 return new string[] { "Inventory Status", "Order 10 Universal Parts", "Order 5 Service Filters",
+                     "Order 5 Brake Kits", "Order 5 Diagnostic Supplies", "Supplier: Change", "Reorder Advice",
+@@ -1524,6 +1524,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 if (index == 3) return "$" + _rentUtilitiesDue.ToString("N0");
+                 if (index == 4) return "$" + _supplierInvoicesDue.ToString("N0");
+                 if (index == 5) return "$" + TotalOutstandingBills().ToString("N0");
++                if (index == 9) return "$" + _managerWagesDue.ToString("N0");
+                 return ">";
+             case MenuPage.MechanicInvoices:
+                 if (index < 3) return index < _mechanics.Count ? "$" + _mechanics[index].UnpaidWages.ToString("N0") : "VACANT";
+@@ -1798,7 +1799,9 @@ public class GlassHeroesBusinessV3Experimental : Script
+                     "Withdraw available business cash to the player account.",
+                     "Set the shop's permanent location while it is closed.",
+                     "Return to the four-item main menu." }[Math.Min(_selection, 9)];
+-            case MenuPage.BusinessExpenses: return "Settle wages, rent and delivered supplier invoices; restock and equipment are separate.";
++            case MenuPage.BusinessExpenses: return _selection == 9 ?
++                "Pay only the outstanding manager wage invoice; no manager rebate on their own wages." :
++                "Settle wages, rent and delivered supplier invoices; restock and equipment are separate.";
+             case MenuPage.SupplierDeliverySetup:
+                 return new string[] {
+                     "Use a Mule for local/express deliveries. Wholesale uses warehouse pickup.",
+@@ -2227,6 +2230,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+     // or remains due; there is no accidental double-settlement on retry.
+     private bool PayInvoice(ref long due, bool wages, string label)
+     {
++        if (!_bootGameplayActivated || Game.IsPaused) return false;
+         if (due <= 0) { Notify(label + ": nothing owed."); return false; }
+         if (_cash < due)
+         {
+@@ -2235,6 +2239,11 @@ public class GlassHeroesBusinessV3Experimental : Script
+             return false;
+         }
+         long payment = due;
++        if ((wages ? _payrollSpend : _overheadSpend) > long.MaxValue - payment)
++        { Notify(label + ": payment would overflow the expense ledger."); return false; }
++        long cash = _cash, payroll = _payrollSpend, overhead = _overheadSpend, savings = _managerSavings;
++        double managerAge = _managerWageAgeSeconds, receptionAge = _receptionWageUnpaidSeconds, rentAge = _rentUnpaidSeconds;
++        bool receptionNotified = _receptionOverdueNotified;
+         _cash -= payment;
+         if (wages) _payrollSpend += payment;
+         else _overheadSpend += payment;
+@@ -2243,7 +2252,14 @@ public class GlassHeroesBusinessV3Experimental : Script
+         if (label == "Manager wages") _managerWageAgeSeconds = 0;
+         if (label == "Receptionist wages") { _receptionWageUnpaidSeconds = 0; _receptionOverdueNotified = false; }
+         if (label == "Rent & utilities") _rentUnpaidSeconds = 0;
+-        Save();
++        if (!Save())
++        {
++            due = payment; _cash = cash; _payrollSpend = payroll; _overheadSpend = overhead; _managerSavings = savings;
++            _managerWageAgeSeconds = managerAge; _receptionWageUnpaidSeconds = receptionAge;
++            _rentUnpaidSeconds = rentAge; _receptionOverdueNotified = receptionNotified;
++            Notify(label + ": payment cancelled because its save did not commit.");
++            return false;
++        }
+         Notify(label + " PAID: $" + payment.ToString("N0") + ".");
+         return true;
+     }
+@@ -2350,6 +2366,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case 6: BuyInventory(-1, 10); break;
+             case 7: _menuPage = MenuPage.EquipmentManagement; _selection = 0; break;
+             case 8: _financesFromExpenses = true; _menuPage = MenuPage.Finances; _selection = 0; break;
++            case 9: PayInvoice(ref _managerWagesDue, true, "Manager wages"); break;
+             default: NavigateBack(); break;
+         }
+     }

@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_SHVDN3_repair-coverage_EXPERIMENTAL.zip",
+  "sha256": "94a333d86aca07a62fb53b1098416f7556b046824077c90633db0bf06c675108",
+  "source_sha256": "1856d76ade0a9d0d00fb3b8c6d3a2a1a62da0b7e3a0ba5952bea4345609f8949",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 117,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

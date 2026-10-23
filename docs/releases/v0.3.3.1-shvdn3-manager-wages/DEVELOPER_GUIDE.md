@@ -54,3 +54,13 @@ Manual GTA QA (all NOT RUN): cold launch past the default 30-second gate and scr
 This is one review-only source package containing a single .3.cs and a separate project linking it, matching guides/Word/PDF, source diffs and verification logs. Do not copy the whole archive into GTA. Only after later owner authorization, back up the full business data folder outside GTA (Save.ini, Settings.ini and logs), disable all duplicate/v2 Business Manager sources/DLLs, and copy only the intended experimental .3.cs to scripts. Keep installed SHVDN runtime files unchanged. No save, settings or runtime DLL is bundled; the agent has not touched the live game.
 
 Rollback by disabling the final experimental .3.cs and restoring the chosen prior experimental source/project; never enable two Business Manager generations. No manager-wage schema rollback is needed. If reverting all four features, older builds ignore optional pricing/counter keys while existing stock/cash/revenue already reflect committed sales. Preserve saves; deliberately restoring a pre-test backup discards later transactions. No main/QA R2 merge or deployment is authorized. All branches are review candidates, with GitHub draft creation blocked by the API response described in REVIEW_HANDOFF.md.
+
+## Recorded automated results
+
+Actual net48 / C# 7.3 Release build against ScriptHookVDotNet3 3.6.0: PASS, 0 errors, inherited warnings CS0169 and CS0649. SDK 8.0.426.
+
+191/191 extracted-behavior tests PASS (85 inherited; repair: 32, sales: 29, pallets: 23, wages: 22). 21/21 static checks PASS. Source preservation/scope checks PASS; active-game OnTick clock sampling and original v2 source/project are unchanged. Tests use deterministic world stubs; they do not run GTA.
+
+Source SHA256: 1dd086cb589f52a41fad6125bf7e6845e35e00b215c36dd24b3f810e4731b801. The complete unified source.diff applies to parent 00b2d4e and reproduces this source exactly.
+
+GTA testing: NOT RUN. Windows execution: NOT RUN. Installed Enhanced 3.9.0.6 compatibility: NOT VERIFIED. Stack-overflow cause: UNATTRIBUTED / UNPROVEN. No installation, merge, protected-branch push, or live save/settings editing was performed.

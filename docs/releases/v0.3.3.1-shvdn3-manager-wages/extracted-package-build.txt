@@ -1,0 +1,14 @@
+  Determining projects to restore...
+  Restored /workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj (in 317 ms).
+/workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs(148,21): warning CS0649: Field 'GlassHeroesBusinessV3Experimental.CustomerOrder.VehicleTaskIssued' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+/workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs(386,17): warning CS0169: The field 'GlassHeroesBusinessV3Experimental._selectedInvoiceMechanicSlot' is never used [/workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+  GlassHeroesBusiness.V3.Experimental -> /workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/bin/GlassHeroesBusiness.V3.Experimental.dll
+
+Build succeeded.
+
+/workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs(148,21): warning CS0649: Field 'GlassHeroesBusinessV3Experimental.CustomerOrder.VehicleTaskIssued' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+/workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs(386,17): warning CS0169: The field 'GlassHeroesBusinessV3Experimental._selectedInvoiceMechanicSlot' is never used [/workspace/.cloud-setup/tmp/gh-extracted-review-xgpfj7hm/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+    2 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.03
