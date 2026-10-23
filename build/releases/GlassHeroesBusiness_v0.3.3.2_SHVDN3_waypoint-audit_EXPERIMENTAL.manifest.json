@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.2_SHVDN3_waypoint-audit_EXPERIMENTAL.zip",
+  "sha256": "e8bb83c2a886464ee78ca18c5190ee0a184db0e45a8c3ddde1137e906dbb413f",
+  "source_sha256": "50bf63c16ec06fb9300dbc13246b3dda009411398ff812654a8d5163341702be",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 386,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

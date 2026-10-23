@@ -52,7 +52,10 @@ for pth,sha in profile['protected_v2'].items():assert hashlib.sha256((repo/pth).
 for bad in ['ForensicProbe','ForensicsEnabled','WholesalePackageBlip','GlassHeroesV3Probe']:assert bad not in current,bad
 assert 'private const string SaveFile = @"scripts\\GlassHeroesBusiness\\Save.ini";' in current
 assert 'private const string SettingsFile = @"scripts\\GlassHeroesBusiness\\Settings.ini";' in current
-if args.profile == 'workflow':
+if args.profile == 'waypoint':
+ assert before['OnTick'] == after['OnTick'], 'Waypoint diagnostics changed gameplay tick or clocks'
+ assert before['Save'] == after['Save'], 'Waypoint diagnostics changed business persistence'
+elif args.profile == 'workflow':
  restored = after['OnTick'].replace('            _nativePauseYielded = YieldMenuToNativePause();\n', '')
  assert restored == before['OnTick'], 'Existing economy/ETA/route clock or tick ordering changed'
  assert after['Save'].replace('            WriteSupplierOrderLines(data);\n', '') == before['Save'], 'Existing save payload changed'

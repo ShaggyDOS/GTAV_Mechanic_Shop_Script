@@ -1,0 +1,252 @@
+PASS repair conservative source fallback uses express ceiling for all four buckets
+PASS repair explicit estimates are fixed and zero-safe; negative selects fallback
+PASS repair existing total is a floor and is never stacked twice
+PASS repair high wage raises total to parts plus rounded labor
+PASS repair fractional labor rounds up without negative money
+PASS repair quote rejects NaN infinite time invalid buckets and negative counts
+PASS repair monetary overflow fails instead of wrapping quote
+PASS repair brakes use one dedicated and one universal when appropriate
+PASS repair all four stock classes calculate their actual chosen source
+PASS repair negative and zero inventory cannot create a repair quote
+PASS repair assigned physical reservation protects exact dedicated and fallback buckets
+PASS repair unassigned waiting customer does not reserve inventory
+PASS repair background job reserves universal only even while away
+PASS repair remote reserved quote and its mechanic are not counted twice
+PASS repair handoff snapshot shared by physical and remote reserves once
+PASS repair paid vehicle return reserves no additional inventory
+PASS repair multiple simultaneous customer quotes cannot promise the same stock
+PASS repair specialist wage and wage override enter cost floor without payroll charge
+PASS repair equipment speed discounts affect billable time and labor once
+PASS repair duplicate mechanic assignment does not add expertise twice
+PASS repair insufficient or blocked repair never consumes or pays
+PASS repair customer pays and consumes exactly once with no extra expense
+PASS repair customer completion waits when its reserved bucket is missing
+PASS repair payment guard rejects long overflow before consumption
+PASS repair background route uses cost floor and credits once
+PASS repair remote job quotes use actual shortened duration and pay once
+PASS repair zero active time advances no remote work or payment
+PASS repair legacy promised quote is retained rather than silently increased
+PASS repair new audit schema leaves old invoice writer format independent
+PASS repair quote estimate is immutable after procurement selection or configuration changes
+PASS repair saved paid totals restore without re-crediting canceled runtime jobs
+PASS repair no clock catch-up is introduced in quote computation
+repair 32/32 PASS; GTA testing NOT RUN
+PASS sales one unit from each of four buckets and exact separate revenue
+PASS sales duplicate confirmation in same game frame cannot sell twice
+PASS sales fresh manual action later can sell exactly one more
+PASS sales closed business and no manager still permit explicit active sale
+PASS sales paused game cannot mutate ledger or write
+PASS sales startup hold cannot sell
+PASS sales invalid type never indexes inventory
+PASS sales zero stock or negative legacy count cannot create a sale
+PASS sales dedicated physical repair reservation cannot be sold
+PASS sales mixed dedicated and universal fallback reservations protect both buckets
+PASS sales background repair reserves its last universal unit
+PASS sales remote repair reserves dedicated stock once
+PASS sales excess stock beyond repair reservation remains sellable
+PASS sales unassigned requests do not block available stock
+PASS sales paid returning mechanic does not reserve a second part
+PASS sales sale preserves supplier invoice and procurement/payroll costs
+PASS sales failed durable save rolls back inventory and every sales amount
+PASS sales failed commit writes no sales CSV
+PASS sales successful sale writes one versioned six-column audit row
+PASS sales monetary overflow leaves stock and cash unchanged
+PASS sales explicit zero basis is zero-safe without phantom money
+PASS sales preview is pure and reports unreserved quantity and fixed estimate
+PASS sales supplier and employee skills never alter fixed retail estimate
+PASS sales atomic save creates a new synthetic data file
+PASS sales atomic replacement preserves unknown settings in copied snapshot
+PASS sales writer failure leaves prior save bytes identical and removes own temp
+PASS sales missing snapshot is rejected without inventing a save
+PASS sales commit destination failure cleans only owned temp file
+PASS sales reload of a committed sale ledger cannot repeat it without a new manual action
+sales 29/29 PASS; production transaction and atomic file helper, synthetic data only.
+PASS pallets all partial counts one through nine stay inside bounds without overlap
+PASS pallets full nine-box layout is four-four-one
+PASS pallets one visible parcel is centered and two are symmetrically centered
+PASS pallets offset model origins are correctly centered and bottom-supported
+PASS pallets rotate boxes ninety degrees when necessary to fit four per layer
+PASS pallets narrow pallet safely falls back to three aligned boxes per layer
+PASS pallets unsafe oversized or degenerate model dimensions reject layout
+PASS pallets NaN and infinite bounds cannot create native coordinates
+PASS pallets all four saved cardinal headings rotate local boxes exactly
+PASS pallets arbitrary heading retains distance and saved ground height
+PASS pallets legacy holes compact proven parcels onto the bottom instead of floating
+PASS pallets all nine recorded parcels remain visible and no tenth is created
+PASS pallets rebuild repositions existing owned boxes as a partial layer fills
+PASS pallets completed visual layout performs no repeated model dimension queries
+PASS pallets dirty refresh reuses the same cached model layout
+PASS pallets model cache remains bounded even under changed model identities
+PASS pallets deposit transform preflight has no stock invoice or save side effects
+PASS pallets unready layout blocks transform without consuming stock or billing
+PASS pallets existing delivery count mask and capacity ledger are unchanged by visual layout
+PASS pallets stream out and re-entry reconstruct only provenance-backed boxes
+PASS pallets visual refresh never changes original saved pallet position or heading
+PASS pallets out of range box indexes are rejected including tenth parcel
+PASS pallets failed lower box creation never draws unsupported upper parcels
+PASS pallets new deposit rebuilds centered partial layer after prior retries were exhausted
+PASS pallets new deposit grants one bounded retry budget without per-frame model requests
+pallets 25/25 PASS; production geometry and owned-visual helpers; GTA testing NOT RUN
+PASS wages Expenses has the exact independent manager action and preserves prior row indexes
+PASS wages manager action pays only their existing invoice once
+PASS wages new action leaves all other outstanding bills and ages untouched
+PASS wages manager cannot obtain a discount on their own wages
+PASS wages repeated manager confirmation cannot pay the zeroed invoice again
+PASS wages existing manager profile helper shares the same paid invoice
+PASS wages no invoice including old-save zero defaults cannot create payment
+PASS wages insufficient funds preserve full invoice and business cash
+PASS wages exact available balance pays in full without negative cash
+PASS wages paused manager payment cannot alter ledger
+PASS wages startup hold cannot pay wages
+PASS wages closed business may explicitly settle an outstanding invoice
+PASS wages failed manager save restores invoice age money expenses and savings
+PASS wages retry after failed save makes only one committed payment
+PASS wages expense overflow fails before mutating invoice
+PASS wages Pay All after individual manager payment does not charge manager again
+PASS wages individual manager payment after Pay All cannot charge again
+PASS wages receptionist payment retains its existing manager discount and age reset
+PASS wages failed receptionist payment restores its rebate and overdue flags
+PASS wages rent remains an overhead payment without payroll discount
+PASS wages paid snapshot reloaded cannot expose a second manager invoice
+PASS wages back row stays navigation and never pays any invoice
+wages 22/22 PASS; production payment and expenses dispatch, synthetic save outcomes; GTA testing NOT RUN
+PASS reload old saves default to no pending records without changing ledger
+PASS reload physical acceptance persists its exact quote before work starts
+PASS reload all physical background and remote quote fields roundtrip
+PASS reload loading a year-old snapshot gives no offline progress or payment
+PASS reload pending quotes reserve exact dedicated and fallback stock before entities exist
+PASS reload manual sale cannot take a pending quote's last dedicated unit
+PASS reload pending stock is not reserved twice after physical entity reconstruction
+PASS reload recovered physical price sources and billable time survive wage/config changes
+PASS reload physical resumed work must finish remaining active time and pays once
+PASS reload recovered background work keeps accepted duration after JobSeconds changes
+PASS reload remote quote resumes from saved remaining active time and pays once
+PASS reload remote record remains parked without a manager instead of becoming free income
+PASS reload pause blocks restore and all direct economy/remote payout entry points
+PASS reload closed shift blocks recovered work and does not advance remaining seconds
+PASS reload graceful abort snapshot survives subsequent actor cleanup
+PASS reload entity-loss cancellation parks accepted quote before worker progress is reset
+PASS reload manager handoff snapshots one remote identity without duplicate physical record
+PASS reload paid returning vehicle does not persist another payable promise
+PASS reload legacy promised amount below new floor roundtrips without surcharge
+PASS reload failed physical settlement rolls back stock money paid flag XP counters and save bytes
+PASS reload failed repair commit retries at most once per three game seconds and settles once
+PASS reload commit cooldown handles signed GameTime wraparound
+PASS reload failed background settlement restores accepted job and exact quote
+PASS reload failed remote settlement restores queue position and all remote totals
+PASS reload accepted price mismatch cannot consume or silently replace a quote
+PASS reload failed assignment commit does not accept premium price or reserve worker
+PASS reload old paid counters remain paid after repeated reloads with stale record sections
+PASS reload accepted records preserve old supplier invoice costs and unknown keys
+PASS reload malformed version or over-capacity count fails closed without save changes
+PASS reload invalid nonfinite duration negative stock allocation or money never loads
+PASS reload duplicate accepted identities fail closed instead of replaying twice
+PASS reload pending-record capacity prevents new promises before bounded ledger overflows
+PASS reload missing original mechanic holds/reassigns safely without losing saved quote
+PASS reload ready-but-unpaid record waits for positive unpaused gameplay after load
+PASS reload all terminal settlements leave supplier and payroll expenses untouched
+PASS reload older-build financial edits cannot replay an unknown stale quote journal
+PASS reload older-build inventory changes with unchanged cash still fail closed
+PASS reload stock and money alone cannot forge a replay after completed count changed
+PASS reload an empty journal permits ordinary older-save finance changes
+PASS reload closing the business parks all accepted routes before clearing runtime workers
+PASS reload reopening a closed saved shift preserves quotes and advances no work by itself
+reload 41/41 PASS; production promise serialization/restoration/atomic settlement; synthetic INI adapter and files only; GTA testing NOT RUN
+PASS supplier away receipt supplier 1
+PASS supplier away receipt supplier 2
+PASS supplier ETA pending
+PASS supplier manager eligibility gate 0
+PASS supplier manager eligibility gate 1
+PASS supplier manager eligibility gate 2
+PASS supplier pause prevents ready receipt and route work
+PASS supplier wholesale remains player only prepaid False
+PASS supplier wholesale remains player only prepaid True
+PASS supplier wholesale missing pickup does not auto-credit
+PASS supplier aggregate capacity blocks then recovers
+PASS supplier full and missing pallets block
+PASS supplier player carrying is never stolen
+PASS supplier near receipt requires actual pallet arrival
+PASS supplier near receipt durable before visual cleanup
+PASS supplier near missing support/entity/layout 0
+PASS supplier near missing support/entity/layout 1
+PASS supplier near missing support/entity/layout 2
+PASS supplier near missing support/entity/layout 3
+PASS supplier save failure restores every accounting field then retries once
+PASS supplier prepaid obeys capacity and never bills twice
+PASS supplier stream out during route becomes single virtual receipt
+PASS supplier manager removed during route retains order
+PASS supplier blocked route defers without teleport or stock
+PASS supplier failed save virtual retries are rate limited
+PASS supplier spawn attempts rate limited
+PASS supplier no manager direct handoff remains
+PASS supplier near incomplete physical configuration retains order
+PASS supplier invalid pallet commit cannot mutate
+PASS supplier special stock receipt
+PASS supplier atomic disk snapshot preserves original on writer failure
+PASS supplier atomic disk snapshot commits receipt and cleared order together
+PASS supplier failure before first snapshot leaves no invented receipt
+PASS supplier manager driver route ends at selected pallet and ignores player chase
+PASS supplier manager route capacity loss retains order
+PASS supplier stale visual order identity cannot settle another order
+PASS supplier virtual receipt grants a fresh finite visual budget
+supplier 37/37 PASS; production receipt/policy/route methods with deterministic world stubs; GTA testing NOT RUN
+range 40/40 PASS; shared physical/virtual boundary, GTA NOT RUN
+menu 13/13 PASS; measured bounded columns and hub navigation, GTA NOT RUN
+PASS cart four items one order ETA and consolidated price
+PASS cart submission copies draft without aliasing
+PASS cart one receipt applies all inventory once
+PASS cart pending cart roundtrip no offline catchup
+PASS cart completed snapshot clears additive payload
+PASS cart capacity blocks whole cart at ordering and receipt
+PASS cart failed receipt restores four buckets and original cart
+PASS cart failed placement retains no pending order and no savings drift
+PASS cart second order cannot replace pending
+PASS cart wholesale assignment remains required
+PASS cart legacy pending single item loads unchanged
+PASS cart legacy pending survives additive empty payload
+PASS cart cancel clears all lines without stock or invoice
+PASS cart failed cancel restores cart and prepaid refund exactly
+PASS cart pause blocks placement and cancellation
+PASS cart reject invalid/empty cart null
+PASS cart reject invalid/empty cart 1
+PASS cart reject invalid/empty cart -1,0,0,0
+PASS cart reject invalid/empty cart 101,0,0,0
+PASS cart reject invalid/empty cart 50,50,1,0
+PASS cart reject invalid/empty cart 2147483647,0,0,0
+PASS cart reject invalid/empty cart 0,0,0,0
+PASS cart malformed/mismatching payload Version
+PASS cart malformed/mismatching payload Line0
+PASS cart malformed/mismatching payload Line1
+PASS cart malformed/mismatching payload OrderTicks
+PASS cart malformed/mismatching payload Cost
+PASS cart malformed/mismatching payload Supplier
+PASS cart legacy downgrade cleared order cannot replay stale lines
+PASS cart quantity edits clamp and never write stock or disk
+PASS cart roundtrip preserves unknown keys
+PASS cart stale physical identity rejects whole mixed receipt
+cart 32/32 PASS; production submission/serialization/receipt/cancel against deterministic INI adapter; GTA NOT RUN
+PASS #2 Escape hides overlay and never navigates or transacts
+PASS #2 controller native pause yields overlay FrontendPause
+PASS #2 controller native pause yields overlay FrontendPauseAlternate
+PASS #2 already paused hides overlay even with controller disabled
+PASS #2 native pause wins over mapped accept and open combo
+PASS #2 pause releases held keyboard arbitration for later reopening
+PASS #2 Backspace remains submenu navigation
+PASS #2 paused F2 cannot reopen overlay
+PASS #2 cart arrow keyboard/frontend echo is one semantic action
+pause 9/9 PASS; production input/pause yielding, GTA native menu NOT RUN
+focus 8/8 PASS; native pause controls enabled on foot/driving, GTA NOT RUN
+PASS waypoint trace burst is bounded and recovery reports suppression
+PASS waypoint trace writer reentry cannot recurse
+PASS waypoint trace storage error never escapes
+PASS waypoint trace clock error never escapes or poisons guard
+PASS waypoint trace payload is bounded
+PASS waypoint entry preserves correct return page and row
+PASS waypoint nested editor entry cannot overwrite parent with PointEditor
+PASS waypoint action callback reentry is blocked once
+PASS waypoint action error releases busy guard and permits retry
+PASS waypoint save callback reentry is blocked without second write
+PASS waypoint save failure reports failed commit
+PASS waypoint save exception restores guard
+PASS waypoint null point exits without recursion or save
+waypoint 13/13 PASS; bounded managed diagnostics, GTA NOT RUN

@@ -535,7 +535,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             RequireExclusiveBusinessInstallation(File.Exists);
             Directory.CreateDirectory(DataDirectory);
-            Log("BOOT v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES + SAVED QUOTES EXPERIMENTAL (#27, #25) / constructor entered", null);
+            Log("BOOT v0.3.3.2-WP1 SHVDN3 WAYPOINT DIAGNOSTICS EXPERIMENTAL / constructor entered", null);
             _configuration = ScriptSettings.Load(SettingsFile);
             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
@@ -849,6 +849,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             _bootGateUntilUtc = DateTime.UtcNow.AddSeconds(_diagnosticDelaySeconds);
             Log("BOOT save records parsed; registering callbacks", null);
             Interval = 0;
+            LogWaypointBuildIdentity();
             Tick += OnTick;
             KeyDown += OnKeyDown;
             KeyUp += OnKeyUp;
@@ -1001,6 +1002,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             // When true, ordinary F2 is ignored; Ctrl+F2 is required.
             if (e.KeyCode == _menuKey && (!_requireCtrlForMenu || e.Control))
             {
+                if (_showMenu && _menuPage == MenuPage.PointEditor) TracePointEditor("editor-key-close");
                 _showMenu = !_showMenu;
                 if (_showMenu) { _menuPage = MenuPage.Business; _selection = 0; }
                 return;
@@ -1135,6 +1137,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _receptionPathsFromManagement = false; break;
             case MenuPage.ReceptionWaypoints: _menuPage = MenuPage.ReceptionWalkingPaths; _selection = 1; break;
             case MenuPage.PointEditor:
+                TracePointEditor("editor-back-exit");
                 _menuPage = _editorReturnPage; _selection = _editorReturnSelection; break;
             case MenuPage.MechanicBays: _menuPage = MenuPage.EmployeePlacements; _selection = 1; break;
             case MenuPage.EmployeePaths: _menuPage = MenuPage.EmployeeSettings; _selection = 1; break;
@@ -1181,8 +1184,72 @@ public class GlassHeroesBusinessV3Experimental : Script
         return -1;
     }
 
+    private sealed class WaypointTrace
+    {
+        private readonly Func<DateTime> _now;
+        private readonly Action<string> _append;
+        private DateTime _window;
+        private int _count, _suppressed;
+        private bool _writing;
+        public WaypointTrace(Func<DateTime> now, Action<string> append) { _now = now; _append = append; }
+        public void Write(string text)
+        {
+            if (_writing) return;
+            _writing = true;
+            try
+            {
+                DateTime now = _now();
+                if (now < _window || (now - _window).TotalSeconds >= 10) { _window = now; _count = 0; }
+                if (_count >= 24) { _suppressed++; return; }
+                _count++;
+                if (text.Length > 512) text = text.Substring(0, 512);
+                _append("WAYPOINT " + text + " suppressed=" + _suppressed);
+                _suppressed = 0;
+            }
+            catch { } // Diagnostics cannot recurse, save, call GTA, or escape.
+            finally { _writing = false; }
+        }
+    }
+
+    private readonly WaypointTrace _waypointTrace = new WaypointTrace(() => DateTime.UtcNow, text => _diagnosticLog.Write(text, null));
+    private bool _pointEditorBusy, _pointEditorSaveBusy;
+    private long _pointEditorSequence;
+
+    private void LogWaypointBuildIdentity()
+    {
+        const string path = @"scripts\GlassHeroesBusiness.3.cs";
+        try
+        {
+            if (!File.Exists(path) || new FileInfo(path).Length > 2097152)
+            { _waypointTrace.Write("identity source-file-hash=UNVERIFIED conventional path missing/oversized"); return; }
+            using (var stream = File.OpenRead(path))
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+                _waypointTrace.Write("identity conventional-source-file-sha256=" + BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant());
+        }
+        catch { _waypointTrace.Write("identity source-file-hash=UNVERIFIED file read failed"); }
+    }
+
+    private void TracePointEditor(string stage)
+    {
+        _waypointTrace.Write("seq=" + _pointEditorSequence + " phase=" + stage + " label=" + _editingPointLabel +
+            " menu=" + _menuPage + " row=" + _selection + " gameSample=" + _lastGameTimeSample +
+            " customers=" + _activeCustomerOrders.Count + " supplier=" + _supplierVisualStage);
+    }
+
+    private bool SaveEditorPoint()
+    {
+        if (_pointEditorSaveBusy) { TracePointEditor("save-reentry-blocked"); return false; }
+        _pointEditorSaveBusy = true;
+        try { TracePointEditor("save-begin"); bool saved = Save(); TracePointEditor(saved ? "save-committed" : "save-failed"); return saved; }
+        catch (Exception ex) { TracePointEditor("save-error-" + ex.GetType().Name); throw; }
+        finally { _pointEditorSaveBusy = false; }
+    }
+
     private void OpenPointEditor(WorkBay point, string label, int bayIndex, bool routePoint)
     {
+        if (_pointEditorBusy || _menuPage == MenuPage.PointEditor)
+        { TracePointEditor("entry-reentry-blocked"); return; }
+        _pointEditorSequence++;
         _editingPoint = point;
         _editingPointLabel = label;
         _editingBayIndex = bayIndex;
@@ -1191,6 +1258,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         _editorReturnSelection = _selection;
         _menuPage = MenuPage.PointEditor;
         _selection = 0;
+        TracePointEditor("entry");
     }
 
     // GTA's phone-opening key (Up arrow) overlaps our menu navigation key.
@@ -3253,6 +3321,11 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void ExecutePointEditorSelection()
     {
+        if (_pointEditorBusy) { TracePointEditor("action-reentry-blocked"); return; }
+        _pointEditorBusy = true;
+        try
+        {
+        TracePointEditor("action-begin");
         if (_editingPoint == null) { NavigateBack(); return; }
         int vehicleBaySlot = EditingVehicleParkingSlot();
         switch (_selection)
@@ -3286,7 +3359,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 if (Object.ReferenceEquals(_editingPoint, _supplierPartsPallet) ||
                     Array.IndexOf(_extraStoragePallets, _editingPoint) >= 0)
                     DeleteStoragePalletVisuals();
-                Save();
+                SaveEditorPoint();
                 Notify(_editingPointLabel + " CLEARED.");
                 break;
             case 2:
@@ -3300,6 +3373,9 @@ public class GlassHeroesBusinessV3Experimental : Script
                 break;
             case 4: NavigateBack(); break;
         }
+        }
+        catch (Exception ex) { TracePointEditor("error-recovery-" + ex.GetType().Name); throw; }
+        finally { TracePointEditor("action-exit"); _pointEditorBusy = false; }
     }
 
     private void ExecuteRecoverySelection()
@@ -3420,7 +3496,9 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         if (!_placed) { Notify("Set the shop location before configuring a mechanic bay."); return; }
         if (Game.Player.Character == null) return;
+        TracePointEditor("capture-begin");
         Vector3 here = Game.Player.Character.Position;
+        TracePointEditor("capture-complete-" + FormatPosition(here));
         if (DistanceSquared(here, _location) > 2500f)
         {
             Notify("Work bays must be within 50 meters of the saved shop location.");
@@ -3431,7 +3509,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         _bays[index].IsSet = true;
         _bays[index].Position = here;
         _bays[index].Heading = Game.Player.Character.Heading;
-        Save();
+        SaveEditorPoint();
         _visualRefreshClock = 1.0;
         _showPlacementMarkers = true;
         Notify("Mechanic Bay " + (index + 1) + " SAVED at " + FormatPosition(here) + ". Markers ON.");
@@ -3451,7 +3529,9 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         Ped player = Game.Player.Character;
         if (player == null) { Notify("Player position unavailable; try again in gameplay."); return; }
+        TracePointEditor("capture-begin");
         Vector3 position = player.Position;
+        TracePointEditor("capture-complete-" + FormatPosition(position));
         if (DistanceSquared(position, _location) > 6400f)
         {
             Notify("Vehicle parking must be within 80 meters of the shop.");
@@ -3462,7 +3542,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         bay.Position = position;
         bay.Heading = player.Heading;
         _showPlacementMarkers = true;
-        Save();
+        SaveEditorPoint();
         Notify("Vehicle Bay " + (index + 1) + " parking SAVED: " +
             FormatPosition(position) + " | heading " + bay.Heading.ToString("0") +
             ". Teal marker now visible.");
@@ -3475,7 +3555,9 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (!_placed) { Notify("Set the shop location first."); return; }
         if (_clockedIn) { Notify("Close your shop before changing employee arrival routes."); return; }
         if (Game.Player.Character == null) return;
+        TracePointEditor("capture-begin");
         Vector3 here = Game.Player.Character.Position;
+        TracePointEditor("capture-complete-" + FormatPosition(here));
         if (DistanceSquared(here, _location) > 6400f)
         {
             Notify("Arrival locations must be within 80 meters of your shop.");
@@ -3484,7 +3566,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (point == _walkCheckpoint && point.IsSet && DistanceSquared(point.Position, here) < 2.25f)
         {
             point.IsSet = false;
-            Save();
+            SaveEditorPoint();
             Notify("Legacy Walk Checkpoint CLEARED; direct mode ignores it anyway.");
             return;
         }
@@ -3503,7 +3585,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         point.IsSet = true;
         point.Position = here;
         point.Heading = Game.Player.Character.Heading;
-        Save();
+        SaveEditorPoint();
         _warnedMissingEntrance = false;
         _showPlacementMarkers = true;
         Notify(name + " SAVED at " + FormatPosition(here) + ". Markers ON.");
@@ -3516,20 +3598,22 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (!_placed) { Notify("Set your shop location first."); return; }
         if (_clockedIn) { Notify("Close the shop before editing employee paths."); return; }
         if (Game.Player.Character == null) return;
+        TracePointEditor("capture-begin");
         Vector3 here = Game.Player.Character.Position;
+        TracePointEditor("capture-complete-" + FormatPosition(here));
         if (DistanceSquared(here, _location) > 6400f)
         { Notify("Route markers must be within 80m of the shop."); return; }
         if (point.IsSet && DistanceSquared(here, point.Position) < 2.25f)
         {
             point.IsSet = false;
-            Save();
+            SaveEditorPoint();
             Notify(label + " CLEARED.");
             return;
         }
         point.IsSet = true;
         point.Position = here;
         point.Heading = Game.Player.Character.Heading;
-        Save();
+        SaveEditorPoint();
         _showPlacementMarkers = true;
         Notify(label + " SAVED: " + FormatPosition(here) + ". Markers ON.");
     }
@@ -7265,6 +7349,7 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void HideBusinessMenuForPause()
     {
+        if (_showMenu && _menuPage == MenuPage.PointEditor) TracePointEditor("editor-pause-exit");
         _showMenu = false;
         _heldKeys.Clear();
         _menuInput.Reset();
@@ -7321,6 +7406,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             _lastPadDetected = "OPEN COMBO";
             _lastPadDetectedAt = now;
+            if (_showMenu && _menuPage == MenuPage.PointEditor) TracePointEditor("editor-pad-close");
             _showMenu = !_showMenu;
             if (_showMenu) { _menuPage = MenuPage.Business; _selection = 0; }
             _lastControllerAction = now;

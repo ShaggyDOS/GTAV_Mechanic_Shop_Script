@@ -1,0 +1,30 @@
+{
+  "profile": "waypoint",
+  "parent": "422baa756ce16f6af370278105731de2e82abdd3",
+  "parent_source_sha256": "de2b07413870de4e61befc517682fbc3d03afea8df5f80a5c45a583e65ee5194",
+  "candidate_source_sha256": "50bf63c16ec06fb9300dbc13246b3dda009411398ff812654a8d5163341702be",
+  "changed_methods": [
+    "ConfigureArrivalPoint",
+    "ConfigureRoutePoint",
+    "ConfigureVehicleParkingBay",
+    "ConfigureWorkBay",
+    "ExecutePointEditorSelection",
+    "GlassHeroesBusinessV3Experimental",
+    "HideBusinessMenuForPause",
+    "NavigateBack",
+    "OnKeyDown",
+    "OpenPointEditor",
+    "PollController"
+  ],
+  "new_helpers": [
+    "LogWaypointBuildIdentity",
+    "SaveEditorPoint",
+    "TracePointEditor"
+  ],
+  "unchanged_methods": 331,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": true,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}

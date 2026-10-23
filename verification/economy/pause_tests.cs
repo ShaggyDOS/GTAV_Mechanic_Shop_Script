@@ -18,6 +18,8 @@ class Harness
     /*<source:PollController>*/
     /*<source:NavigateBack>*/
     /*<source:OpenPointEditor>*/
+    bool _pointEditorBusy;long _pointEditorSequence;
+    void TracePointEditor(string s){}
     bool _nativePauseYielded;
     bool _bootGameplayActivated=true, _showMenu=true, _controllerEnabled=true, _requireCtrlForMenu;
     bool _managerPathsFromManagement, _mechanicPathsFromManagement, _receptionPathsFromManagement;
