@@ -1,0 +1,29 @@
+{
+  "profile": "supplier",
+  "parent": "aad2dff55866efc2a17dadcfbf4738b6931b6992",
+  "parent_source_sha256": "3146152304eb25599074e58403796719ced2eca9077eb003f917e81474d670f0",
+  "candidate_source_sha256": "36df493478adc3e52ddd2043af1036e486662ddeebb2370401daddf6f2abc56f",
+  "changed_methods": [
+    "BeginSupplierDriverWalk",
+    "CommitSupplierDelivery",
+    "DeleteSupplierVisuals",
+    "HandleSupplierPackageInteraction",
+    "OnTick",
+    "ProcessSupplierDelivery",
+    "ShowSupplierDeliveryStatus",
+    "TrySupplierPackageInteraction"
+  ],
+  "new_helpers": [
+    "AvailableSupplierPallet",
+    "ManagerSupplierEligible",
+    "SupplierPlayerAway",
+    "TryManagerSupplierDeposit"
+  ],
+  "unchanged_methods": 313,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": false,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}
+PASS scope and preservation checks

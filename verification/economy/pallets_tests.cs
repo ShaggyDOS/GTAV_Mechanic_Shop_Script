@@ -43,7 +43,7 @@ class Harness {
     WorkBay StoragePalletPoint(int i)=>point;
     bool CanStoreShipment(int q)=>true;
     string DeliveryItemName(int k)=>"parts";
-    void Save(){saves++;}void Notify(string m){}
+    bool Save(){saves++;return true;}void Notify(string m){}
     void DeleteOwnedProp(ref Prop p){if(p!=null)p.Delete();p=null;}
     Prop CreateFixedEquipmentProp(string n,Vector3 p,float h,bool ground=true){if(failModels||(!ground&&failFirstBox))return null;if(ground){pallets++;p.Z=4;}else boxes++;return new Prop{Position=p,Heading=h};}
     static float DistanceSquared(Vector3 a,Vector3 b)=>(a.X-b.X)*(a.X-b.X)+(a.Y-b.Y)*(a.Y-b.Y)+(a.Z-b.Z)*(a.Z-b.Z);

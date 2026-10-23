@@ -1,0 +1,31 @@
+{
+  "parent": "aad2dff55866efc2a17dadcfbf4738b6931b6992",
+  "fixture": "supplier-parent.cs.txt",
+  "parent_sha256": "3146152304eb25599074e58403796719ced2eca9077eb003f917e81474d670f0",
+  "changed": [
+    "BeginSupplierDriverWalk",
+    "CommitSupplierDelivery",
+    "DeleteSupplierVisuals",
+    "HandleSupplierPackageInteraction",
+    "OnTick",
+    "ProcessSupplierDelivery",
+    "ShowSupplierDeliveryStatus",
+    "TrySupplierPackageInteraction"
+  ],
+  "added": [
+    "AvailableSupplierPallet",
+    "ManagerSupplierEligible",
+    "SupplierPlayerAway",
+    "TryManagerSupplierDeposit"
+  ],
+  "added_keys": {
+    "GetValue": [],
+    "SetValue": []
+  },
+  "protected_v2": {
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  }
+}

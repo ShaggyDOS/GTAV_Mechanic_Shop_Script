@@ -1,4 +1,4 @@
-// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES + SAVED QUOTES / EXPERIMENTAL (#20, #27, #25)
+// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 MANAGER SUPPLIER DELIVERIES / EXPERIMENTAL (#24)
 // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
 // Original project. Does not reference or modify Auto Work or its data.
 // GTA V Story Mode only | ScriptHookVDotNet3 3.6.0 / .NET Framework 4.8
@@ -897,6 +897,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             // Clamp game-clock jumps from loading, cutscenes and script reloads.
             double activeGameSeconds = !Game.IsPaused && elapsedGameMs > 0 && elapsedGameMs <= 30000L
                 ? Math.Min(2d, elapsedGameMs / 1000d) : 0d;
+            _supplierGameplayNow = _supplierGameplayNow.AddSeconds(activeGameSeconds);
             _diagnosticTickStage = "remote mode transition";
             if (_clockedIn && _managerTier >= 0 && Game.Player.Character != null && _placed &&
                 DistanceSquared(Game.Player.Character.Position, _location) >
@@ -936,9 +937,9 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _diagnosticTickStage = "staff visuals";
                 UpdateVisualMechanics();
                 _diagnosticTickStage = "supplier delivery visuals";
-                try { ProcessSupplierDelivery(now); }
+                try { ProcessSupplierDelivery(_supplierGameplayNow); }
                 catch (Exception deliveryError)
-                { Log("Mule delivery visual (order preserved)", deliveryError); DeleteSupplierVisuals(); }
+                { Log("Mule delivery visual (order preserved)", deliveryError); DeferSupplierPlayerHandoff(_supplierGameplayNow); }
                 _diagnosticTickStage = "customer visuals";
                 UpdateCustomerVisuals();
                 _diagnosticTickStage = "office visuals";
@@ -7300,7 +7301,8 @@ public class GlassHeroesBusinessV3Experimental : Script
                 " | ETA " + (int)Math.Ceiling(remain) + " sec",
             _deliverySupplier == 0 ? "WHOLESALE PICKUP " + Status(_wholesaleWarehousePickup) +
                 " | " + MuleStageName() : "MULE " + MuleStageName() +
-                " | Box to purchased pallet",
+                " | " + (ManagerSupplierEligible() ? (SupplierPlayerAway() ? "MANAGER VIRTUAL RECEIPT" : "MANAGER PALLET DROP") : "PLAYER HANDOFF") +
+                (AvailableSupplierPallet() < 0 ? " | WAITING FOR PALLET/CAPACITY" : ""),
             "Storage " + StoredPartsTotal() + "/" + TotalStorageCapacity() +
                 " | Supplier bills $" + _supplierInvoicesDue.ToString("N0"));
     }
@@ -7346,10 +7348,15 @@ public class GlassHeroesBusinessV3Experimental : Script
         _supplierRouteIndex = 0;
         _supplierWalkingNodes.Clear();
         _supplierDirectToPlayer = false;
+        _managerSupplierPallet = -1;
         _supplierPlayerRepaths = 0;
         _supplierBoxAttachedToDriver = false;
         _muleRearDoorsOpened = false;
     }
+
+    // Session-only route clock. No wall-clock age or persisted/offline catch-up.
+    private DateTime _supplierGameplayNow = new DateTime(2000, 1, 1);
+    private int _managerSupplierPallet = -1;
 
     private bool StartMuleDelivery(DateTime now)
     {
@@ -7493,7 +7500,21 @@ public class GlassHeroesBusinessV3Experimental : Script
     private void BeginSupplierDriverWalk(DateTime now)
     {
         _supplierWalkingNodes.Clear();
-        _supplierDirectToPlayer = _supplierPartsPallet.IsSet;
+        _managerSupplierPallet = ManagerSupplierEligible() ? AvailableSupplierPallet() : -1;
+        if (ManagerSupplierEligible() && _managerSupplierPallet < 0)
+        { DeferSupplierPlayerHandoff(now); return; }
+        _supplierDirectToPlayer = _managerSupplierPallet < 0 && _supplierPartsPallet.IsSet;
+        if (_managerSupplierPallet >= 0)
+        {
+            foreach (WorkBay point in _supplierDriverWaypoints)
+                if (point.IsSet) _supplierWalkingNodes.Add(point.Position);
+            _supplierWalkingNodes.Add(StoragePalletPoint(_managerSupplierPallet).Position);
+            _supplierRouteIndex = 0;
+            _supplierVisualStage = 3;
+            _supplierStageAt = now;
+            TaskSupplierWalkingNode();
+            return;
+        }
         if (_supplierDirectToPlayer)
         {
             Ped player = Game.Player.Character;
@@ -7561,15 +7582,68 @@ public class GlassHeroesBusinessV3Experimental : Script
             _supplierDriver.Handle, at.X, at.Y, at.Z, 1.0f, -1, 1f, 0, 0f);
     }
 
-    private bool CommitSupplierDelivery(int palletSlot = -1)
+    private bool ManagerSupplierEligible()
     {
-        if (_deliveryKind == -2 || _deliveryQuantity <= 0) return false;
-        if (!CanStoreShipment(_deliveryQuantity) && !_deliveryPrepaid)
+        return _deliveryKind != -2 && (_deliverySupplier == 1 || _deliverySupplier == 2) &&
+            _managerTier >= 0 && _clockedIn && _placed;
+    }
+
+    private bool SupplierPlayerAway()
+    {
+        Ped player = Game.Player.Character;
+        return player != null && player.Exists() &&
+            DistanceSquared(player.Position, _location) > _remoteDistanceMeters * _remoteDistanceMeters;
+    }
+
+    private int AvailableSupplierPallet()
+    {
+        if (!CanStoreShipment(_deliveryQuantity)) return -1;
+        for (int i = 0; i < _ownedStoragePallets; i++)
+            if (StoragePalletPoint(i).IsSet && _storedDeliveryCrates[i] < CratesPerPallet) return i;
+        return -1;
+    }
+
+    private void TryManagerSupplierDeposit(DateTime now)
+    {
+        int slot = _managerSupplierPallet;
+        if (!ManagerSupplierEligible() || _supplierPlayerCarrying || slot < 0 ||
+            slot >= _ownedStoragePallets || !StoragePalletPoint(slot).IsSet ||
+            _supplierDriver == null || !_supplierDriver.Exists() || _supplierDriver.IsDead ||
+            _supplierCrate == null || !_supplierCrate.Exists() || !_supplierBoxAttachedToDriver)
+        { DeferSupplierPlayerHandoff(now); return; }
+        if (DistanceSquared(_supplierDriver.Position, StoragePalletPoint(slot).Position) > 4f)
+        { DeferSupplierPlayerHandoff(now); return; }
+        // The grounded support/layout must exist before a nearby physical receipt.
+        UpdateSupplierPalletVisual();
+        Vector3 position; float heading;
+        if (_storagePalletProps[slot] == null || !_storagePalletProps[slot].Exists() ||
+            !TryStoredBoxTransform(slot, _storedDeliveryCrates[slot], true, out position, out heading))
+        { DeferSupplierPlayerHandoff(now); return; }
+        if (!CommitSupplierDelivery(slot, _supplierVisualOrderTicks))
+        { DeferSupplierPlayerHandoff(now); return; }
+        // Accounting is durable before visuals. Provenance reconstructs the box even
+        // if a native/entity operation fails after this point.
+        DeleteOwnedProp(ref _supplierCrate);
+        _supplierBoxAttachedToDriver = false;
+        RefreshStoragePalletAfterDeposit();
+        BeginSupplierTruckDeparture(now);
+    }
+
+    private bool CommitSupplierDelivery(int palletSlot = -1, long expectedOrderTicks = 0L)
+    {
+        if (_deliveryKind == -2 || _deliveryQuantity <= 0 ||
+            (expectedOrderTicks != 0L && expectedOrderTicks != _deliveryDueUtcTicks)) return false;
+        if (!CanStoreShipment(_deliveryQuantity))
         { Notify("Delivery awaiting capacity: buy/place pallets before stocking the box."); return false; }
         if (palletSlot >= 0 && (palletSlot >= _ownedStoragePallets ||
             !StoragePalletPoint(palletSlot).IsSet || _storedDeliveryCrates[palletSlot] >= CratesPerPallet))
             return false;
-        // Treat stock and invoice as one persist operation; no duplicate credit on retry.
+        // Save atomically replaces one complete snapshot. Roll back memory on failure.
+        long oldDue = _deliveryDueUtcTicks, oldCost = _deliveryCost;
+        double oldRemaining = _deliveryRemainingGameSeconds, oldTimer = _supplierTimerSaveSeconds;
+        bool oldPrepaid = _deliveryPrepaid, oldLoaded = _wholesaleCargoLoaded, oldUnloaded = _wholesaleCargoUnloaded;
+        bool oldDirty = _palletVisualDirty;
+        int oldMask = palletSlot >= 0 ? _deliveredPackageMasks[palletSlot] : 0;
         int kind = _deliveryKind;
         int quantity = _deliveryQuantity;
         long invoice = _deliveryPrepaid ? 0L : _deliveryCost;
@@ -7592,7 +7666,19 @@ public class GlassHeroesBusinessV3Experimental : Script
         _deliveryPrepaid = false;
         _wholesaleCargoLoaded = false;
         _wholesaleCargoUnloaded = false;
-        Save();
+        if (!Save())
+        {
+            if (kind < 0) _parts -= quantity; else _specialStock[kind] -= quantity;
+            if (palletSlot >= 0)
+            { _storedDeliveryCrates[palletSlot]--; _deliveredPackageMasks[palletSlot] = oldMask; }
+            _palletVisualDirty = oldDirty;
+            _supplierInvoicesDue -= invoice; _completedSupplierDeliveries--;
+            _deliveryKind = kind; _deliveryQuantity = quantity; _deliveryCost = oldCost;
+            _deliveryDueUtcTicks = oldDue; _deliveryRemainingGameSeconds = oldRemaining;
+            _supplierTimerSaveSeconds = oldTimer; _deliveryPrepaid = oldPrepaid;
+            _wholesaleCargoLoaded = oldLoaded; _wholesaleCargoUnloaded = oldUnloaded;
+            return false;
+        }
         Notify("STOCKED " + quantity + " " + DeliveryItemName(kind) +
             (invoice > 0 ? "; supplier invoice $" + invoice.ToString("N0") + " now DUE." :
                 "; previously paid purchase completed."));
@@ -7601,6 +7687,7 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void ProcessSupplierDelivery(DateTime now)
     {
+        if (Game.IsPaused) return;
         if (_supplierVisualStage == 5)
         {
             if (!_supplierDepartIssued && _supplierDriver != null && _supplierDriver.Exists() &&
@@ -7622,8 +7709,24 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (_deliveryQuantity <= 0) { _deliveryKind = -2; Save(); DeleteSupplierVisuals(); return; }
         MaintainSupplierCarryPose(now);
         if (_supplierVisualStage == 6 && _supplierPlayerCarrying) return; // No vehicle required during player handoff.
-        if (_deliverySupplier == 0 && _wholesaleWarehousePickup.IsSet && !_deliveryPrepaid)
+        if (ManagerSupplierEligible() && !_supplierPlayerCarrying &&
+            !_wholesaleCargoLoaded && !_wholesaleCargoUnloaded && SupplierPlayerAway())
         {
+            if (_supplierVisualStage > 0) DeleteSupplierVisuals();
+            int slot = AvailableSupplierPallet();
+            if (slot >= 0 && now >= _nextSupplierVisualRetryUtc)
+            {
+                _nextSupplierVisualRetryUtc = now.AddSeconds(10);
+                if (CommitSupplierDelivery(slot))
+                { _storageVisualAttempts = 0; _nextStorageVisualAttempt = DateTime.MinValue; }
+            }
+            return;
+        }
+        if (_managerSupplierPallet >= 0 && !ManagerSupplierEligible())
+        { DeferSupplierPlayerHandoff(now); return; }
+        if (_deliverySupplier == 0)
+        {
+            if (!_wholesaleWarehousePickup.IsSet) return;
             if (_wholesaleCargoLoaded) { _supplierVisualStage = 9; RefreshWholesaleCargoVisual(); return; }
             if (_wholesaleCargoUnloaded) { _supplierVisualStage = 6; return; }
             // Wholesale replaces the Mule with a physical pickup mission.
@@ -7633,6 +7736,9 @@ public class GlassHeroesBusinessV3Experimental : Script
             UpdateWholesalePalletVisual();
             return;
         }
+        if (_deliverySupplier != 0 && !_supplierPlayerCarrying && SupplierPlayerAway())
+        { if (_supplierVisualStage > 0) DeferSupplierPlayerHandoff(now); return; }
+        if (ManagerSupplierEligible() && (!_physicalMuleDeliveries || !MuleRouteConfigured())) return;
         if (!_physicalMuleDeliveries || !MuleRouteConfigured())
         {
             // Legacy fallback still requires capacity; no paid order is discarded.
@@ -7641,16 +7747,24 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         if (_supplierVisualStage == 0)
         {
-            if (now >= _nextSupplierVisualRetryUtc) StartMuleDelivery(now);
+            if (now >= _nextSupplierVisualRetryUtc)
+            { _nextSupplierVisualRetryUtc = now.AddSeconds(10); StartMuleDelivery(now); }
             return;
         }
         if (_supplierDriver == null || !_supplierDriver.Exists() ||
             _supplierTruck == null || !_supplierTruck.Exists())
         {
-            DeleteSupplierVisuals(); // paid order stays pending for the next attempt
+            DeferSupplierPlayerHandoff(now); // original order retained; bounded retry
             return;
         }
+        if (_supplierDriver.IsDead)
+        { DeferSupplierPlayerHandoff(now); return; }
+        if (ManagerSupplierEligible() && _managerSupplierPallet < 0 &&
+            (_supplierVisualStage == 3 || _supplierVisualStage == 4))
+        { BeginSupplierDriverWalk(now); return; }
         double elapsed = (now - _supplierStageAt).TotalSeconds;
+        if (_managerSupplierPallet >= 0 && _supplierVisualStage == 4)
+        { TryManagerSupplierDeposit(now); return; }
         if (_supplierDirectToPlayer && (_supplierVisualStage == 3 || _supplierVisualStage == 4))
         {
             UpdateSupplierPlayerApproach(now);
@@ -7667,7 +7781,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _supplierVisualStage = 2;
                 _supplierStageAt = now;
             }
-            else if (elapsed > 110) { Log("Supplier truck could not reach saved parking, will retry", null); DeleteSupplierVisuals(); }
+            else if (elapsed > 110) { DeferSupplierPlayerHandoff(now); }
         }
         else if (_supplierVisualStage == 2)
         {
@@ -7687,6 +7801,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         else if (_supplierVisualStage == 8)
         {
+            if (elapsed > 45) { DeferSupplierPlayerHandoff(now); return; }
             Vector3 rear = _supplierTruck.Position - _supplierTruck.ForwardVector * 3f;
             if (DistanceSquared(_supplierDriver.Position, rear) < 6.25f || elapsed > 16)
                 GiveBoxToDriver(now);
@@ -7706,7 +7821,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             else if (elapsed > 25)
             {
                 // Safe user-saved walking marker recovery. Do not lose paid parts.
-                if (_routeRecoveryEnabled && _safeTeleportOnStall)
+                if (_managerSupplierPallet < 0 && _routeRecoveryEnabled && _safeTeleportOnStall)
                 {
                     _supplierDriver.Position = goal;
                     _supplierRouteIndex++;
@@ -7714,7 +7829,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     if (_supplierRouteIndex < _supplierWalkingNodes.Count) TaskSupplierWalkingNode();
                     else { _supplierVisualStage = 4; _supplierStageAt = now; }
                 }
-                else { DeleteSupplierVisuals(); }
+                else { DeferSupplierPlayerHandoff(now); }
             }
         }
         else if (_supplierVisualStage == 4)
@@ -8243,6 +8358,7 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private bool TrySupplierPackageInteraction()
     {
+        if (Game.IsPaused) return false;
         if (_showMenu || _deliveryKind == -2 ||
             Game.Player.Character == null || Game.Player.Character.IsInVehicle()) return false;
         Ped player = Game.Player.Character;
@@ -8316,7 +8432,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                         _supplierPartsPallet.Position.X, _supplierPartsPallet.Position.Y); } catch { }
                 _supplierPlayerCarrying = true;
                 _supplierVisualStage = 6;
-                _supplierStageAt = DateTime.UtcNow;
+                _supplierStageAt = _supplierGameplayNow;
                 SupplierCheckpoint(atWarehouse ? "warehouse package collected" : "mule handoff collected");
                 Notify(atWarehouse ? "Wholesale box collected. Load it into your assigned vehicle." :
                     "Delivery box collected. Carry it to a placed pallet.");
@@ -8361,8 +8477,8 @@ public class GlassHeroesBusinessV3Experimental : Script
             GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
             _supplierPlayerCarrying = false;
             // Warehouse pickup has no delivery truck to send away.
-            if (_supplierTruck != null && _supplierTruck.Exists()) BeginSupplierTruckDeparture(DateTime.UtcNow);
-            else { _supplierVisualStage = 0; _supplierStageAt = DateTime.UtcNow; }
+            if (_supplierTruck != null && _supplierTruck.Exists()) BeginSupplierTruckDeparture(_supplierGameplayNow);
+            else { _supplierVisualStage = 0; _supplierStageAt = _supplierGameplayNow; }
             return true;
         }
         return false;
@@ -8384,7 +8500,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 Save(); // recovery: recollect at warehouse, no duplicate invoice
             }
             _supplierVisualStage = _deliverySupplier == 0 ? 7 : 4;
-            _supplierStageAt = DateTime.UtcNow;
+            _supplierStageAt = _supplierGameplayNow;
             return;
         }
         bool nearDriver = _supplierVisualStage == 4 && _supplierDriver != null &&

@@ -52,7 +52,13 @@ for pth,sha in profile['protected_v2'].items():assert hashlib.sha256((repo/pth).
 for bad in ['ForensicProbe','ForensicsEnabled','WholesalePackageBlip','GlassHeroesV3Probe']:assert bad not in current,bad
 assert 'private const string SaveFile = @"scripts\\GlassHeroesBusiness\\Save.ini";' in current
 assert 'private const string SettingsFile = @"scripts\\GlassHeroesBusiness\\Settings.ini";' in current
-assert before['OnTick']==after['OnTick'],'Active game-time sampling changed'
-result={'profile':args.profile,'parent':profile['parent'],'parent_source_sha256':profile['parent_sha256'],'candidate_source_sha256':hashlib.sha256((repo/'experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs').read_bytes()).hexdigest(),'changed_methods':changed,'new_helpers':added,'unchanged_methods':len(before)-len(changed),'clocks_and_startup_game_gate_unchanged':True,'original_v2_source_project_unchanged':True,'supplier_receipt_accounting_unchanged':True,'out_of_scope_forensics_and_blip_features_absent':True,'gta_testing':'NOT RUN'}
+if args.profile == 'supplier':
+ restored = after['OnTick'].replace('            _supplierGameplayNow = _supplierGameplayNow.AddSeconds(activeGameSeconds);\n', '').replace('ProcessSupplierDelivery(_supplierGameplayNow)', 'ProcessSupplierDelivery(now)').replace('DeferSupplierPlayerHandoff(_supplierGameplayNow)', 'DeleteSupplierVisuals()')
+ assert restored == before['OnTick'], 'Existing gameplay clock sampling or system ordering changed'
+ assert before['Save'] == after['Save'], 'Existing atomic save snapshot changed'
+ assert before['TryCommitBusinessSave'] == after['TryCommitBusinessSave'], 'Atomic persistence boundary changed'
+else:
+ assert before['OnTick']==after['OnTick'],'Active game-time sampling changed'
+result={'profile':args.profile,'parent':profile['parent'],'parent_source_sha256':profile['parent_sha256'],'candidate_source_sha256':hashlib.sha256((repo/'experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs').read_bytes()).hexdigest(),'changed_methods':changed,'new_helpers':added,'unchanged_methods':len(before)-len(changed),'clocks_and_startup_game_gate_unchanged':True,'original_v2_source_project_unchanged':True,'supplier_receipt_accounting_unchanged':args.profile != 'supplier','out_of_scope_forensics_and_blip_features_absent':True,'gta_testing':'NOT RUN'}
 if args.output:args.output.write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2));print('PASS scope and preservation checks')

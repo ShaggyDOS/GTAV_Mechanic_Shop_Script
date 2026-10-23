@@ -6,6 +6,10 @@ class Prop { internal bool alive=true;internal bool Exists()=>alive; }
 class PlayerState { internal Ped Character=new Ped{Position=new Vector3(10,20,0)}; }
 static class Game { internal static PlayerState Player=new PlayerState(); }
 class Harness {
+    int _managerSupplierPallet=-1;
+    bool ManagerSupplierEligible()=>false;
+    int AvailableSupplierPallet()=>-1;
+    WorkBay StoragePalletPoint(int slot)=>_supplierPartsPallet;
     class WorkBay { internal bool IsSet=true;internal Vector3 Position; }
     /*<source:BeginSupplierDriverWalk>*/
     /*<source:UpdateSupplierPlayerApproach>*/

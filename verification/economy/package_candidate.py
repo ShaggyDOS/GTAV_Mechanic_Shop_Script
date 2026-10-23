@@ -20,7 +20,7 @@ with tempfile.TemporaryDirectory(prefix='gh-review-diff-') as d:
  subprocess.run(['git','apply',str(r/'source.diff')],cwd=d,check=True);assert dest.read_bytes()==(repo/source).read_bytes()
 guide=(r/'DEVELOPER_GUIDE.md').read_text().split('\n## Recorded automated results\n')[0]
 guide+='\n## Recorded automated results\n\nActual net48 / C# 7.3 Release build against ScriptHookVDotNet3 3.6.0: PASS, 0 errors, inherited warnings CS0169 and CS0649. SDK '+v['sdk']+'.\n\n'
-guide+=str(v['behavior_total'])+'/'+str(v['behavior_total'])+' extracted-behavior tests PASS (85 inherited; '+', '.join(k+': '+str(c['passed']) for k,c in v['feature_suites'].items())+'). 21/21 static checks PASS. Source preservation/scope checks PASS; active-game OnTick clock sampling and original v2 source/project are unchanged. Tests use deterministic world stubs; they do not run GTA.\n\n'
+guide+=str(v['behavior_total'])+'/'+str(v['behavior_total'])+' extracted-behavior tests PASS (85 inherited; '+', '.join(k+': '+str(c['passed']) for k,c in v['feature_suites'].items())+'). 21/21 static checks PASS. Source preservation/scope checks PASS; active-game clock sampling and original v2 source/project are unchanged. Supplier route timing consumes that existing active-game sample. Tests use deterministic world stubs; they do not run GTA.\n\n'
 guide+='Source SHA256: '+sha+'. The complete unified source.diff applies to parent '+args.parent+' and reproduces this source exactly.\n\nGTA testing: NOT RUN. Windows execution: NOT RUN. Installed Enhanced 3.9.0.6 compatibility: NOT VERIFIED. Stack-overflow cause: UNATTRIBUTED / UNPROVEN. No installation, merge, protected-branch push, or live save/settings editing was performed.\n'
 (r/'DEVELOPER_GUIDE.md').write_text(guide)
 stem='GlassHeroesBusiness_v0.3.3.1_SHVDN3_'+args.label.replace('-','_')+'_Developer_Report'
@@ -43,9 +43,9 @@ for text in ['\n'.join(p.text for p in Document(r/(stem+'.docx')).paragraphs),'\
 files={repo/source};files.update(x for x in (repo/'experimental/shvdn3/VisualStudio').rglob('*') if x.is_file() and not any(y in {'bin','obj'} for y in x.parts));files.add(repo/'experimental/shvdn3/README.md');files.add(repo/'AGENTS.md')
 files.update(x for x in (repo/'verification').rglob('*') if x.is_file() and not any(y in {'bin','obj','__pycache__'} for y in x.parts))
 files.update(x for x in r.rglob('*') if x.is_file() and x.name not in {'FILES_SHA256.json','package-receipt.json','extracted-package-build.txt'})
-if args.label in {'manager-wages','saved-quotes','final-review'}:
+if args.label in {'manager-wages','saved-quotes','final-review','manager-deliveries'}:
  # Preserve focused guides/results as historical snapshots, each with its own SHA.
- for label in ['repair-coverage','manual-parts-sales','pallet-stacking']+(['manager-wages'] if args.label in {'saved-quotes','final-review'} else [])+(['saved-quotes'] if args.label=='final-review' else []):
+ for label in ['repair-coverage','manual-parts-sales','pallet-stacking']+(['manager-wages'] if args.label in {'saved-quotes','final-review','manager-deliveries'} else [])+(['saved-quotes'] if args.label in {'final-review','manager-deliveries'} else [])+(['final-review'] if args.label=='manager-deliveries' else []):
   related=repo/f'docs/releases/v0.3.3.1-shvdn3-{label}'
   files.update(x for x in related.rglob('*') if x.is_file())
  files.add(repo/'docs/releases/v0.3.3.1-shvdn3-phase1/API_MAP.md')
