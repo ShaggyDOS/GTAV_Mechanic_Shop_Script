@@ -1,0 +1,51 @@
+{
+  "label": "manager-wages",
+  "profile": "wages",
+  "created_utc": "2026-10-23T03:34:27.424575+00:00",
+  "reference": "ScriptHookVDotNet3 3.6.0",
+  "target": "net48 / C# 7.3",
+  "sdk": "8.0.426",
+  "build": "PASS",
+  "build_errors": 0,
+  "warnings": [
+    "CS0169",
+    "CS0649"
+  ],
+  "inherited_behavior": {
+    "corrective": 54,
+    "logger": 9,
+    "migration": 22,
+    "total": 85
+  },
+  "feature_suites": {
+    "repair": {
+      "passed": 32,
+      "total": 32
+    },
+    "sales": {
+      "passed": 29,
+      "total": 29
+    },
+    "pallets": {
+      "passed": 23,
+      "total": 23
+    },
+    "wages": {
+      "passed": 22,
+      "total": 22
+    }
+  },
+  "behavior_total": 191,
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "source_sha256": "1dd086cb589f52a41fad6125bf7e6845e35e00b215c36dd24b3f810e4731b801",
+  "clock_source_unchanged": true,
+  "v2_and_protected_baseline_unchanged": true,
+  "live_installation_or_saves_touched": false,
+  "gta_testing": "NOT RUN",
+  "crash_cause": "UNATTRIBUTED",
+  "enhanced_runtime_compatibility": "NOT VERIFIED",
+  "review_status": "DRAFT / PENDING"
+}

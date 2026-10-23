@@ -1,0 +1,33 @@
+{
+  "checks": {
+    "lexer_final_state_code": true,
+    "balanced_braces": true,
+    "balanced_parens": true,
+    "balanced_brackets": true,
+    "brace_order": true,
+    "paren_order": true,
+    "bracket_order": true,
+    "no_duplicate_method_names": true,
+    "menu_refs_defined": true,
+    "new_manager_pages_wired": true,
+    "settings_serialized_symmetrically": true,
+    "startup_hold_preserved": true,
+    "no_offline_delivery_eta": true,
+    "no_menu_accounting_side_effect": true,
+    "order_recovery_present": true,
+    "order_cancellation_two_step": true,
+    "warehouse_pallet_grounded": true,
+    "shop_box_grounded": true,
+    "no_full_game_compile_claim": true,
+    "no_duplicate_case_labels": true,
+    "no_change_constructor_game_native_count": true
+  },
+  "passed": 21,
+  "total": 21,
+  "failures": [],
+  "duplicate_cases": [],
+  "added_lines": 1133,
+  "source_sha256": "1dd086cb589f52a41fad6125bf7e6845e35e00b215c36dd24b3f810e4731b801",
+  "in_game_tested": false,
+  "compiled": false
+}

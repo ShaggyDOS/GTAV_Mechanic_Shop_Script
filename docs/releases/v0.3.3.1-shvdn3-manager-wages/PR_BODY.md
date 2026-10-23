@@ -1,0 +1,7 @@
+Implements the owner's separate manager-wage payment request, explicitly stacked on feature/shvdn3-pallet-box-stacking. Expenses → Pay Manager Wages shows the existing manager invoice and invokes the same payment helper as Manager Profile. It pays independently from Pay All, clears the existing due/age once, preserves unrelated bills and excludes self-rebates. Individual payment save failures now restore the invoice, cash, costs, discounts and ages.
+
+No new wage schema, accrual changes or supplier automation. The successful Pay All formulas, game clocks, repair/sale helpers, pallet placement and original v2 sources/project are unchanged relative to the parent.
+
+Actual net48 Release build against SHVDN3 3.6.0 passes with zero errors/two inherited warnings; all inherited + repair/sale/geometry/wage behavior tests and 21 static checks pass. Full diff, precise counts, logs, complete four-change source ZIP receipt, QA/rollback and Word/PDF documentation are in docs/releases/v0.3.3.1-shvdn3-manager-wages.
+
+DRAFT / CHATGPT REVIEW PENDING. GTA testing NOT RUN; Windows/Enhanced binding NOT VERIFIED; crash cause UNATTRIBUTED. Inherited runtime customer/accepted-quote cancellation-on-reload remains an explicit Issue #27 review gap. Do not merge this stack into QA R2/main or deploy to live GTA. Review each stacked PR once in dependency order; do not merge overlapping source copies independently.

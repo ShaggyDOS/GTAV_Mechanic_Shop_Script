@@ -1,0 +1,22 @@
+{
+  "profile": "wages",
+  "parent": "00b2d4e",
+  "parent_source_sha256": "bd6bce07b309cea5f1117366b0cd5d92e66ddad8b39038ec7f17e91940375b19",
+  "candidate_source_sha256": "1dd086cb589f52a41fad6125bf7e6845e35e00b215c36dd24b3f810e4731b801",
+  "changed_methods": [
+    "ExecuteBusinessExpensesSelection",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetSelectedDescription",
+    "GlassHeroesBusinessV3Experimental",
+    "PayInvoice"
+  ],
+  "new_helpers": [],
+  "unchanged_methods": 303,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": true,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}
+PASS scope and preservation checks
