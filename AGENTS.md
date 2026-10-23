@@ -1,3 +1,22 @@
+# Migration branch addendum — owner authorization (Oct 22 2026)
+
+**These more recent, branch-specific instructions override any obsolete RC1, V4-deferment, or no-migration statements below for this DRAFT PR #21 branch only.** Owner explicitly authorizes continuing actual Glass Heroes SHVDN3 migration development while investigating crashes separately. Owner has NOT authorized touching the installed GTA, merging to main/QA R2 or enabling both Business Manager generations simultaneously.
+
+- **Source of truth:** QA R2 commit `7693ed2167405f475dd4d36392c5df1f257fe178`, NOT the older RC1 source named in the historical root instructions. Read `docs/coordination/CODEX_QA_R2_SHVDN3_MIGRATION.md` and Issue #20 first.
+- **Deliver actual code:** separate SHVDN3 .NET Framework 4.8 / C#7.3 compile-verified source and project, with exact v2→v3 API map. Do not simply rename `.2.cs` to `.3.cs`; preserve original matching v2 install/VS source and project untouched.
+- **Financial invariant:** manager remote income, supplier ETA, wages, virtual jobs and every business clock advance ONLY during active unpaused GTA; zero offline catch-up or pause advancement; no save/schema drift.
+- **Lifecycle:** preserve default `HoldGameplayTick=false`, `StartupDelaySeconds=30`, input de-bouncing, distance-gated entity spawning, cleanup at abort/reload, and pending physical wholesale stock/invoice only after depot unloading.
+- **Heavy-mod safety:** no expensive world scans every Tick, no infinite/native waits, no unmanaged ownership leaks or duplicate v2/v3 instances. Treat 0xC00000FD in the owner's mod stack as UNATTRIBUTED; neither migration nor successful compilation is a crash fix.
+- **Codex qualification:** first independently compile baseline v2; build actual v3 against pinned ScriptHookVDotNet3 with exact dependency version; run all baseline automated behavior/static/logger tests plus v3 parity and record true results. If compilation or tests cannot run, label NOT RUN and explain. No claim of in-game testing unless performed by owner later. Add a full source diff, API map, QA guide, rollback instructions.
+- **Keep features separate:** Do not merge in draft PR #18 forensics or PR #19/#22 wholesale map-blip modifications as part of this migration.
+
+## Code Review Rules — migration
+
+- Flag any accrual of game economy or remote jobs from wall-clock elapsed while GTA is paused/closed.
+- Flag loss of saved user data, premature wholesale billing, or duplicate active Business Manager scripts.
+- Flag new world/native calls during construction, frequent unbounded Tick work or cleanup that touches other scripts' entities.
+
+---
 # AGENTS.md — Glass Heroes Mechanic Shop Script
 
 These instructions apply to all folders unless a more specific `AGENTS.md` exists.

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compile tests against extracted production members; GTA-facing APIs are stubbed."""
 import ast
+import argparse
 from pathlib import Path
 import re
 import shutil
@@ -9,7 +10,12 @@ import sys
 import tempfile
 
 repo = Path(__file__).resolve().parents[1]
-source = (repo / 'VisualStudio/scripts/GlassHeroesBusiness.2.cs').read_text(encoding='utf-8-sig')
+parser = argparse.ArgumentParser()
+parser.add_argument('--source', type=Path, default=repo / 'VisualStudio/scripts/GlassHeroesBusiness.2.cs')
+parser.add_argument('--v3-stubs', action='store_true')
+parser.add_argument('issues', nargs='*')
+args = parser.parse_args()
+source = args.source.read_text(encoding='utf-8-sig')
 lexer_tree = ast.parse((repo / 'Verification/static_verify.py').read_text())
 lexer = next(n for n in lexer_tree.body if isinstance(n, ast.FunctionDef) and n.name == 'strip_literals')
 namespace = {}
@@ -32,9 +38,13 @@ def extract(name):
 
 if not shutil.which('dotnet'):
     raise SystemExit('Activate .NET 8 SDK (cloud: source /workspace/.cloud-setup/env.sh).')
-issues = sys.argv[1:] or [p.stem.split('_')[0][5:] for p in sorted((repo/'verification').glob('issue*_tests.cs'))]
+issues = args.issues or [p.stem.split('_')[0][5:] for p in sorted((repo/'verification').glob('issue*_tests.cs'))]
 for issue in issues:
     template = (repo / f'verification/issue{issue}_tests.cs').read_text()
+    if args.v3_stubs and issue == '3':
+        # Adapt only the stub's renamed API property; production is verbatim.
+        assert template.count('alive=true,FreezePosition;') == 1
+        template = template.replace('alive=true,FreezePosition;', 'alive=true,IsPositionFrozen;')
     generated = re.sub(r'/\*<source:(\w+)>\*/', lambda m: extract(m.group(1)), template)
     with tempfile.TemporaryDirectory(prefix=f'glassheroes-issue{issue}-') as tmp:
         path = Path(tmp)

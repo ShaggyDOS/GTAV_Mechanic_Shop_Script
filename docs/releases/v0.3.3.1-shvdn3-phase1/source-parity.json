@@ -1,0 +1,29 @@
+{
+  "whole_source_matches_r2_after_explicit_api_reversal": true,
+  "r2_sha256": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+  "v3_sha256": "cda7721e4bfaefa3c3a8da84afde70cd3d8c909f79bbfb19a0ac947549955445",
+  "unchanged_finance_clock_save_methods": [
+    "OnTick",
+    "ProcessEconomy",
+    "ProcessRemoteOperations",
+    "EnterRemoteOperations",
+    "LeaveRemoteOperations",
+    "Save",
+    "CommitSupplierDelivery",
+    "CancelSupplierOrderWithConfirmation",
+    "RecoverSupplierShipment",
+    "FindAssignedWholesaleVehicle"
+  ],
+  "save_and_config_schema_order_preserved": true,
+  "v2_source_project_solution_unchanged": true,
+  "protected_v2_files_checked": [
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs",
+    "Install/scripts/GlassHeroesBusiness.2.cs",
+    "VisualStudio/GlassHeroesBusiness.csproj",
+    "VisualStudio/GlassHeroesBusiness.sln"
+  ],
+  "install_source_equal": true,
+  "unrelated_pr18_pr19_pr22_features_absent": true,
+  "new_gta_testing": "NOT RUN",
+  "scope": "source parity, not GTA persistence or native API execution"
+}

@@ -1,0 +1,26 @@
+{
+  "package": "ScriptHookVDotNet3",
+  "version": "3.6.0",
+  "source": "https://api.nuget.org/v3/index.json",
+  "artifact_url": "https://api.nuget.org/v3-flatcontainer/scripthookvdotnet3/3.6.0/scripthookvdotnet3.3.6.0.nupkg",
+  "publisher_metadata": {
+    "authors": "crosire & contributors",
+    "project_url": "https://github.com/crosire/scripthookvdotnet"
+  },
+  "nupkg_sha256": "c7a8b8d9fdf9676d744195eeac2b8a73edcca48d01bc02a55f0e6339b9922b2c",
+  "nuget_sha512_sidecar_matches": true,
+  "restored_libraries": [
+    "Microsoft.NETFramework.ReferenceAssemblies.net48/1.0.3",
+    "Microsoft.NETFramework.ReferenceAssemblies/1.0.3",
+    "ScriptHookVDotNet3/3.6.0"
+  ],
+  "restore_sources": [
+    "https://api.nuget.org/v3/index.json"
+  ],
+  "target": "net48",
+  "language": "C# 7.3",
+  "installed_runtime": "Enhanced 3.9.0.6 reported by owner; binary not supplied or executed",
+  "runtime_replacement_or_upgrade": false,
+  "enhanced_binary_compatibility": "NOT VERIFIED; requires controlled owner QA",
+  "issue_pr_api_access": "GitHub GraphQL and REST Forbidden; tracked handoff used"
+}

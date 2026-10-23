@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run the existing static checks with only their machine-specific paths redirected."""
 import ast
+import argparse
 import sys
 import hashlib
 from pathlib import Path
@@ -8,9 +9,14 @@ import subprocess
 import tempfile
 
 repo = Path(__file__).resolve().parents[1]
-output = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(tempfile.gettempdir()) / 'glassheroes-static-results'
+parser = argparse.ArgumentParser()
+parser.add_argument('output', nargs='?', type=Path, default=Path(tempfile.gettempdir()) / 'glassheroes-static-results')
+parser.add_argument('--source', type=Path, default=repo / 'VisualStudio/scripts/GlassHeroesBusiness.2.cs')
+parser.add_argument('--class-name', default='GlassHeroesBusiness')
+args = parser.parse_args()
+output = args.output.resolve()
 output.mkdir(exist_ok=True)
-source = repo / 'VisualStudio/scripts/GlassHeroesBusiness.2.cs'
+source = args.source.resolve()
 rc1 = repo / 'GlassHeroesBusiness_v0.3.3.0_RC1.2.cs'
 if not rc1.exists(): rc1 = repo / 'verification/baselines/GlassHeroesBusiness_v0.3.3.0_RC1.2.cs.txt'
 with tempfile.TemporaryDirectory(prefix='glassheroes-static-') as tmp:
@@ -33,5 +39,15 @@ with tempfile.TemporaryDirectory(prefix='glassheroes-static-') as tmp:
                 return ast.copy_location(ast.Constant(value=mapping[node.value]), node)
             return node
     verifier = repo / 'Verification/static_verify.py'
-    tree = ast.fix_missing_locations(Paths().visit(ast.parse(verifier.read_text(), filename=str(verifier))))
+    tree = Paths().visit(ast.parse(verifier.read_text(), filename=str(verifier)))
+    if args.class_name != 'GlassHeroesBusiness':
+        # The historical assertion locates the constructor by its old identifier.
+        # Normalize that identifier only, in checker memory, leaving all 21
+        # predicates and the real source/hash unchanged.
+        index = next(i for i, node in enumerate(tree.body) if isinstance(node, ast.Assign)
+                     and any(isinstance(t, ast.Name) and t.id == 'src' for t in node.targets))
+        normalizer = ast.parse('src = src.replace(' + repr('public ' + args.class_name + '()') +
+                               ', "public GlassHeroesBusiness()")').body[0]
+        tree.body.insert(index + 1, normalizer)
+    tree = ast.fix_missing_locations(tree)
     exec(compile(tree, str(verifier), 'exec'), {'__name__': '__main__'})

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>GlassHeroesBusiness.V3.Experimental</AssemblyName>
+    <RootNamespace>GlassHeroesBusinessV3Experimental</RootNamespace>
+    <LangVersion>7.3</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Install\scripts\GlassHeroesBusiness.3.cs" Link="scripts\GlassHeroesBusiness.3.cs" />
+    <PackageReference Include="ScriptHookVDotNet3" Version="3.6.0" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+</Project>

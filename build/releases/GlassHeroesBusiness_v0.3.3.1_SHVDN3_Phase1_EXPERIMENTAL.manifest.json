@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_SHVDN3_Phase1_EXPERIMENTAL.zip",
+  "sha256": "4735befa780c9a5e0b737c56d8ec6dcaef1c7d811c317ae839c716b2e3e2b3a3",
+  "one_business_3_cs": true,
+  "no_active_v2_or_live_save_settings_or_dll": true,
+  "v3_behavior": "85/85 PASS",
+  "static_per_generation": "21/21 PASS",
+  "v2_release_build": "PASS",
+  "v3_release_build": "PASS",
+  "gta_testing": "NOT RUN",
+  "runtime_compatibility": "NOT VERIFIED",
+  "review_status": "PENDING / DRAFT"
+}

@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Compile and exercise the actual embedded logger without loading GTA natives."""
 import os
+import argparse
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 
 repo = Path(__file__).resolve().parents[1]
-source = (repo / 'VisualStudio/scripts/GlassHeroesBusiness.2.cs').read_text(encoding='utf-8-sig')
+parser = argparse.ArgumentParser()
+parser.add_argument('--source', type=Path, default=repo / 'VisualStudio/scripts/GlassHeroesBusiness.2.cs')
+args = parser.parse_args()
+source = args.source.read_text(encoding='utf-8-sig')
 start = source.index('    // BEGIN ISSUE1 DIAGNOSTIC LOG')
 end = source.index('    // END ISSUE1 DIAGNOSTIC LOG', start)
 logger = source[start:end].replace('private sealed class DiagnosticLog', 'sealed class DiagnosticLog', 1)
