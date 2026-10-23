@@ -1,0 +1,39 @@
+{
+  "label": "repair-coverage",
+  "profile": "repair",
+  "created_utc": "2026-10-23T03:09:44.274415+00:00",
+  "reference": "ScriptHookVDotNet3 3.6.0",
+  "target": "net48 / C# 7.3",
+  "sdk": "8.0.426",
+  "build": "PASS",
+  "build_errors": 0,
+  "warnings": [
+    "CS0169",
+    "CS0649"
+  ],
+  "inherited_behavior": {
+    "corrective": 54,
+    "logger": 9,
+    "migration": 22,
+    "total": 85
+  },
+  "feature_suites": {
+    "repair": {
+      "passed": 32,
+      "total": 32
+    }
+  },
+  "behavior_total": 117,
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "source_sha256": "1856d76ade0a9d0d00fb3b8c6d3a2a1a62da0b7e3a0ba5952bea4345609f8949",
+  "clock_source_unchanged": true,
+  "v2_and_protected_baseline_unchanged": true,
+  "live_installation_or_saves_touched": false,
+  "gta_testing": "NOT RUN",
+  "crash_cause": "UNATTRIBUTED",
+  "enhanced_runtime_compatibility": "NOT VERIFIED",
+  "review_status": "DRAFT / PENDING"
+}

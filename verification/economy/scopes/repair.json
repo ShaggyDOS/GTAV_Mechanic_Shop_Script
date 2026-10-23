@@ -1,0 +1,50 @@
+{
+  "parent": "PR21 / 430a202e7b10e3f191acccb7a094723568bd14e9",
+  "fixture": "shvdn3-foundation.cs.txt",
+  "parent_sha256": "cda7721e4bfaefa3c3a8da84afde70cd3d8c909f79bbfb19a0ac947549955445",
+  "changed": [
+    "AssignCustomerMechanic",
+    "ConsumeRepairSupplies",
+    "EnterRemoteOperations",
+    "FreeStockForService",
+    "GlassHeroesBusinessV3Experimental",
+    "MechanicWage",
+    "ProcessEconomy",
+    "ProcessOneCustomerRepair",
+    "ProcessRemoteOperations",
+    "ShowCustomerOrderStatus",
+    "SpawnCustomerOrder",
+    "SpawnRoadsideWaitingCustomer",
+    "TotalMechanicPayroll"
+  ],
+  "added": [
+    "CalculateRepairQuote",
+    "CanCreditRepair",
+    "EstimatedUnitAcquisitionCost",
+    "InitialiseRepairPricing",
+    "RecordRepairPricing",
+    "RepairQuoteBreakdown",
+    "ReserveQuotedUnits",
+    "ReserveRepairUnits",
+    "ServiceQuoteBaseline",
+    "TryConsumeQuotedSupplies",
+    "TryCreateRepairQuote",
+    "TryRetainLegacyRepairQuote",
+    "UnreservedRepairStock"
+  ],
+  "added_keys": {
+    "GetValue": [
+      [
+        "Pricing",
+        "UnitCostEstimate"
+      ]
+    ],
+    "SetValue": []
+  },
+  "protected_v2": {
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  }
+}

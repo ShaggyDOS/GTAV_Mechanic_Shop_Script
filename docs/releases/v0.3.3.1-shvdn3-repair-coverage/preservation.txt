@@ -1,0 +1,43 @@
+{
+  "profile": "repair",
+  "parent": "PR21 / 430a202e7b10e3f191acccb7a094723568bd14e9",
+  "parent_source_sha256": "cda7721e4bfaefa3c3a8da84afde70cd3d8c909f79bbfb19a0ac947549955445",
+  "candidate_source_sha256": "1856d76ade0a9d0d00fb3b8c6d3a2a1a62da0b7e3a0ba5952bea4345609f8949",
+  "changed_methods": [
+    "AssignCustomerMechanic",
+    "ConsumeRepairSupplies",
+    "EnterRemoteOperations",
+    "FreeStockForService",
+    "GlassHeroesBusinessV3Experimental",
+    "MechanicWage",
+    "ProcessEconomy",
+    "ProcessOneCustomerRepair",
+    "ProcessRemoteOperations",
+    "ShowCustomerOrderStatus",
+    "SpawnCustomerOrder",
+    "SpawnRoadsideWaitingCustomer",
+    "TotalMechanicPayroll"
+  ],
+  "new_helpers": [
+    "CalculateRepairQuote",
+    "CanCreditRepair",
+    "EstimatedUnitAcquisitionCost",
+    "InitialiseRepairPricing",
+    "RecordRepairPricing",
+    "RepairQuoteBreakdown",
+    "ReserveQuotedUnits",
+    "ReserveRepairUnits",
+    "ServiceQuoteBaseline",
+    "TryConsumeQuotedSupplies",
+    "TryCreateRepairQuote",
+    "TryRetainLegacyRepairQuote",
+    "UnreservedRepairStock"
+  ],
+  "unchanged_methods": 274,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": true,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}
+PASS scope and preservation checks
