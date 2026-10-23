@@ -1,0 +1,139 @@
+{
+  "v2_api": {
+    "name": "ScriptHookVDotNet2",
+    "version": "2.11.6.0",
+    "references": [
+      {
+        "name": "mscorlib",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "ScriptHookVDotNet",
+        "version": "3.6.0.0"
+      },
+      {
+        "name": "System.Core",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System.Drawing",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System.Windows.Forms",
+        "version": "4.0.0.0"
+      }
+    ]
+  },
+  "v3_api": {
+    "name": "ScriptHookVDotNet3",
+    "version": "3.6.0.0",
+    "references": [
+      {
+        "name": "mscorlib",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System.Drawing",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System.Windows.Forms",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "ScriptHookVDotNet",
+        "version": "3.6.0.0"
+      },
+      {
+        "name": "System.Core",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System",
+        "version": "4.0.0.0"
+      }
+    ]
+  },
+  "built_product": {
+    "name": "GlassHeroesBusiness.V3.Experimental",
+    "version": "0.0.0.0",
+    "references": [
+      {
+        "name": "mscorlib",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "ScriptHookVDotNet3",
+        "version": "3.6.0.0"
+      },
+      {
+        "name": "System.Core",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System.Windows.Forms",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System.Drawing",
+        "version": "4.0.0.0"
+      }
+    ]
+  },
+  "v3_api_sha256": "f328a36445c1d3e282e70b2791efc0d516ae3009d0d1461bf076893805a01cd9",
+  "v2_control_names_checked": 363,
+  "control_value_changes": [],
+  "native_hashes_checked": 43,
+  "native_hashes": [
+    "ATTACH_ENTITY_TO_ENTITY",
+    "CLEAR_PED_SECONDARY_TASK",
+    "CLEAR_PED_TASKS",
+    "DETACH_ENTITY",
+    "DISABLE_ALL_CONTROL_ACTIONS",
+    "DISABLE_CONTROL_ACTION",
+    "DRAW_LINE",
+    "ENABLE_CONTROL_ACTION",
+    "GET_PED_BONE_INDEX",
+    "GET_VEHICLE_LIVERY_COUNT",
+    "GET_VEHICLE_NUMBER_PLATE_TEXT",
+    "HAS_ANIM_DICT_LOADED",
+    "IS_CONTROL_JUST_PRESSED",
+    "IS_CONTROL_PRESSED",
+    "IS_DISABLED_CONTROL_JUST_PRESSED",
+    "IS_DISABLED_CONTROL_PRESSED",
+    "IS_ENTITY_PLAYING_ANIM",
+    "IS_PED_IN_ANY_VEHICLE",
+    "IS_PED_IN_VEHICLE",
+    "IS_POSITION_OCCUPIED",
+    "IS_SPHERE_VISIBLE",
+    "REQUEST_ANIM_DICT",
+    "SET_DRIVER_ABILITY",
+    "SET_DRIVER_AGGRESSIVENESS",
+    "SET_ENTITY_COLLISION",
+    "SET_NEW_WAYPOINT",
+    "SET_PED_INTO_VEHICLE",
+    "SET_VEHICLE_COLOURS",
+    "SET_VEHICLE_DOOR_OPEN",
+    "SET_VEHICLE_DOOR_SHUT",
+    "SET_VEHICLE_LIVERY",
+    "TASK_ENTER_VEHICLE",
+    "TASK_FOLLOW_NAV_MESH_TO_COORD",
+    "TASK_GO_STRAIGHT_TO_COORD",
+    "TASK_LEAVE_VEHICLE",
+    "TASK_PLAY_ANIM",
+    "TASK_STAND_STILL",
+    "TASK_START_SCENARIO_AT_POSITION",
+    "TASK_START_SCENARIO_IN_PLACE",
+    "TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE",
+    "TASK_VEHICLE_DRIVE_WANDER",
+    "TASK_VEHICLE_PARK",
+    "TASK_VEHICLE_TEMP_ACTION"
+  ],
+  "font_index_unchanged": true,
+  "scope": "Offline metadata; engine/native execution and Enhanced runtime compatibility NOT RUN"
+}

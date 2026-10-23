@@ -1,0 +1,235 @@
+{
+  "issue": 20,
+  "draft_pr": 21,
+  "phase": 1,
+  "r2_commit": "7693ed2167405f475dd4d36392c5df1f257fe178",
+  "reference": "ScriptHookVDotNet3 3.6.0 official stable NuGet",
+  "runtime_compatibility": "Installed Enhanced 3.9.0.6 not supplied or executed; NOT VERIFIED",
+  "entries": [
+    {
+      "v2": "GTA.UIRectangle",
+      "v3": "GTA.UI.ContainerElement(PointF, SizeF, Color, false)",
+      "methods": [
+        "Panel"
+      ],
+      "evidence": "CS0246 then CS0234; XML ContainerElement ctor; v3 final Release",
+      "risk": "Top-left coordinates and 1280x720 draw base must match",
+      "verification": "unchanged coordinate formulas; owner resolution/aspect QA",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "GTA.UIText / GTA.Font / centered=false",
+      "v3": "GTA.UI.TextElement / GTA.UI.Font / Alignment.Left",
+      "methods": [
+        "Label"
+      ],
+      "evidence": "CS0246/CS0234; XML TextElement ctor",
+      "risk": "Text alignment, scale and wrapping",
+      "verification": "exact formulas retained; owner F2/menu QA",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "GTA.UI.ShowSubtitle",
+      "v3": "GTA.UI.Screen.ShowSubtitle",
+      "methods": [
+        "ExecuteControllerSelection",
+        "ExecuteRoutePointSelection",
+        "HandleOfficeInteraction",
+        "HandleSupplierPackageInteraction"
+      ],
+      "evidence": "CS0103; XML Screen.ShowSubtitle",
+      "risk": "Transient hints/duration",
+      "verification": "same arguments, durations; owner keyboard/controller QA",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "GTA.UI.Notify",
+      "v3": "GTA.UI.Notification.Show(message, false)",
+      "methods": [
+        "Notify"
+      ],
+      "evidence": "CS0103; XML Notification.Show",
+      "risk": "Ticker appearance; no deletion of other notifications",
+      "verification": "same filtered messages; no THEFEED_FLUSH_QUEUE",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "GTA.Blip.Remove",
+      "v3": "GTA.Blip.Delete",
+      "methods": [
+        "SyncCustomerBlip",
+        "CancelCreatedCustomer"
+      ],
+      "evidence": "CS1061; XML Blip.Delete",
+      "risk": "Owned customer blip cleanup",
+      "verification": "only existing owned references; no PR19/22 package blip",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "GTA.Entity.FreezePosition",
+      "v3": "GTA.Entity.IsPositionFrozen",
+      "methods": [
+        "AttachSupplierBoxToPed",
+        "AttachWholesaleBoxToVehicle",
+        "CreateFixedEquipmentProp",
+        "TrySupplierPackageInteraction",
+        "UpdateOfficeDeskVisuals",
+        "UpdateWholesalePalletVisual"
+      ],
+      "evidence": "CS1061; XML Entity.IsPositionFrozen",
+      "risk": "Cargo attach/deposit freezing",
+      "verification": "same seven bool assignments; inherited warehouse/provenance tests",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "Game.IsControlJustPressed(group, control) + IsDisabledControlJustPressed",
+      "v3": "Native IS_CONTROL_JUST_PRESSED + IS_DISABLED_CONTROL_JUST_PRESSED, groups 0 and 2",
+      "methods": [
+        "PadJustPressed"
+      ],
+      "evidence": "CS1501/CS0117; v3 Game API omits group; direct hashes compile",
+      "risk": "Dropping frontend group would break/multiply input",
+      "verification": "all four edge paths and bounded calls; inherited input tests",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "Game.IsControlPressed(group, control) + IsDisabledControlPressed",
+      "v3": "Native IS_CONTROL_PRESSED + IS_DISABLED_CONTROL_PRESSED, groups 0 and 2",
+      "methods": [
+        "PadPressed"
+      ],
+      "evidence": "CS1501/CS0117; direct hashes compile",
+      "risk": "Held modifier semantics",
+      "verification": "all four held paths; inherited debounce tests",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "Model.Request(250) visual helpers",
+      "v3": "RequestVisualModel with parameterless Model.Request + IsLoaded + owned release",
+      "methods": [
+        "UpdateOfficeDeskVisuals",
+        "CreateFixedEquipmentProp",
+        "RequestVisualModel",
+        "ReleaseVisualModel",
+        "ReleasePendingVisualModels",
+        "OnAborted"
+      ],
+      "evidence": "XML Request/Request(Int32); final build; no timed requests remain",
+      "risk": "First prop may appear on next bounded refresh; pending requests need cleanup",
+      "verification": "migration retry/distance/exception/abort tests; inherited warehouse exhaustion tests",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "No cross-generation startup preflight",
+      "v3": "RequireExclusiveBusinessInstallation(File.Exists)",
+      "methods": [
+        "constructor",
+        "RequireExclusiveBusinessInstallation"
+      ],
+      "evidence": "managed file checks before data load; real v3 compile",
+      "risk": "Known canonical duplicates rejected; renamed/subfolder copies still owner responsibility",
+      "verification": "v2 source/DLL/RC1 and v3 source+DLL rejection tests; no file mutations",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "GlassHeroesBusiness class / assembly",
+      "v3": "GlassHeroesBusinessV3Experimental / GlassHeroesBusiness.V3.Experimental",
+      "methods": [
+        "constructor",
+        "project"
+      ],
+      "evidence": "distinct class and assembly; project no v2 references",
+      "risk": "Auto-loaded multiple copies still forbidden",
+      "verification": "assembly metadata and one-script ZIP audit",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "Script.Tick/KeyDown/KeyUp/Aborted",
+      "v3": "UNCHANGED / supported by v3 compile",
+      "methods": [
+        "constructor",
+        "OnTick",
+        "OnKeyDown",
+        "OnKeyUp",
+        "OnAborted"
+      ],
+      "evidence": "final full v3 compile; API XML/metadata",
+      "risk": "same event registration; cleanup adds owned pending-model release only",
+      "verification": "baseline and v3 extracted regressions; real GTA NOT RUN",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "Game.Player/Game.GameTime/Game.IsPaused",
+      "v3": "UNCHANGED / supported by v3 compile",
+      "methods": [
+        "OnTick"
+      ],
+      "evidence": "final full v3 compile; API XML/metadata",
+      "risk": "OnTick is byte-identical; startup reset, pause and game-clock jump tests",
+      "verification": "baseline and v3 extracted regressions; real GTA NOT RUN",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "ScriptSettings.Load/GetValue/SetValue/Save",
+      "v3": "UNCHANGED / supported by v3 compile",
+      "methods": [
+        "constructor",
+        "Save",
+        "LoadPoint",
+        "SavePoint"
+      ],
+      "evidence": "final full v3 compile; API XML/metadata",
+      "risk": "same INI paths, keys, ordering and values; actual Windows save API execution pending",
+      "verification": "baseline and v3 extracted regressions; real GTA NOT RUN",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "World.CreatePed/CreateVehicle/CreateProp/GetNearbyVehicles/DrawMarker",
+      "v3": "UNCHANGED / supported by v3 compile",
+      "methods": [
+        "UpdateVisualMechanics",
+        "ProcessSupplierDelivery",
+        "CreateFixedEquipmentProp",
+        "DrawWholesalePackageMarker"
+      ],
+      "evidence": "final full v3 compile; API XML/metadata",
+      "risk": "same spawn gates/native arguments; model-loaded guard before CreateProp; no added scans",
+      "verification": "baseline and v3 extracted regressions; real GTA NOT RUN",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "Model.Request()/MarkAsNoLongerNeeded; entity Exists/Delete; tasks",
+      "v3": "UNCHANGED / supported by v3 compile",
+      "methods": [
+        "UpdateVisualMechanics",
+        "OnAborted"
+      ],
+      "evidence": "final full v3 compile; API XML/metadata",
+      "risk": "pre-existing async model paths remain; cleanup remains owned; game engine callbacks pending",
+      "verification": "baseline and v3 extracted regressions; real GTA NOT RUN",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    },
+    {
+      "v2": "Native.Function.Call/Hash; vehicle doors, paths, vectors",
+      "v3": "UNCHANGED / supported by v3 compile",
+      "methods": [
+        "ProcessSupplierDelivery",
+        "TrySupplierPackageInteraction",
+        "ParkingOutlineVertices"
+      ],
+      "evidence": "final full v3 compile; API XML/metadata",
+      "risk": "existing calls retained because native contracts/arguments still required; enum audit and compile; no assumed equivalent",
+      "verification": "baseline and v3 extracted regressions; real GTA NOT RUN",
+      "status": "COMPILE VERIFIED; GTA NOT RUN"
+    }
+  ],
+  "approved_method_sha256": {
+    "PadJustPressed": "196284bc0ac786a77d72118cdc1bdb425e89b7bdc6e5aca6e1276ffcbd29b67c",
+    "PadPressed": "7e490583565c1915217386f533bad5d145d84b4ca35a83531f2f6ce7e7d1c136"
+  },
+  "approved_helper_block_sha256": "7cc56f4e9cb75d68f6bfd17933df969a5e95778190e89b00914ce3e29f5a1a33",
+  "protected_v2_files_sha256": {
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  }
+}

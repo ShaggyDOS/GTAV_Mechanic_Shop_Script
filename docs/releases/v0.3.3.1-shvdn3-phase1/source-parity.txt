@@ -1,0 +1,24 @@
+{
+  "whole_source_matches_r2_after_explicit_api_reversal": true,
+  "r2_sha256": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+  "v3_sha256": "dc5cd232d4dee53ed4f16f8eb2d5c0c50a5d887afcab8ddf20ac640aa271f65e",
+  "unchanged_finance_clock_save_methods": [
+    "OnTick",
+    "ProcessEconomy",
+    "ProcessRemoteOperations",
+    "EnterRemoteOperations",
+    "LeaveRemoteOperations",
+    "Save",
+    "CommitSupplierDelivery",
+    "CancelSupplierOrderWithConfirmation",
+    "RecoverSupplierShipment",
+    "FindAssignedWholesaleVehicle"
+  ],
+  "save_and_config_schema_order_preserved": true,
+  "v2_source_project_solution_unchanged": true,
+  "install_source_equal": true,
+  "unrelated_pr18_pr19_pr22_features_absent": true,
+  "new_gta_testing": "NOT RUN",
+  "scope": "source parity, not GTA persistence or native API execution"
+}
+PASS whole-source migration parity

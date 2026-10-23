@@ -280,6 +280,8 @@ public class GlassHeroesBusinessV3Experimental : Script
     private bool _warnedMissingEntrance;
     private bool _workersPreviouslyInRange;
     private Model _mechanicModel;
+    // Issue #20: retain only visual model requests owned by this v3 instance.
+    private readonly HashSet<Model> _requestedVisualModels = new HashSet<Model>();
     private string _pedModelName;
     private int _spawnDistance;
     private int _arrivalSpacingSeconds;
@@ -518,6 +520,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         try
         {
+            RequireExclusiveBusinessInstallation(File.Exists);
             Directory.CreateDirectory(DataDirectory);
             Log("BOOT v0.3.3.1 SHVDN3 PHASE1 EXPERIMENTAL (QA R2 parity / Issue #20) / constructor entered", null);
             _configuration = ScriptSettings.Load(SettingsFile);
@@ -7826,8 +7829,9 @@ public class GlassHeroesBusinessV3Experimental : Script
         DeleteOfficeDeskProps();
         Model deskModel = new Model("v_corp_desksetb");
         Model laptopModel = new Model("prop_laptop_01a");
-        deskModel.Request(250); laptopModel.Request(250);
-        if (!deskModel.IsLoaded || !laptopModel.IsLoaded) return;
+        bool deskReady = RequestVisualModel(deskModel);
+        bool laptopReady = RequestVisualModel(laptopModel);
+        if (!deskReady || !laptopReady) return;
         try
         {
             _officeDeskProp = World.CreateProp(deskModel, _officeDeskLocation.Position, false, true);
@@ -7840,7 +7844,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             { _officeLaptopProp.Heading = _officeDeskLocation.Heading; _officeLaptopProp.IsPositionFrozen = true; }
             else Log("Office computer", new Exception("Laptop prop not available; retrying."));
         }
-        finally { deskModel.MarkAsNoLongerNeeded(); laptopModel.MarkAsNoLongerNeeded(); }
+        finally { ReleaseVisualModel(deskModel); ReleaseVisualModel(laptopModel); }
     }
 
     private static void DeleteOwnedProp(ref Prop prop)
@@ -7859,16 +7863,50 @@ public class GlassHeroesBusinessV3Experimental : Script
     private Prop CreateFixedEquipmentProp(string modelName, Vector3 pos, float heading, bool placeOnGround = true)
     {
         Model model = new Model(modelName);
-        model.Request(250);
+        if (!RequestVisualModel(model)) return null;
         try
         {
-            if (!model.IsLoaded) return null;
             Prop item = World.CreateProp(model, pos, false, placeOnGround);
             if (item != null && item.Exists())
             { item.Heading = heading; item.IsPositionFrozen = true; }
             return item;
         }
-        finally { model.MarkAsNoLongerNeeded(); }
+        finally { ReleaseVisualModel(model); }
+    }
+
+    // Do not yield into nested callbacks while a visual is waiting for a model.
+    // Existing distance gates and retry clocks decide when this is called again.
+    private bool RequestVisualModel(Model model)
+    {
+        _requestedVisualModels.Add(model);
+        if (!model.IsLoaded) model.Request();
+        return model.IsLoaded;
+    }
+
+    private void ReleaseVisualModel(Model model)
+    {
+        try { model.MarkAsNoLongerNeeded(); }
+        catch (Exception ex) { Log("Release v3 visual model", ex); }
+        finally { _requestedVisualModels.Remove(model); }
+    }
+
+    private void ReleasePendingVisualModels()
+    {
+        // Snapshot because ReleaseVisualModel removes entries even on failure.
+        foreach (Model model in new List<Model>(_requestedVisualModels))
+            ReleaseVisualModel(model);
+    }
+
+    private static void RequireExclusiveBusinessInstallation(Func<string, bool> fileExists)
+    {
+        // Managed startup checks only. Never delete, rename or rewrite a conflict.
+        if (fileExists(@"scripts\GlassHeroesBusiness.2.cs") ||
+            fileExists(@"scripts\GlassHeroesBusiness.dll") ||
+            fileExists(@"scripts\GlassHeroesBusiness_v0.3.3.0_RC1.2.cs") ||
+            (fileExists(@"scripts\GlassHeroesBusiness.3.cs") &&
+                fileExists(@"scripts\GlassHeroesBusiness.V3.Experimental.dll")))
+            throw new InvalidOperationException("Enable only one Glass Heroes Business Manager generation/source. " +
+                "Move conflicting business scripts outside scripts before loading this experimental v3 build; preserve business data.");
     }
 
     private void UpdateEquipmentVisuals()
@@ -7913,6 +7951,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             Log("BOOT aborted before gameplay activation; saved business state preserved", null);
             return;
         }
+        ReleasePendingVisualModels();
         CancelAllCustomerOrders("Script aborted");
         ClearStagedCustomers();
         CleanupVisualMechanics();
