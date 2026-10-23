@@ -1,0 +1,287 @@
+--- QA_R2/GlassHeroesBusiness.2.cs.txt
++++ experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -1,4 +1,4 @@
+-// Glass Heroes Business Manager - v0.3.3.1 QA R2 / EXPERIMENTAL (#1 diagnostics + #2-#7)
++// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 Phase 1 / EXPERIMENTAL (Issue #20)
+ // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+@@ -11,7 +11,7 @@
+ using GTA;
+ using GTA.Math;
+ 
+-public class GlassHeroesBusiness : Script
++public class GlassHeroesBusinessV3Experimental : Script
+ {
+     private const string DataDirectory = @"scripts\GlassHeroesBusiness";
+     private const string SettingsFile = @"scripts\GlassHeroesBusiness\Settings.ini";
+@@ -280,6 +280,8 @@
+     private bool _warnedMissingEntrance;
+     private bool _workersPreviouslyInRange;
+     private Model _mechanicModel;
++    // Issue #20: retain only visual model requests owned by this v3 instance.
++    private readonly HashSet<Model> _requestedVisualModels = new HashSet<Model>();
+     private string _pedModelName;
+     private int _spawnDistance;
+     private int _arrivalSpacingSeconds;
+@@ -514,12 +516,13 @@
+     private double _overheadClock;
+     private Vector3 _location;
+ 
+-    public GlassHeroesBusiness()
++    public GlassHeroesBusinessV3Experimental()
+     {
+         try
+         {
++            RequireExclusiveBusinessInstallation(File.Exists);
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.3.1 QA R2 EXPERIMENTAL (#1 diagnostics + #2-#7) / constructor entered", null);
++            Log("BOOT v0.3.3.1 SHVDN3 PHASE1 EXPERIMENTAL (QA R2 parity / Issue #20) / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -1178,15 +1181,15 @@
+ 
+     private static void Panel(int x, int y, int w, int h, Color color)
+     {
+-        new UIRectangle(new Point(CompactX(x), CompactY(y)),
++        new GTA.UI.ContainerElement(new PointF(CompactX(x), CompactY(y)),
+             new Size(Math.Max(1, (int)Math.Round(w * MenuScale)),
+-                Math.Max(1, (int)Math.Round(h * MenuScale))), color).Draw();
++                Math.Max(1, (int)Math.Round(h * MenuScale))), color, false).Draw();
+     }
+ 
+     private static void Label(string caption, int x, int y, float scale, Color color)
+     {
+-        new UIText(caption, new Point(CompactX(x), CompactY(y)), scale * MenuScale, color,
+-            GTA.Font.ChaletLondon, false).Draw();
++        new GTA.UI.TextElement(caption, new PointF(CompactX(x), CompactY(y)), scale * MenuScale, color,
++            GTA.UI.Font.ChaletLondon, GTA.UI.Alignment.Left).Draw();
+     }
+ 
+     private string[] GetMenuItems()
+@@ -3077,7 +3080,7 @@
+         if (_routeConfigReturning) staff.JobReturnMask = mask;
+         else staff.JobOutboundMask = mask;
+         Save();
+-        UI.ShowSubtitle(staff.Name + ": " + (_routeConfigReturning ? "return" : "job") +
++        GTA.UI.Screen.ShowSubtitle(staff.Name + ": " + (_routeConfigReturning ? "return" : "job") +
+             " route uses " + CountMask(mask) + "/5 points.", 1800);
+     }
+ 
+@@ -5320,7 +5323,7 @@
+         {
+             if (order.CustomerBlip != null)
+             {
+-                if (order.CustomerBlip.Exists()) order.CustomerBlip.Remove();
++                if (order.CustomerBlip.Exists()) order.CustomerBlip.Delete();
+                 order.CustomerBlip = null;
+             }
+             if (!_customerBlipsEnabled || order.Vehicle == null || !order.Vehicle.Exists()) return;
+@@ -5846,7 +5849,7 @@
+     private static void CancelCreatedCustomer(CustomerOrder order)
+     {
+         if (order == null) return;
+-        try { if (order.CustomerBlip != null && order.CustomerBlip.Exists()) order.CustomerBlip.Remove(); }
++        try { if (order.CustomerBlip != null && order.CustomerBlip.Exists()) order.CustomerBlip.Delete(); }
+         catch { }
+         order.CustomerBlip = null;
+         try { if (order.Customer != null && order.Customer.Exists()) order.Customer.Delete(); }
+@@ -6287,7 +6290,7 @@
+         // Visible cargo: for most cars the rear interior / luggage compartment.
+         // Exact coordinates vary by vehicle model; a future vehicle-specific
+         // offset table could improve the fit for pickups, vans and sedans.
+-        _supplierCrate.FreezePosition = false;
++        _supplierCrate.IsPositionFrozen = false;
+         GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
+             _supplierCrate.Handle, false, false);
+         GTA.Native.Function.Call(GTA.Native.Hash.ATTACH_ENTITY_TO_ENTITY,
+@@ -6348,7 +6351,7 @@
+             {
+                 GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
+                     _supplierCrate.Handle, false, false);
+-                _supplierCrate.FreezePosition = true;
++                _supplierCrate.IsPositionFrozen = true;
+             }
+         }
+     }
+@@ -6590,20 +6593,20 @@
+     // Read even if control was temporarily disabled while the F2 UI owns input.
+     private static bool PadJustPressed(GTA.Control input)
+     {
+-        // SHVDN 2.11.6 input group 0 is gameplay; many Frontend* controls
+-        // report on group 2 instead. Read enabled AND disabled variants.
+-        return Game.IsControlJustPressed(0, input) ||
+-            Game.IsDisabledControlJustPressed(0, input) ||
+-            Game.IsControlJustPressed(2, input) ||
+-            Game.IsDisabledControlJustPressed(2, input);
++        // Issue #20: v3 Game helpers omit the group argument. Preserve R2's
++        // gameplay (0) AND frontend (2), including disabled menu controls.
++        return GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_CONTROL_JUST_PRESSED, 0, (int)input) ||
++            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_DISABLED_CONTROL_JUST_PRESSED, 0, (int)input) ||
++            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_CONTROL_JUST_PRESSED, 2, (int)input) ||
++            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_DISABLED_CONTROL_JUST_PRESSED, 2, (int)input);
+     }
+ 
+     private static bool PadPressed(GTA.Control input)
+     {
+-        return Game.IsControlPressed(0, input) ||
+-            Game.IsDisabledControlPressed(0, input) ||
+-            Game.IsControlPressed(2, input) ||
+-            Game.IsDisabledControlPressed(2, input);
++        return GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_CONTROL_PRESSED, 0, (int)input) ||
++            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_DISABLED_CONTROL_PRESSED, 0, (int)input) ||
++            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_CONTROL_PRESSED, 2, (int)input) ||
++            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_DISABLED_CONTROL_PRESSED, 2, (int)input);
+     }
+ 
+     private void DisableControllerControlsWhileMenuOpen()
+@@ -6851,7 +6854,7 @@
+     private void AttachSupplierBoxToPed(Ped ped)
+     {
+         if (ped == null || !ped.Exists() || _supplierCrate == null || !_supplierCrate.Exists()) return;
+-        _supplierCrate.FreezePosition = false;
++        _supplierCrate.IsPositionFrozen = false;
+         GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, _supplierCrate.Handle, false, false);
+         int hand = GTA.Native.Function.Call<int>(GTA.Native.Hash.GET_PED_BONE_INDEX, ped.Handle, 28422);
+         GTA.Native.Function.Call(GTA.Native.Hash.ATTACH_ENTITY_TO_ENTITY,
+@@ -7476,7 +7479,7 @@
+                 _lastControllerAction = toggleNow;
+                 _controllerEnabled = !_controllerEnabled;
+                 Save();
+-                UI.ShowSubtitle("Glass Heroes Controller: " + (_controllerEnabled ? "~g~ON" : "~r~OFF") +
++                GTA.UI.Screen.ShowSubtitle("Glass Heroes Controller: " + (_controllerEnabled ? "~g~ON" : "~r~OFF") +
+                     "~s~ | Release ENTER/A before selecting again", 3600);
+                 break;
+             case 1: ShowStatusNotice("CONTROLLER KEY MAP",
+@@ -7634,7 +7637,7 @@
+                 GTA.Native.Function.Call(GTA.Native.Hash.DETACH_ENTITY, _supplierCrate.Handle, true, true);
+                 _supplierCrate.Position = StoredBoxPosition(slot, nextBox);
+                 _supplierCrate.Heading = StoragePalletPoint(slot).Heading;
+-                _supplierCrate.FreezePosition = true;
++                _supplierCrate.IsPositionFrozen = true;
+                 GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, _supplierCrate.Handle, false, false);
+                 int packageIndex = slot * CratesPerPallet + nextBox;
+                 DeleteOwnedProp(ref _deliveredPackageProps[packageIndex]);
+@@ -7691,7 +7694,7 @@
+             nearCargoVehicle && _supplierPlayerCarrying ? "LOAD the box into the assigned vehicle." :
+             nearWarehouse ? "PICK UP the warehouse box; use your assigned vehicle to LOAD it." :
+             "PICK UP the supplier package.";
+-        UI.ShowSubtitle("~b~Glass Heroes~s~: ~y~E~s~ / ~b~D-pad RIGHT~s~ to " + prompt, 1750);
++        GTA.UI.Screen.ShowSubtitle("~b~Glass Heroes~s~: ~y~E~s~ / ~b~D-pad RIGHT~s~ to " + prompt, 1750);
+     }
+ 
+     private void BeginSupplierTruckDeparture(DateTime now)
+@@ -7802,7 +7805,7 @@
+         { OpenBusinessFromOffice(); return; }
+         if (now < _nextDeskHint) return;
+         _nextDeskHint = now.AddSeconds(3);
+-        UI.ShowSubtitle("Glass Heroes office: ~y~E~s~ or ~b~D-pad RIGHT~s~ to manage business.", 2400);
++        GTA.UI.Screen.ShowSubtitle("Glass Heroes office: ~y~E~s~ or ~b~D-pad RIGHT~s~ to manage business.", 2400);
+     }
+ 
+     private void DeleteOfficeDeskProps()
+@@ -7826,21 +7829,22 @@
+         DeleteOfficeDeskProps();
+         Model deskModel = new Model("v_corp_desksetb");
+         Model laptopModel = new Model("prop_laptop_01a");
+-        deskModel.Request(250); laptopModel.Request(250);
+-        if (!deskModel.IsLoaded || !laptopModel.IsLoaded) return;
++        bool deskReady = RequestVisualModel(deskModel);
++        bool laptopReady = RequestVisualModel(laptopModel);
++        if (!deskReady || !laptopReady) return;
+         try
+         {
+             _officeDeskProp = World.CreateProp(deskModel, _officeDeskLocation.Position, false, true);
+             if (_officeDeskProp == null || !_officeDeskProp.Exists()) { Log("Desk creation", new Exception("Desk prop unavailable")); return; }
+             _officeDeskProp.Heading = _officeDeskLocation.Heading;
+-            _officeDeskProp.FreezePosition = true;
++            _officeDeskProp.IsPositionFrozen = true;
+             Vector3 laptopPos = _officeDeskProp.Position + new Vector3(0f, 0f, 0.82f);
+             _officeLaptopProp = World.CreateProp(laptopModel, laptopPos, false, false);
+             if (_officeLaptopProp != null && _officeLaptopProp.Exists())
+-            { _officeLaptopProp.Heading = _officeDeskLocation.Heading; _officeLaptopProp.FreezePosition = true; }
++            { _officeLaptopProp.Heading = _officeDeskLocation.Heading; _officeLaptopProp.IsPositionFrozen = true; }
+             else Log("Office computer", new Exception("Laptop prop not available; retrying."));
+         }
+-        finally { deskModel.MarkAsNoLongerNeeded(); laptopModel.MarkAsNoLongerNeeded(); }
++        finally { ReleaseVisualModel(deskModel); ReleaseVisualModel(laptopModel); }
+     }
+ 
+     private static void DeleteOwnedProp(ref Prop prop)
+@@ -7859,16 +7863,54 @@
+     private Prop CreateFixedEquipmentProp(string modelName, Vector3 pos, float heading, bool placeOnGround = true)
+     {
+         Model model = new Model(modelName);
+-        model.Request(250);
++        if (!RequestVisualModel(model)) return null;
+         try
+         {
+-            if (!model.IsLoaded) return null;
+             Prop item = World.CreateProp(model, pos, false, placeOnGround);
+             if (item != null && item.Exists())
+-            { item.Heading = heading; item.FreezePosition = true; }
++            { item.Heading = heading; item.IsPositionFrozen = true; }
+             return item;
+         }
+-        finally { model.MarkAsNoLongerNeeded(); }
++        finally { ReleaseVisualModel(model); }
++    }
++
++    // Do not yield into nested callbacks while a visual is waiting for a model.
++    // Existing distance gates and retry clocks decide when this is called again.
++    private bool RequestVisualModel(Model model)
++    {
++        _requestedVisualModels.Add(model);
++        if (!model.IsLoaded) model.Request();
++        return model.IsLoaded;
++    }
++
++    private void ReleaseVisualModel(Model model)
++    {
++        try
++        {
++            model.MarkAsNoLongerNeeded();
++            _requestedVisualModels.Remove(model);
++        }
++        catch (Exception ex) { Log("Release v3 visual model", ex); }
++    }
++
++    private void ReleasePendingVisualModels()
++    {
++        // Snapshot because successful releases remove entries. Failed releases
++        // retain ownership for another attempt while this instance is alive.
++        foreach (Model model in new List<Model>(_requestedVisualModels))
++            ReleaseVisualModel(model);
++    }
++
++    private static void RequireExclusiveBusinessInstallation(Func<string, bool> fileExists)
++    {
++        // Managed startup checks only. Never delete, rename or rewrite a conflict.
++        if (fileExists(@"scripts\GlassHeroesBusiness.2.cs") ||
++            fileExists(@"scripts\GlassHeroesBusiness.dll") ||
++            fileExists(@"scripts\GlassHeroesBusiness_v0.3.3.0_RC1.2.cs") ||
++            (fileExists(@"scripts\GlassHeroesBusiness.3.cs") &&
++                fileExists(@"scripts\GlassHeroesBusiness.V3.Experimental.dll")))
++            throw new InvalidOperationException("Enable only one Glass Heroes Business Manager generation/source. " +
++                "Move conflicting business scripts outside scripts before loading this experimental v3 build; preserve business data.");
+     }
+ 
+     private void UpdateEquipmentVisuals()
+@@ -7913,6 +7955,7 @@
+             Log("BOOT aborted before gameplay activation; saved business state preserved", null);
+             return;
+         }
++        ReleasePendingVisualModels();
+         CancelAllCustomerOrders("Script aborted");
+         ClearStagedCustomers();
+         CleanupVisualMechanics();
+@@ -7938,7 +7981,7 @@
+         // quotes, completed invoices, errors, F2 actions or requested statuses.
+         // Avoid THEFEED_FLUSH_QUEUE: that would delete OTHER MODS' notifications.
+         if (_compactCustomerNotices && IsRoutineTransitNotice(message)) return;
+-        UI.Notify("~b~Glass Heroes~s~: " + message);
++        GTA.UI.Notification.Show("~b~Glass Heroes~s~: " + message, false);
+     }
+ 
+     private static bool IsRoutineTransitNotice(string message)

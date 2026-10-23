@@ -3,7 +3,7 @@
 import ast,re,subprocess,tempfile
 from pathlib import Path
 repo=Path(__file__).resolve().parents[2]
-source=(repo/'experimental/shvdn3/VisualStudio/scripts/GlassHeroesBusiness.3.cs').read_text(encoding='utf-8-sig')
+source=(repo/'experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs').read_text(encoding='utf-8-sig')
 lexer=next(n for n in ast.parse((repo/'Verification/static_verify.py').read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='strip_literals')
 ns={};exec(compile(ast.Module(body=[lexer],type_ignores=[]),'lexer','exec'),ns);clean,_=ns['strip_literals'](source)
 def extract(name):

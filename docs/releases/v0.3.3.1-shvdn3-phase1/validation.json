@@ -1,0 +1,49 @@
+{
+  "version": "v0.3.3.1 SHVDN3 Phase 1 EXPERIMENTAL",
+  "issue": 20,
+  "draft_pr": 21,
+  "branch": "migration/qa-r2-shvdn3-prep",
+  "r2_baseline_commit": "7693ed2167405f475dd4d36392c5df1f257fe178",
+  "created_utc": "2026-10-23T00:32:13.317340+00:00",
+  "sdk": "8.0.426",
+  "target": "net48 / C# 7.3",
+  "reference": "ScriptHookVDotNet3 3.6.0",
+  "v2_release_build": "PASS (0 errors / 2 existing warnings)",
+  "v3_release_build": "PASS (0 errors / 2 existing warnings)",
+  "inherited_behavior": {
+    "baseline-v2": {
+      "corrective": 54,
+      "logger": 9,
+      "inherited_total": 63
+    },
+    "v3": {
+      "corrective": 54,
+      "logger": 9,
+      "inherited_total": 63
+    }
+  },
+  "additional_migration_cases": 22,
+  "v3_total_behavior": 85,
+  "static_per_generation": {
+    "passed": 21,
+    "total": 21
+  },
+  "source_sha256": "cda7721e4bfaefa3c3a8da84afde70cd3d8c909f79bbfb19a0ac947549955445",
+  "project_sha256": "f9edbab65dffee88b2fdebcbe7aec1787b2624a086d9ed49877bfea69c6e0a7e",
+  "solution_sha256": "47aa4939d34d5b4d33ad7cdccef255d20de96acbce48f1dc330af8e281f026d2",
+  "one_installation_source_linked_by_project": true,
+  "whole_source_r2_parity_after_reviewed_api_reversal": "PASS",
+  "additive_source_diff_applies_exactly": true,
+  "v2_sources_project_solution_unchanged": true,
+  "save_config_schema_changes": false,
+  "live_game_saves_settings_touched": false,
+  "pr18_pr19_pr22_features_integrated": false,
+  "gta_testing": "NOT RUN",
+  "windows_execution": "NOT RUN",
+  "enhanced_3_9_0_6_runtime_compatibility": "NOT VERIFIED",
+  "crash_cause": "UNATTRIBUTED / UNPROVEN",
+  "review_status": "PENDING; DRAFT; no merge or deployment",
+  "clean_extracted_package_rebuild": "PASS (0 errors / 2 existing warnings)",
+  "clean_extracted_package_static": "21/21 PASS",
+  "clean_extracted_package_parity": "PASS"
+}

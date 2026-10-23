@@ -227,7 +227,7 @@
     "PadJustPressed": "196284bc0ac786a77d72118cdc1bdb425e89b7bdc6e5aca6e1276ffcbd29b67c",
     "PadPressed": "7e490583565c1915217386f533bad5d145d84b4ca35a83531f2f6ce7e7d1c136"
   },
-  "approved_helper_block_sha256": "7cc56f4e9cb75d68f6bfd17933df969a5e95778190e89b00914ce3e29f5a1a33",
+  "approved_helper_block_sha256": "26fb9feccb29a1129dbc7b91583fc06f3f7f433bb256076be05e749c751d7862",
   "protected_v2_files_sha256": {
     "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
     "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"

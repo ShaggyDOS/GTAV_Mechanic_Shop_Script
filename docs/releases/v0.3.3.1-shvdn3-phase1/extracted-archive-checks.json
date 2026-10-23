@@ -1,0 +1,13 @@
+{
+  "source_sha256": "cda7721e4bfaefa3c3a8da84afde70cd3d8c909f79bbfb19a0ac947549955445",
+  "project_sha256": "f9edbab65dffee88b2fdebcbe7aec1787b2624a086d9ed49877bfea69c6e0a7e",
+  "source_project_solution_match_workspace": true,
+  "release_build": "PASS (0 errors / 2 existing warnings)",
+  "static_checks": {
+    "passed": 21,
+    "total": 21
+  },
+  "source_parity": "PASS",
+  "all_archive_file_hashes": "PASS",
+  "gta_testing": "NOT RUN"
+}

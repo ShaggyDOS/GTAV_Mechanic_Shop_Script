@@ -7885,14 +7885,18 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void ReleaseVisualModel(Model model)
     {
-        try { model.MarkAsNoLongerNeeded(); }
+        try
+        {
+            model.MarkAsNoLongerNeeded();
+            _requestedVisualModels.Remove(model);
+        }
         catch (Exception ex) { Log("Release v3 visual model", ex); }
-        finally { _requestedVisualModels.Remove(model); }
     }
 
     private void ReleasePendingVisualModels()
     {
-        // Snapshot because ReleaseVisualModel removes entries even on failure.
+        // Snapshot because successful releases remove entries. Failed releases
+        // retain ownership for another attempt while this instance is alive.
         foreach (Model model in new List<Model>(_requestedVisualModels))
             ReleaseVisualModel(model);
     }
