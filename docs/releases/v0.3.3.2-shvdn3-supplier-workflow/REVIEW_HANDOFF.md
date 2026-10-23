@@ -17,3 +17,7 @@ Implemented: all four requested priorities plus low-stock draft fill/feedback. D
 GTA/Windows testing of this candidate NOT RUN. Prior owner report says manager offsite/transition works and session smooth/crash-free; it does not certify this source. Crash root cause remains unproven. Native pause display, actual UI readability and new range/route behavior require owner QA.
 
 PR_BODIES.md has exact per-branch comparison links and prepared draft descriptions. github-pr-attempts.txt records API outcomes when available. No PR creation is claimed without a successful returned URL. All pushes are feature branches; main/QA R2/baseline are untouched. No live installation or saves/settings modified.
+
+Focused implementation commits: ba6e110 (range), d6df28e (menus), b008850 (mixed orders), 6e66036 (native pause). A small separate followup clarifies over-limit cart preview text. The final review/package commit records the exact source hash.
+
+All four feature branches were pushed. All four draft creation attempts returned `Post "https://api.github.com/graphql": Forbidden`; no PR was created. Use PR_BODIES.md comparison links/descriptions to create Drafts manually. Main/QA R2 and both baseline branches were checked unchanged in protected-remote-heads.txt.

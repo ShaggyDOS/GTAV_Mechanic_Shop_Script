@@ -1,0 +1,15 @@
+shvdn3-nearby-delivery-range -> feature/shvdn3-24-manager-supplier-deliveries
+exit=1
+Post "https://api.github.com/graphql": Forbidden
+
+shvdn3-inventory-menu-workflow -> feature/shvdn3-nearby-delivery-range
+exit=1
+Post "https://api.github.com/graphql": Forbidden
+
+shvdn3-mixed-supplier-orders -> feature/shvdn3-inventory-menu-workflow
+exit=1
+Post "https://api.github.com/graphql": Forbidden
+
+shvdn3-native-pause-compatibility -> feature/shvdn3-mixed-supplier-orders
+exit=1
+Post "https://api.github.com/graphql": Forbidden

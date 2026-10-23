@@ -67,7 +67,7 @@ https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/compare/feature/shvdn3-mi
 
 ## Native GTA pause compatibility
 
-Yield custom overlay/input to Esc and controller Pause/Start; retain Backspace/controller Back and active/unpaused clocks. Includes complete stack verification/package.
+Yield custom overlay/input to Esc and controller Pause/Start; retain Backspace/controller Back and active/unpaused clocks. Also labels over-limit drafts explicitly and includes complete stack verification/package.
 
 Related #24 / #25 QA. Based on `feature/shvdn3-mixed-supplier-orders`; isolated linear commit, no merge or live GTA modifications. Preserve completed repair/sales/wage/quote/pallet features and player-only Wholesale.
 

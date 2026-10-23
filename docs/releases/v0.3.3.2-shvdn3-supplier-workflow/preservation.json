@@ -2,7 +2,7 @@
   "profile": "workflow",
   "parent": "b777c64da7fc64241a2ac175b4013ff40cc864ec",
   "parent_source_sha256": "36df493478adc3e52ddd2043af1036e486662ddeebb2370401daddf6f2abc56f",
-  "candidate_source_sha256": "e50e9bba4889ab7670514e238dbf250ad9d38ced5d4e9cb8f0bd6ca64606e5ed",
+  "candidate_source_sha256": "de2b07413870de4e61befc517682fbc3d03afea8df5f80a5c45a583e65ee5194",
   "changed_methods": [
     "BuyInventory",
     "CancelSupplierOrderWithConfirmation",
