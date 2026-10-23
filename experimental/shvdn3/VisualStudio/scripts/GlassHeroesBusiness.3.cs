@@ -1178,15 +1178,15 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private static void Panel(int x, int y, int w, int h, Color color)
     {
-        new UIRectangle(new Point(CompactX(x), CompactY(y)),
+        new GTA.UI.ContainerElement(new PointF(CompactX(x), CompactY(y)),
             new Size(Math.Max(1, (int)Math.Round(w * MenuScale)),
-                Math.Max(1, (int)Math.Round(h * MenuScale))), color).Draw();
+                Math.Max(1, (int)Math.Round(h * MenuScale))), color, false).Draw();
     }
 
     private static void Label(string caption, int x, int y, float scale, Color color)
     {
-        new UIText(caption, new Point(CompactX(x), CompactY(y)), scale * MenuScale, color,
-            GTA.Font.ChaletLondon, false).Draw();
+        new GTA.UI.TextElement(caption, new PointF(CompactX(x), CompactY(y)), scale * MenuScale, color,
+            GTA.UI.Font.ChaletLondon, GTA.UI.Alignment.Left).Draw();
     }
 
     private string[] GetMenuItems()
@@ -3077,7 +3077,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (_routeConfigReturning) staff.JobReturnMask = mask;
         else staff.JobOutboundMask = mask;
         Save();
-        UI.ShowSubtitle(staff.Name + ": " + (_routeConfigReturning ? "return" : "job") +
+        GTA.UI.Screen.ShowSubtitle(staff.Name + ": " + (_routeConfigReturning ? "return" : "job") +
             " route uses " + CountMask(mask) + "/5 points.", 1800);
     }
 
@@ -5320,7 +5320,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             if (order.CustomerBlip != null)
             {
-                if (order.CustomerBlip.Exists()) order.CustomerBlip.Remove();
+                if (order.CustomerBlip.Exists()) order.CustomerBlip.Delete();
                 order.CustomerBlip = null;
             }
             if (!_customerBlipsEnabled || order.Vehicle == null || !order.Vehicle.Exists()) return;
@@ -5846,7 +5846,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     private static void CancelCreatedCustomer(CustomerOrder order)
     {
         if (order == null) return;
-        try { if (order.CustomerBlip != null && order.CustomerBlip.Exists()) order.CustomerBlip.Remove(); }
+        try { if (order.CustomerBlip != null && order.CustomerBlip.Exists()) order.CustomerBlip.Delete(); }
         catch { }
         order.CustomerBlip = null;
         try { if (order.Customer != null && order.Customer.Exists()) order.Customer.Delete(); }
@@ -6287,7 +6287,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         // Visible cargo: for most cars the rear interior / luggage compartment.
         // Exact coordinates vary by vehicle model; a future vehicle-specific
         // offset table could improve the fit for pickups, vans and sedans.
-        _supplierCrate.FreezePosition = false;
+        _supplierCrate.IsPositionFrozen = false;
         GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
             _supplierCrate.Handle, false, false);
         GTA.Native.Function.Call(GTA.Native.Hash.ATTACH_ENTITY_TO_ENTITY,
@@ -6348,7 +6348,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             {
                 GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION,
                     _supplierCrate.Handle, false, false);
-                _supplierCrate.FreezePosition = true;
+                _supplierCrate.IsPositionFrozen = true;
             }
         }
     }
@@ -6590,20 +6590,20 @@ public class GlassHeroesBusinessV3Experimental : Script
     // Read even if control was temporarily disabled while the F2 UI owns input.
     private static bool PadJustPressed(GTA.Control input)
     {
-        // SHVDN 2.11.6 input group 0 is gameplay; many Frontend* controls
-        // report on group 2 instead. Read enabled AND disabled variants.
-        return Game.IsControlJustPressed(0, input) ||
-            Game.IsDisabledControlJustPressed(0, input) ||
-            Game.IsControlJustPressed(2, input) ||
-            Game.IsDisabledControlJustPressed(2, input);
+        // Issue #20: v3 Game helpers omit the group argument. Preserve R2's
+        // gameplay (0) AND frontend (2), including disabled menu controls.
+        return GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_CONTROL_JUST_PRESSED, 0, (int)input) ||
+            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_DISABLED_CONTROL_JUST_PRESSED, 0, (int)input) ||
+            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_CONTROL_JUST_PRESSED, 2, (int)input) ||
+            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_DISABLED_CONTROL_JUST_PRESSED, 2, (int)input);
     }
 
     private static bool PadPressed(GTA.Control input)
     {
-        return Game.IsControlPressed(0, input) ||
-            Game.IsDisabledControlPressed(0, input) ||
-            Game.IsControlPressed(2, input) ||
-            Game.IsDisabledControlPressed(2, input);
+        return GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_CONTROL_PRESSED, 0, (int)input) ||
+            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_DISABLED_CONTROL_PRESSED, 0, (int)input) ||
+            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_CONTROL_PRESSED, 2, (int)input) ||
+            GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_DISABLED_CONTROL_PRESSED, 2, (int)input);
     }
 
     private void DisableControllerControlsWhileMenuOpen()
@@ -6851,7 +6851,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     private void AttachSupplierBoxToPed(Ped ped)
     {
         if (ped == null || !ped.Exists() || _supplierCrate == null || !_supplierCrate.Exists()) return;
-        _supplierCrate.FreezePosition = false;
+        _supplierCrate.IsPositionFrozen = false;
         GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, _supplierCrate.Handle, false, false);
         int hand = GTA.Native.Function.Call<int>(GTA.Native.Hash.GET_PED_BONE_INDEX, ped.Handle, 28422);
         GTA.Native.Function.Call(GTA.Native.Hash.ATTACH_ENTITY_TO_ENTITY,
@@ -7476,7 +7476,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _lastControllerAction = toggleNow;
                 _controllerEnabled = !_controllerEnabled;
                 Save();
-                UI.ShowSubtitle("Glass Heroes Controller: " + (_controllerEnabled ? "~g~ON" : "~r~OFF") +
+                GTA.UI.Screen.ShowSubtitle("Glass Heroes Controller: " + (_controllerEnabled ? "~g~ON" : "~r~OFF") +
                     "~s~ | Release ENTER/A before selecting again", 3600);
                 break;
             case 1: ShowStatusNotice("CONTROLLER KEY MAP",
@@ -7634,7 +7634,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 GTA.Native.Function.Call(GTA.Native.Hash.DETACH_ENTITY, _supplierCrate.Handle, true, true);
                 _supplierCrate.Position = StoredBoxPosition(slot, nextBox);
                 _supplierCrate.Heading = StoragePalletPoint(slot).Heading;
-                _supplierCrate.FreezePosition = true;
+                _supplierCrate.IsPositionFrozen = true;
                 GTA.Native.Function.Call(GTA.Native.Hash.SET_ENTITY_COLLISION, _supplierCrate.Handle, false, false);
                 int packageIndex = slot * CratesPerPallet + nextBox;
                 DeleteOwnedProp(ref _deliveredPackageProps[packageIndex]);
@@ -7691,7 +7691,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             nearCargoVehicle && _supplierPlayerCarrying ? "LOAD the box into the assigned vehicle." :
             nearWarehouse ? "PICK UP the warehouse box; use your assigned vehicle to LOAD it." :
             "PICK UP the supplier package.";
-        UI.ShowSubtitle("~b~Glass Heroes~s~: ~y~E~s~ / ~b~D-pad RIGHT~s~ to " + prompt, 1750);
+        GTA.UI.Screen.ShowSubtitle("~b~Glass Heroes~s~: ~y~E~s~ / ~b~D-pad RIGHT~s~ to " + prompt, 1750);
     }
 
     private void BeginSupplierTruckDeparture(DateTime now)
@@ -7802,7 +7802,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         { OpenBusinessFromOffice(); return; }
         if (now < _nextDeskHint) return;
         _nextDeskHint = now.AddSeconds(3);
-        UI.ShowSubtitle("Glass Heroes office: ~y~E~s~ or ~b~D-pad RIGHT~s~ to manage business.", 2400);
+        GTA.UI.Screen.ShowSubtitle("Glass Heroes office: ~y~E~s~ or ~b~D-pad RIGHT~s~ to manage business.", 2400);
     }
 
     private void DeleteOfficeDeskProps()
@@ -7833,11 +7833,11 @@ public class GlassHeroesBusinessV3Experimental : Script
             _officeDeskProp = World.CreateProp(deskModel, _officeDeskLocation.Position, false, true);
             if (_officeDeskProp == null || !_officeDeskProp.Exists()) { Log("Desk creation", new Exception("Desk prop unavailable")); return; }
             _officeDeskProp.Heading = _officeDeskLocation.Heading;
-            _officeDeskProp.FreezePosition = true;
+            _officeDeskProp.IsPositionFrozen = true;
             Vector3 laptopPos = _officeDeskProp.Position + new Vector3(0f, 0f, 0.82f);
             _officeLaptopProp = World.CreateProp(laptopModel, laptopPos, false, false);
             if (_officeLaptopProp != null && _officeLaptopProp.Exists())
-            { _officeLaptopProp.Heading = _officeDeskLocation.Heading; _officeLaptopProp.FreezePosition = true; }
+            { _officeLaptopProp.Heading = _officeDeskLocation.Heading; _officeLaptopProp.IsPositionFrozen = true; }
             else Log("Office computer", new Exception("Laptop prop not available; retrying."));
         }
         finally { deskModel.MarkAsNoLongerNeeded(); laptopModel.MarkAsNoLongerNeeded(); }
@@ -7865,7 +7865,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             if (!model.IsLoaded) return null;
             Prop item = World.CreateProp(model, pos, false, placeOnGround);
             if (item != null && item.Exists())
-            { item.Heading = heading; item.FreezePosition = true; }
+            { item.Heading = heading; item.IsPositionFrozen = true; }
             return item;
         }
         finally { model.MarkAsNoLongerNeeded(); }
@@ -7938,7 +7938,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         // quotes, completed invoices, errors, F2 actions or requested statuses.
         // Avoid THEFEED_FLUSH_QUEUE: that would delete OTHER MODS' notifications.
         if (_compactCustomerNotices && IsRoutineTransitNotice(message)) return;
-        UI.Notify("~b~Glass Heroes~s~: " + message);
+        GTA.UI.Notification.Show("~b~Glass Heroes~s~: " + message, false);
     }
 
     private static bool IsRoutineTransitNotice(string message)
