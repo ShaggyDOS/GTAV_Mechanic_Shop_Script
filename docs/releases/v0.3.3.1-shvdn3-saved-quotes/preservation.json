@@ -1,0 +1,41 @@
+{
+  "profile": "reload",
+  "parent": "c05930f",
+  "parent_source_sha256": "1dd086cb589f52a41fad6125bf7e6845e35e00b215c36dd24b3f810e4731b801",
+  "candidate_source_sha256": "c7001f6f25d7306d43582101d4107c4e757ffc6420439511c784bb70ab72cc6f",
+  "changed_methods": [
+    "AssignCustomerMechanic",
+    "CancelCustomerOrder",
+    "GlassHeroesBusinessV3Experimental",
+    "OnAborted",
+    "ProcessEconomy",
+    "ProcessOneCustomerRepair",
+    "ProcessRemoteOperations",
+    "Save",
+    "ShowCustomerOrderStatus",
+    "SpawnCustomerOrder",
+    "ToggleBusinessShift",
+    "TryCreateRepairQuote",
+    "UnreservedRepairStock",
+    "UpdateCustomerVisuals"
+  ],
+  "new_helpers": [
+    "ApplySavedCustomerPromise",
+    "CaptureRepairPromises",
+    "LoadRepairPromises",
+    "ParkRuntimeRepairPromises",
+    "RememberCancelledRepair",
+    "RepairLedgerStamp",
+    "RepairQuoteHasStock",
+    "RestoreSavedNonphysicalRepairs",
+    "TrySettleRepair",
+    "ValidRepairPromise",
+    "WriteRepairPromises"
+  ],
+  "unchanged_methods": 295,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": true,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}

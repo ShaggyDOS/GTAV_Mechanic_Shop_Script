@@ -43,11 +43,13 @@ for text in ['\n'.join(p.text for p in Document(r/(stem+'.docx')).paragraphs),'\
 files={repo/source};files.update(x for x in (repo/'experimental/shvdn3/VisualStudio').rglob('*') if x.is_file() and not any(y in {'bin','obj'} for y in x.parts));files.add(repo/'experimental/shvdn3/README.md');files.add(repo/'AGENTS.md')
 files.update(x for x in (repo/'verification').rglob('*') if x.is_file() and not any(y in {'bin','obj','__pycache__'} for y in x.parts))
 files.update(x for x in r.rglob('*') if x.is_file() and x.name not in {'FILES_SHA256.json','package-receipt.json','extracted-package-build.txt'})
-if args.label=='manager-wages':
+if args.label in {'manager-wages','saved-quotes'}:
  # Preserve focused guides/results as historical snapshots, each with its own SHA.
- for label in ['repair-coverage','manual-parts-sales','pallet-stacking']:
+ for label in ['repair-coverage','manual-parts-sales','pallet-stacking']+(['manager-wages'] if args.label=='saved-quotes' else []):
   related=repo/f'docs/releases/v0.3.3.1-shvdn3-{label}'
   files.update(x for x in related.rglob('*') if x.is_file())
+ files.add(repo/'docs/releases/v0.3.3.1-shvdn3-phase1/API_MAP.md')
+ files.add(repo/'docs/releases/v0.3.3.1-shvdn3-phase1/dependencies.json')
 
 for name in ['Verification/static_verify.py','BASELINE_SHA256.txt','SourceDiff_v0.3.2.9a_to_v0.3.3.0_RC1.patch']:files.add(repo/name)
 manifest={'source_sha256':sha,'files':{str(x.relative_to(repo)):hashlib.sha256(x.read_bytes()).hexdigest() for x in sorted(files)}};(r/'FILES_SHA256.json').write_text(json.dumps(manifest,indent=2)+'\n');files.add(r/'FILES_SHA256.json')

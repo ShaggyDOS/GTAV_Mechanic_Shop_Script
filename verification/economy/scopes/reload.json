@@ -1,0 +1,70 @@
+{
+  "parent": "c05930f",
+  "fixture": "wages-parent.cs.txt",
+  "parent_sha256": "1dd086cb589f52a41fad6125bf7e6845e35e00b215c36dd24b3f810e4731b801",
+  "changed": [
+    "AssignCustomerMechanic",
+    "CancelCustomerOrder",
+    "GlassHeroesBusinessV3Experimental",
+    "OnAborted",
+    "ProcessEconomy",
+    "ProcessOneCustomerRepair",
+    "ProcessRemoteOperations",
+    "Save",
+    "ShowCustomerOrderStatus",
+    "SpawnCustomerOrder",
+    "ToggleBusinessShift",
+    "TryCreateRepairQuote",
+    "UnreservedRepairStock",
+    "UpdateCustomerVisuals"
+  ],
+  "added": [
+    "ApplySavedCustomerPromise",
+    "CaptureRepairPromises",
+    "LoadRepairPromises",
+    "ParkRuntimeRepairPromises",
+    "RememberCancelledRepair",
+    "RepairLedgerStamp",
+    "RepairQuoteHasStock",
+    "RestoreSavedNonphysicalRepairs",
+    "TrySettleRepair",
+    "ValidRepairPromise",
+    "WriteRepairPromises"
+  ],
+  "added_keys": {
+    "GetValue": [
+      [
+        "RepairPromisesV1",
+        "Count"
+      ],
+      [
+        "RepairPromisesV1",
+        "LedgerStamp"
+      ],
+      [
+        "RepairPromisesV1",
+        "Version"
+      ]
+    ],
+    "SetValue": [
+      [
+        "RepairPromisesV1",
+        "Count"
+      ],
+      [
+        "RepairPromisesV1",
+        "LedgerStamp"
+      ],
+      [
+        "RepairPromisesV1",
+        "Version"
+      ]
+    ]
+  },
+  "protected_v2": {
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  }
+}

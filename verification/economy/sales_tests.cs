@@ -15,6 +15,12 @@ class Harness {
     /*<source:TrySellPart>*/
     /*<source:PartsSalePreview>*/
     /*<source:TryCommitBusinessSave>*/
+    /*<source:SavedRepairPromise>*/
+    /*<source:RepairQuoteHasStock>*/
+    /*<source:TrySettleRepair>*/
+    /*<source:RestoreSavedNonphysicalRepairs>*/
+    const int MaxSavedRepairPromises=16;
+    readonly List<SavedRepairPromise> _pendingRepairPromises=new List<SavedRepairPromise>();
     /*<source:Mechanic>*/
     /*<source:CustomerStage>*/
     /*<source:CustomerOrder>*/
@@ -47,8 +53,9 @@ class Harness {
     private static string DataDirectory;
     long _partsSalesRevenue,_partsSalesUnitsSold;int _lastPartsSaleGameTime=int.MinValue;bool _bootGameplayActivated=true;
     string DeliveryItemName(int kind)=>new[]{"Universal","Filters","Brakes","Diagnostics"}[kind+1];
+    long _remoteJobsCompleted,_remotePartsConsumed;
     long _cash,_revenue,_customerRevenue,_remoteSales,_supplierInvoicesDue=567,_partsSpend=31,_payrollSpend=32;
-    int _parts=10,_completed,_customerCompleted,_remoteJobsCompleted,_remotePartsConsumed,_lastCustomerOrderId;
+    int _parts=10,_completed,_customerCompleted,_lastCustomerOrderId;
     int[] _specialStock={10,10,10},_specialUnitCosts={90,160,125};
     readonly long[] _unitCostEstimates=new long[4];ScriptSettings _configuration=new ScriptSettings();
     int _partCost=100,_jobRevenue=500,_wagePerEmployee=250,_jobSeconds=120,_betweenJobsSeconds=10,_wagePeriodSeconds=300;

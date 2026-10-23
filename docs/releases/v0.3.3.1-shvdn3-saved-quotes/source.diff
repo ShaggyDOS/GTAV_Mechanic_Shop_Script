@@ -1,0 +1,611 @@
+diff --git a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+index 0869e5f..72092d1 100644
+--- a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
++++ b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -1,4 +1,4 @@
+-// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES / EXPERIMENTAL (#20, #27, #25)
++// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES + SAVED QUOTES / EXPERIMENTAL (#20, #27, #25)
+ // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet3 3.6.0 / .NET Framework 4.8
+@@ -118,6 +118,9 @@ public class GlassHeroesBusinessV3Experimental : Script
+         ToExitApproach, ReturningToVehicle, DrivingAway, WaitingAtRoadside, DrivingToQueueSpace, ParkingAtQueueSpace, ToWalkWaypoint, ToPickupWaypoint }
+     private sealed class CustomerOrder
+     {
++        public bool RestoredPromise;
++        public int ResumeMechanicSlot = -1;
++        public double ResumeWorkSeconds;
+         public int Id;
+         public CustomerStage Stage;
+         public double SecondsInStage;
+@@ -517,6 +520,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+     private long _payrollSpend;
+     private long _overheadSpend;
+     private long _hireSpend;
++    private const int MaxSavedRepairPromises = 16;
++    private readonly List<SavedRepairPromise> _pendingRepairPromises = new List<SavedRepairPromise>();
+     private readonly long[] _unitCostEstimates = new long[4]; // universal, filters, brakes, diagnostics
+     private int _parts;
+     private int _completed;
+@@ -530,7 +535,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             RequireExclusiveBusinessInstallation(File.Exists);
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES EXPERIMENTAL (#27, #25) / constructor entered", null);
++            Log("BOOT v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES + SAVED QUOTES EXPERIMENTAL (#27, #25) / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -834,6 +839,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 _mechanics.Add(profile);
+             }
+ 
++            LoadRepairPromises(data);
++
+             _clockedIn = false; // Opening shift is a deliberate action after every load.
+             _lastTick = DateTime.UtcNow;
+             // Do not invoke GTA natives during the constructor while world/DLCs load.
+@@ -2153,6 +2160,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         _clockedIn = opening;
+         if (!opening)
+         {
++            ParkRuntimeRepairPromises(); // Closing holds accepted work without advancing it.
+             _remoteMode = false;
+             _remoteJobs.Clear(); // Never pay interrupted jobs when business closes.
+             _remoteIdleGameSeconds = 0;
+@@ -2490,6 +2498,9 @@ public class GlassHeroesBusinessV3Experimental : Script
+     // Call on demand (not every frame) to avoid flooding notifications.
+     private void ShowCustomerOrderStatus()
+     {
++        foreach (SavedRepairPromise p in _pendingRepairPromises)
++            Notify("Saved repair #" + p.Quote.OrderId + " | fixed $" + p.Quote.Total +
++                " | " + p.RemainingSeconds.ToString("0.0") + " active seconds remaining; awaiting normal dispatch.");
+         CustomerOrder order = _customerOrder;
+         if (order == null)
+         {
+@@ -4557,7 +4568,266 @@ public class GlassHeroesBusinessV3Experimental : Script
+         public int ServiceKind, DedicatedUnits, UniversalUnits, OrderId;
+         public long Baseline, Premium, PartsEstimate, LaborEstimate, Total;
+         public double BillableSeconds;
+-        public bool LegacyPromise;
++        public bool LegacyPromise, CommitRetryPending;
++        public int LastCommitTryGameTime;
++    }
++
++    private sealed class SavedRepairPromise
++    {
++        public int Route, MechanicSlot; // 0 background, 1 physical, 2 remote
++        public RepairQuote Quote;
++        public double RemainingSeconds;
++    }
++
++    private static bool ValidRepairPromise(SavedRepairPromise promise)
++    {
++        if (promise == null || promise.Quote == null || promise.Route < 0 || promise.Route > 2 ||
++            promise.MechanicSlot < -1 || promise.MechanicSlot >= VisualBayCount) return false;
++        RepairQuote q = promise.Quote;
++        long units = (long)q.DedicatedUnits + q.UniversalUnits;
++        return q.OrderId > 0 && q.ServiceKind >= -1 && q.ServiceKind <= 2 &&
++            q.DedicatedUnits >= 0 && q.UniversalUnits >= 0 && units >= 1 && units <= 2 &&
++            (q.ServiceKind >= 0 || q.DedicatedUnits == 0) && q.Total >= 0 && q.Baseline >= 0 &&
++            q.Premium >= 0 && q.PartsEstimate >= 0 && q.LaborEstimate >= 0 &&
++            q.BillableSeconds > 0 && !double.IsNaN(q.BillableSeconds) && !double.IsInfinity(q.BillableSeconds) &&
++            promise.RemainingSeconds >= 0 && !double.IsNaN(promise.RemainingSeconds) &&
++            promise.RemainingSeconds <= Math.Max(15d, q.BillableSeconds);
++    }
++
++    private string RepairLedgerStamp()
++    {
++        // A prior build may preserve unknown journal keys while changing money/stock.
++        // Detect that rollback/edit instead of replaying a stale accepted order.
++        long[] values = { _cash, _revenue, _customerRevenue, _remoteSales, _parts,
++            _specialStock[0], _specialStock[1], _specialStock[2], _completed, _customerCompleted,
++            _remoteJobsCompleted, _remotePartsConsumed, _lastCustomerOrderId, _partsSalesRevenue, _partsSalesUnitsSold };
++        string text = string.Join("|", Array.ConvertAll(values,
++            value => value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
++        using (var hash = System.Security.Cryptography.SHA256.Create())
++            return BitConverter.ToString(hash.ComputeHash(System.Text.Encoding.UTF8.GetBytes(text))).Replace("-", "");
++    }
++
++    private void LoadRepairPromises(ScriptSettings data)
++    {
++        int count = data.GetValue("RepairPromisesV1", "Count", 0);
++        int version = data.GetValue("RepairPromisesV1", "Version", 1);
++        if (count < 0 || count > MaxSavedRepairPromises || (count > 0 && version != 1))
++            throw new InvalidDataException("Unsupported repair promise ledger; original save left untouched.");
++        if (count > 0 && !string.Equals(data.GetValue("RepairPromisesV1", "LedgerStamp", ""),
++            RepairLedgerStamp(), StringComparison.Ordinal))
++            throw new InvalidDataException("Saved repair journal does not match the current financial ledger. Restore a matching backup or request review; no save changed.");
++        var ids = new HashSet<int>();
++        for (int i = 0; i < count; i++)
++        {
++            string section = "RepairPromiseV1." + i;
++            var q = new RepairQuote {
++                OrderId = data.GetValue(section, "OrderId", -1), ServiceKind = data.GetValue(section, "ServiceKind", -2),
++                DedicatedUnits = data.GetValue(section, "DedicatedUnits", -1), UniversalUnits = data.GetValue(section, "UniversalUnits", -1),
++                Baseline = data.GetValue(section, "Baseline", -1L), Premium = data.GetValue(section, "Premium", -1L),
++                PartsEstimate = data.GetValue(section, "PartsEstimate", -1L), LaborEstimate = data.GetValue(section, "LaborEstimate", -1L),
++                Total = data.GetValue(section, "Total", -1L), BillableSeconds = data.GetValue(section, "BillableSeconds", -1d),
++                LegacyPromise = data.GetValue(section, "LegacyPromise", false)
++            };
++            var promise = new SavedRepairPromise { Quote = q, Route = data.GetValue(section, "Route", -1),
++                MechanicSlot = data.GetValue(section, "MechanicSlot", -2), RemainingSeconds = data.GetValue(section, "RemainingSeconds", -1d) };
++            if (!ValidRepairPromise(promise) || !ids.Add(q.OrderId))
++                throw new InvalidDataException("Invalid or duplicate saved repair quote; original save left untouched.");
++            _pendingRepairPromises.Add(promise);
++            _lastCustomerOrderId = Math.Max(_lastCustomerOrderId, q.OrderId);
++        }
++    }
++
++    private List<SavedRepairPromise> CaptureRepairPromises()
++    {
++        var records = new Dictionary<int, SavedRepairPromise>();
++        foreach (SavedRepairPromise p in _pendingRepairPromises) records[p.Quote.OrderId] = p;
++        bool[] claimed = new bool[_mechanics.Count];
++        foreach (CustomerOrder order in _activeCustomerOrders)
++        {
++            if (order.MechanicSlot >= 0 && order.MechanicSlot < claimed.Length) claimed[order.MechanicSlot] = true;
++            if (order.Paid) { records.Remove(order.Id); continue; }
++            if (order.Pricing == null) continue; // An unaccepted random request is not a promised quote.
++            double worked = order.MechanicSlot >= 0 && order.MechanicSlot < _mechanics.Count ?
++                _mechanics[order.MechanicSlot].WorkSeconds : order.ResumeWorkSeconds;
++            records[order.Id] = new SavedRepairPromise { Route = 1, Quote = order.Pricing,
++                MechanicSlot = order.MechanicSlot >= 0 ? order.MechanicSlot : order.ResumeMechanicSlot,
++                RemainingSeconds = Math.Max(0, order.RepairSeconds - worked) };
++        }
++        foreach (RemoteJob job in _remoteJobs)
++        {
++            if (job.MechanicSlot >= 0 && job.MechanicSlot < claimed.Length) claimed[job.MechanicSlot] = true;
++            if (job.Pricing == null) continue;
++            records[job.OrderId] = new SavedRepairPromise { Route = 2, Quote = job.Pricing,
++                MechanicSlot = job.MechanicSlot, RemainingSeconds = Math.Max(0, job.RemainingGameSeconds) };
++        }
++        for (int i = 0; i < _mechanics.Count; i++)
++        {
++            Mechanic m = _mechanics[i];
++            if (claimed[i] || !m.HasJob || m.Pricing == null) continue;
++            records[m.Pricing.OrderId] = new SavedRepairPromise { Route = 0, Quote = m.Pricing,
++                MechanicSlot = i, RemainingSeconds = Math.Max(0, m.Pricing.BillableSeconds - m.WorkSeconds) };
++        }
++        var result = new List<SavedRepairPromise>(records.Values);
++        if (result.Count > MaxSavedRepairPromises) throw new InvalidDataException("Repair promise capacity exceeded; no save replaced.");
++        foreach (SavedRepairPromise p in result)
++            if (!ValidRepairPromise(p)) throw new InvalidDataException("Invalid runtime repair promise; no save replaced.");
++        return result;
++    }
++
++    private void WriteRepairPromises(ScriptSettings data)
++    {
++        List<SavedRepairPromise> records = CaptureRepairPromises();
++        data.SetValue("RepairPromisesV1", "Version", 1);
++        data.SetValue("RepairPromisesV1", "Count", records.Count);
++        data.SetValue("RepairPromisesV1", "LedgerStamp", records.Count > 0 ? RepairLedgerStamp() : "");
++        for (int i = 0; i < records.Count; i++)
++        {
++            SavedRepairPromise p = records[i]; RepairQuote q = p.Quote;
++            string section = "RepairPromiseV1." + i;
++            data.SetValue(section, "OrderId", q.OrderId); data.SetValue(section, "ServiceKind", q.ServiceKind);
++            data.SetValue(section, "DedicatedUnits", q.DedicatedUnits); data.SetValue(section, "UniversalUnits", q.UniversalUnits);
++            data.SetValue(section, "Baseline", q.Baseline); data.SetValue(section, "Premium", q.Premium);
++            data.SetValue(section, "PartsEstimate", q.PartsEstimate); data.SetValue(section, "LaborEstimate", q.LaborEstimate);
++            data.SetValue(section, "Total", q.Total); data.SetValue(section, "BillableSeconds", q.BillableSeconds);
++            data.SetValue(section, "LegacyPromise", q.LegacyPromise); data.SetValue(section, "Route", p.Route);
++            data.SetValue(section, "MechanicSlot", p.MechanicSlot); data.SetValue(section, "RemainingSeconds", p.RemainingSeconds);
++        }
++    }
++
++    private void RememberCancelledRepair(CustomerOrder order)
++    {
++        if (order == null || order.Paid || order.Pricing == null ||
++            _remoteJobs.Exists(j => j.OrderId == order.Id)) return;
++        double worked = order.MechanicSlot >= 0 && order.MechanicSlot < _mechanics.Count ?
++            _mechanics[order.MechanicSlot].WorkSeconds : order.ResumeWorkSeconds;
++        var record = new SavedRepairPromise { Route = 1, Quote = order.Pricing,
++            MechanicSlot = order.MechanicSlot >= 0 ? order.MechanicSlot : order.ResumeMechanicSlot,
++            RemainingSeconds = Math.Max(0, order.RepairSeconds - worked) };
++        int found = _pendingRepairPromises.FindIndex(p => p.Quote.OrderId == order.Id);
++        if (found >= 0)
++        {
++            record.RemainingSeconds = Math.Min(record.RemainingSeconds, _pendingRepairPromises[found].RemainingSeconds);
++            _pendingRepairPromises[found] = record;
++        }
++        else _pendingRepairPromises.Add(record);
++    }
++
++    private void ParkRuntimeRepairPromises()
++    {
++        List<SavedRepairPromise> snapshot = CaptureRepairPromises();
++        _pendingRepairPromises.Clear();
++        _pendingRepairPromises.AddRange(snapshot);
++    }
++
++    private bool RestoreSavedNonphysicalRepairs()
++    {
++        if (!_clockedIn || !_bootGameplayActivated || Game.IsPaused || _pendingRepairPromises.Count == 0) return false;
++        bool changed = false;
++        for (int pendingIndex = _pendingRepairPromises.Count - 1; pendingIndex >= 0; pendingIndex--)
++        {
++            SavedRepairPromise p = _pendingRepairPromises[pendingIndex];
++            if (p.Route == 1 || (p.Route == 2 && _managerTier < 0)) continue;
++            int slot = p.MechanicSlot;
++            if (slot < 0 || slot >= _mechanics.Count)
++            {
++                slot = -1;
++                for (int i = 0; i < _mechanics.Count; i++) if (!_mechanics[i].HasJob) { slot = i; break; }
++            }
++            if (slot < 0 || _mechanics[slot].HasJob) continue;
++            Mechanic m = _mechanics[slot];
++            m.HasJob = true; m.IdleSeconds = 0;
++            if (p.Route == 0)
++            { m.Pricing = p.Quote; m.WorkSeconds = Math.Max(0, p.Quote.BillableSeconds - p.RemainingSeconds); }
++            else
++            {
++                m.WorkSeconds = 0;
++                _remoteJobs.Add(new RemoteJob { MechanicSlot = slot, OrderId = p.Quote.OrderId,
++                    ServiceKind = p.Quote.ServiceKind, PartsNeeded = p.Quote.DedicatedUnits + p.Quote.UniversalUnits,
++                    Price = p.Quote.Total, Pricing = p.Quote, RemainingGameSeconds = p.RemainingSeconds });
++            }
++            _pendingRepairPromises.RemoveAt(pendingIndex);
++            changed = true;
++            Notify("Resumed saved repair #" + p.Quote.OrderId + " at its fixed quote $" + p.Quote.Total + "; no offline progress.");
++        }
++        return changed;
++    }
++
++    private static void ApplySavedCustomerPromise(CustomerOrder order, SavedRepairPromise promise)
++    {
++        RepairQuote q = promise.Quote;
++        order.Id = q.OrderId; order.ServiceKind = q.ServiceKind;
++        order.PartsNeeded = q.DedicatedUnits + q.UniversalUnits;
++        order.Price = q.Total; order.Pricing = q; order.RepairSeconds = q.BillableSeconds;
++        order.RestoredPromise = true; order.ResumeMechanicSlot = promise.MechanicSlot;
++        order.ResumeWorkSeconds = Math.Max(0, q.BillableSeconds - promise.RemainingSeconds);
++    }
++
++    private bool RepairQuoteHasStock(RepairQuote quote)
++    {
++        if (quote == null) return false;
++        int[] free = UnreservedRepairStock(quote);
++        return free[0] >= quote.UniversalUnits && (quote.DedicatedUnits == 0 ||
++            (quote.ServiceKind >= 0 && free[quote.ServiceKind + 1] >= quote.DedicatedUnits));
++    }
++
++    private bool TrySettleRepair(RepairQuote quote, Mechanic mechanic, CustomerOrder order, RemoteJob remote)
++    {
++        if (!_bootGameplayActivated || Game.IsPaused || quote == null || mechanic == null ||
++            (order != null && (order.Paid || order.Price != quote.Total)) ||
++            (remote != null && remote.Price != quote.Total)) return false;
++        int now = Game.GameTime;
++        if (quote.CommitRetryPending && unchecked((uint)(now - quote.LastCommitTryGameTime)) < 3000U) return false;
++        bool customer = order != null || remote != null;
++        if (!CanCreditRepair(quote.Total, customer, remote != null) || _completed == int.MaxValue ||
++            (customer && _customerCompleted == int.MaxValue) || mechanic.JobsCompleted == int.MaxValue ||
++            (remote != null && (_remoteJobsCompleted == long.MaxValue ||
++                _remotePartsConsumed > long.MaxValue - remote.PartsNeeded))) return false;
++        int parts = _parts; int[] special = (int[])_specialStock.Clone();
++        if (!TryConsumeQuotedSupplies(quote)) return false;
++        long cash = _cash, revenue = _revenue, customerRevenue = _customerRevenue, remoteRevenue = _remoteSales;
++        long remoteCompleted = _remoteJobsCompleted, remoteParts = _remotePartsConsumed;
++        int completed = _completed, customerCompleted = _customerCompleted, xp = mechanic.Xp, jobs = mechanic.JobsCompleted;
++        bool hasJob = mechanic.HasJob; double work = mechanic.WorkSeconds, idle = mechanic.IdleSeconds;
++        RepairQuote backgroundQuote = mechanic.Pricing; string outcome = _lastOrderOutcome;
++        int remoteIndex = remote == null ? -1 : _remoteJobs.IndexOf(remote);
++        if (remote != null && remoteIndex < 0)
++        { _parts = parts; Array.Copy(special, _specialStock, 3); return false; }
++        int oldLevel = MechanicLevel(mechanic);
++        _cash += quote.Total; _revenue += quote.Total; _completed++;
++        mechanic.WorkSeconds = 0; mechanic.IdleSeconds = 0;
++        if (customer) { _customerRevenue += quote.Total; _customerCompleted++; }
++        if (order != null)
++        {
++            order.Paid = true;
++            if (!order.VehicleHandoff) mechanic.HasJob = false;
++            _lastOrderOutcome = "#" + order.Id + " PAID $" + quote.Total.ToString("N0") + " / " + ServiceName(order.ServiceKind);
++        }
++        else mechanic.HasJob = false;
++        if (!customer) mechanic.Pricing = null;
++        if (remote != null)
++        {
++            _remoteSales += quote.Total; _remoteJobsCompleted++; _remotePartsConsumed += remote.PartsNeeded;
++            _lastOrderOutcome = "REMOTE #" + remote.OrderId + " PAID $" + quote.Total;
++            _remoteJobs.RemoveAt(remoteIndex);
++        }
++        int gain = order != null ? 25 + (SpecialistMatches(mechanic, order.ServiceKind) ? 10 : 0) : remote != null ? 25 : 15;
++        mechanic.Xp = (int)Math.Min(100000L, (long)mechanic.Xp + gain); mechanic.JobsCompleted++;
++        if (!Save())
++        {
++            _parts = parts; Array.Copy(special, _specialStock, 3);
++            _cash = cash; _revenue = revenue; _customerRevenue = customerRevenue; _remoteSales = remoteRevenue;
++            _remoteJobsCompleted = remoteCompleted; _remotePartsConsumed = remoteParts;
++            _completed = completed; _customerCompleted = customerCompleted; _lastOrderOutcome = outcome;
++            mechanic.HasJob = hasJob; mechanic.WorkSeconds = work; mechanic.IdleSeconds = idle;
++            mechanic.Pricing = backgroundQuote; mechanic.Xp = xp; mechanic.JobsCompleted = jobs;
++            if (order != null) order.Paid = false;
++            if (remote != null) _remoteJobs.Insert(remoteIndex, remote);
++            quote.CommitRetryPending = true; quote.LastCommitTryGameTime = now;
++            return false;
++        }
++        quote.CommitRetryPending = false;
++        if (MechanicLevel(mechanic) > oldLevel) Notify(mechanic.Name + " reached level " + MechanicLevel(mechanic) + "!");
++        return true;
+     }
+ 
+     private void InitialiseRepairPricing()
+@@ -4625,8 +4895,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+         var seen = new HashSet<RepairQuote>();
+         foreach (CustomerOrder order in _activeCustomerOrders)
+         {
+-            if (order.MechanicSlot < 0) continue;
+-            if (order.MechanicSlot < claimed.Length) claimed[order.MechanicSlot] = true;
++            if (order.MechanicSlot < 0 && !order.RestoredPromise) continue;
++            if (order.MechanicSlot >= 0 && order.MechanicSlot < claimed.Length) claimed[order.MechanicSlot] = true;
+             if (order.Paid) continue;
+             RepairQuote quote = order.Pricing;
+             if (quote != null)
+@@ -4646,6 +4916,9 @@ public class GlassHeroesBusinessV3Experimental : Script
+             }
+             else ReserveRepairUnits(available, job.ServiceKind, job.PartsNeeded);
+         }
++        foreach (SavedRepairPromise promise in _pendingRepairPromises)
++            if (!Object.ReferenceEquals(promise.Quote, excluded) && seen.Add(promise.Quote))
++                ReserveQuotedUnits(available, promise.Quote);
+         for (int i = 0; i < _mechanics.Count; i++)
+         {
+             Mechanic mechanic = _mechanics[i];
+@@ -4664,6 +4937,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         double duration, long baseline, long premium, out RepairQuote quote)
+     {
+         quote = null;
++        if (_pendingRepairPromises.Count >= MaxSavedRepairPromises - VisualBayCount) return false;
+         if (kind < -1 || kind > 2 || quantity <= 0 || mechanic == null) return false;
+         int[] available = UnreservedRepairStock(null);
+         int specific = kind >= 0 ? Math.Min(available[kind + 1], quantity) : 0;
+@@ -4828,6 +5102,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void UpdateCustomerVisuals()
+     {
++        if (Game.IsPaused) return;
+         if (!_clockedIn || _remoteMode || !_customerServiceEnabled || !CustomerConfigurationReady() ||
+             Game.Player.Character == null ||
+             DistanceSquared(Game.Player.Character.Position, _location) >
+@@ -4848,12 +5123,14 @@ public class GlassHeroesBusinessV3Experimental : Script
+             return;
+         }
+         DateTime now = DateTime.UtcNow;
++        bool savedCustomer = _pendingRepairPromises.Exists(p => p.Route == 1);
++        if (savedCustomer && _waitingCustomerRequests == 0) _waitingCustomerRequests = 1;
+         QueueDueCustomer(now);
+         ValidateStagedCustomer(ref _stagedCustomerOrder);
+         ValidateStagedCustomer(ref _stagedThirdCustomerOrder);
+         UpdateStagedQueueTravel(ref _stagedCustomerOrder);
+         UpdateStagedQueueTravel(ref _stagedThirdCustomerOrder);
+-        if (_activeCustomerOrders.Count > 0 && _driveInEnabled && _waitingCustomerRequests > 0)
++        if (!savedCustomer && _activeCustomerOrders.Count > 0 && _driveInEnabled && _waitingCustomerRequests > 0)
+         {
+             if (_stagedCustomerOrder == null)
+                 SpawnRoadsideWaitingCustomer(now, false);
+@@ -5854,6 +6131,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+         order.PartsNeeded = order.ServiceKind == 1 ? 2 : 1;
+         order.Price = ServiceQuoteBaseline(order.ServiceKind);
+         order.RepairSeconds = _jobSeconds * (order.ServiceKind == 1 ? 1.25 : 1.0);
++        SavedRepairPromise recovered = _pendingRepairPromises.Find(p => p.Route == 1);
++        if (recovered != null) ApplySavedCustomerPromise(order, recovered);
+         order.DroveIn = driveMode;
+         try
+         {
+@@ -5880,6 +6159,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             order.Customer.BlockPermanentEvents = true;
+             order.Customer.AlwaysKeepTask = true;
+             AddActiveOrder(order);
++            if (recovered != null) _pendingRepairPromises.Remove(recovered);
+             SyncCustomerBlip(order);
+             if (driveMode)
+             {
+@@ -5897,12 +6177,14 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 StartCustomerWalkIn(order);
+                 Notify("Customer #" + order.Id + " arrived: " + ServiceName(order.ServiceKind) + ".");
+             }
+-            Save(); // Persist next ID. Active entities intentionally are NOT saved.
++            Save(); // Persist accepted data/IDs; actual entity handles are never saved.
+         }
+         catch (Exception ex)
+         {
+             Log("Spawn customer order", ex);
+             CancelCreatedCustomer(order);
++            if (recovered != null && !order.Paid && !_pendingRepairPromises.Contains(recovered))
++                _pendingRepairPromises.Add(recovered);
+             _activeCustomerOrders.Remove(order);
+             RestoreCurrentOrder();
+             _nextCustomerAt = now.AddSeconds(30);
+@@ -5943,8 +6225,9 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void AssignCustomerMechanic(CustomerOrder order)
+     {
+-        if (order == null || order.Paid || order.MechanicSlot >= 0) return;
+-        if (FreeStockForService(order.ServiceKind) < order.PartsNeeded) return; // No hidden stock creation.
++        if (!_bootGameplayActivated || Game.IsPaused || order == null || order.Paid || order.MechanicSlot >= 0) return;
++        if (order.Pricing != null ? !RepairQuoteHasStock(order.Pricing) :
++            FreeStockForService(order.ServiceKind) < order.PartsNeeded) return; // No hidden stock creation.
+         // Prefer a free specialist for the type of service, then any free generalist.
+         // AUTO LOT accepts any configured mechanic station; CUSTOM MLO still
+         // requires individual vehicle parking points where the user placed them.
+@@ -5973,15 +6256,18 @@ public class GlassHeroesBusinessV3Experimental : Script
+         if (_diagnosticScannerPurchased && order.ServiceKind == 2) multiplier *= 0.90;
+         long premium = (MechanicLevel(assigned) - 1) * 20L +
+             (SpecialistMatches(assigned, order.ServiceKind) ? 75L : 0L);
+-        RepairQuote quote;
+-        if (!TryCreateRepairQuote(order.ServiceKind, order.PartsNeeded, assigned,
++        RepairQuote quote = order.Pricing;
++        if (quote == null && !TryCreateRepairQuote(order.ServiceKind, order.PartsNeeded, assigned,
+             order.RepairSeconds * multiplier, order.Price, premium, out quote)) return;
+         quote.OrderId = order.Id;
+-        order.Pricing = quote;
+-        order.Price = quote.Total;
+-        order.RepairSeconds = quote.BillableSeconds;
++        long previousPrice = order.Price; double previousSeconds = order.RepairSeconds;
++        RepairQuote previousQuote = order.Pricing; CustomerStage previousStage = order.Stage;
++        double previousWork = assigned.WorkSeconds, previousIdle = assigned.IdleSeconds;
++        bool previousHandoff = order.VehicleHandoff, previousAutomatic = order.AutomaticLot;
++        WorkBay previousBay = order.ResolvedParkingBay; double previousStageSeconds = order.SecondsInStage;
++        order.Pricing = quote; order.Price = quote.Total; order.RepairSeconds = quote.BillableSeconds;
+         assigned.HasJob = true;
+-        assigned.WorkSeconds = 0;
++        assigned.WorkSeconds = order.RestoredPromise ? Math.Min(order.RepairSeconds, order.ResumeWorkSeconds) : 0;
+         assigned.IdleSeconds = 0;
+         order.MechanicSlot = chosen;
+         order.AutomaticLot = _automaticLotMode;
+@@ -5990,6 +6276,14 @@ public class GlassHeroesBusinessV3Experimental : Script
+         order.VehicleHandoff = _vehicleTransfersEnabled && order.ResolvedParkingBay.IsSet;
+         order.Stage = order.VehicleHandoff ? CustomerStage.MechanicWalkingToPickup : CustomerStage.Repairing;
+         order.SecondsInStage = 0;
++        if (!Save())
++        {
++            assigned.HasJob = false; assigned.WorkSeconds = previousWork; assigned.IdleSeconds = previousIdle;
++            order.MechanicSlot = -1; order.Price = previousPrice; order.RepairSeconds = previousSeconds;
++            order.Pricing = previousQuote; order.Stage = previousStage; order.SecondsInStage = previousStageSeconds;
++            order.VehicleHandoff = previousHandoff; order.AutomaticLot = previousAutomatic; order.ResolvedParkingBay = previousBay;
++            return; // No accepted promise or vehicle task before a durable snapshot.
++        }
+         if (order.VehicleHandoff)
+         {
+             // Backtrack the SAME configurable Spawn -> Break route used on arrival.
+@@ -6034,24 +6328,11 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 order.ResolvedParkingBay.Position) > 25f)) return;
+         mechanic.WorkSeconds = Math.Min(order.RepairSeconds, mechanic.WorkSeconds + seconds);
+         if (mechanic.WorkSeconds < order.RepairSeconds) return;
+-        if (!CanCreditRepair(order.Price, true, false) || !ConsumeRepairSupplies(order)) return;
+-        // Keep the worker reserved during the paid vehicle-return task.
+-        // A premature HasJob=false would send the worker to the break area.
+-        if (!order.VehicleHandoff) mechanic.HasJob = false;
+-        mechanic.WorkSeconds = 0;
+-        mechanic.IdleSeconds = 0;
+-        _cash += order.Price;
+-        _revenue += order.Price;
+-        _customerRevenue += order.Price;
+-        _completed++;
+-        _customerCompleted++;
+-        order.Paid = true;
+-        _lastOrderOutcome = "#" + order.Id + " PAID $" + order.Price.ToString("N0") +
+-            " / " + ServiceName(order.ServiceKind);
+-        AwardMechanicXp(mechanic, 25 + (SpecialistMatches(mechanic, order.ServiceKind) ? 10 : 0));
++        if (order.Pricing == null && !TryRetainLegacyRepairQuote(order.ServiceKind, order.PartsNeeded,
++            mechanic, order.RepairSeconds, order.Price, order.Id, q => order.Pricing = q)) return;
++        if (!TrySettleRepair(order.Pricing, mechanic, order, null)) return;
+         RecordCustomerInvoice(order);
+         RecordRepairPricing(order.Pricing, "CUSTOMER");
+-        Save();
+         Notify("Order #" + order.Id + " complete: +$" + order.Price +
+             " | " + order.PartsNeeded + " parts used.");
+         if (order.Customer == null || !order.Customer.Exists())
+@@ -6102,6 +6383,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+     {
+         if (_customerOrder == null) return;
+         CustomerOrder order = _customerOrder;
++        RememberCancelledRepair(order);
+         if (order.MechanicSlot >= 0 && order.MechanicSlot < _mechanics.Count)
+         {
+             Mechanic mechanic = _mechanics[order.MechanicSlot];
+@@ -6131,6 +6413,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void ProcessEconomy(double seconds)
+     {
++        if (!_clockedIn || Game.IsPaused || seconds <= 0 || double.IsNaN(seconds) || double.IsInfinity(seconds)) return;
++        bool restored = RestoreSavedNonphysicalRepairs();
+         foreach (Mechanic mechanic in _mechanics)
+         {
+             if (mechanic.UnpaidWages <= 0) continue;
+@@ -6156,7 +6440,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         if (_rentUtilitiesDue > 0) _rentUnpaidSeconds += seconds;
+         _payrollClock += seconds;
+         _overheadClock += seconds;
+-        bool changed = false;
++        bool changed = restored;
+         if (_payrollClock >= _wagePeriodSeconds)
+         {
+             _payrollClock -= _wagePeriodSeconds;
+@@ -6235,6 +6519,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 employee.WorkSeconds = 0;
+                 employee.IdleSeconds = 0;
+                 reservedParts++;
++                changed = true; // Accepted background quote is captured by the save below.
+                 Notify("Mechanic " + (i + 1) + " assigned a new repair order.");
+                 continue;
+             }
+@@ -6246,22 +6531,13 @@ public class GlassHeroesBusinessV3Experimental : Script
+             if (traveling) continue;
+             if (employee.Pricing == null && !TryRetainLegacyRepairQuote(-1, 1, employee, _jobSeconds,
+                 _jobRevenue, _lastCustomerOrderId, q => employee.Pricing = q)) continue;
+-            employee.WorkSeconds = Math.Min(_jobSeconds, employee.WorkSeconds + seconds);
+-            if (employee.WorkSeconds >= _jobSeconds)
++            employee.WorkSeconds = Math.Min(employee.Pricing.BillableSeconds, employee.WorkSeconds + seconds);
++            if (employee.WorkSeconds >= employee.Pricing.BillableSeconds)
+             {
+                 RepairQuote paidQuote = employee.Pricing;
+-                if (paidQuote == null || !CanCreditRepair(paidQuote.Total, false, false) ||
+-                    !TryConsumeQuotedSupplies(paidQuote)) continue;
+-                employee.HasJob = false;
+-                employee.Pricing = null;
+-                employee.WorkSeconds = 0;
+-                employee.IdleSeconds = 0;
++                if (!TrySettleRepair(paidQuote, employee, null, null)) continue;
+                 reservedParts--;
+-                _cash += paidQuote.Total;
+-                _revenue += paidQuote.Total;
+                 RecordRepairPricing(paidQuote, "BACKGROUND");
+-                _completed++;
+-                AwardMechanicXp(employee, 15);
+                 changed = true;
+                 Notify(employee.Name + " completed repair: +$" +
+                     paidQuote.Total + " (1 part used) | " + RepairQuoteBreakdown(paidQuote));
+@@ -6389,32 +6665,18 @@ public class GlassHeroesBusinessV3Experimental : Script
+     private void ProcessRemoteOperations(double gameSeconds)
+     {
+         // Always run on GTA Game.GameTime deltas, never DateTime.UtcNow or save timestamps.
+-        if (gameSeconds <= 0 || double.IsNaN(gameSeconds) || double.IsInfinity(gameSeconds) || _managerTier < 0 || !_clockedIn) return;
++        if (Game.IsPaused || gameSeconds <= 0 || double.IsNaN(gameSeconds) || double.IsInfinity(gameSeconds) || _managerTier < 0 || !_clockedIn) return;
+         bool changed = false;
+         foreach (RemoteJob job in _remoteJobs.ToArray())
+         {
+             if (job.MechanicSlot < 0 || job.MechanicSlot >= _mechanics.Count)
+             { _remoteJobs.Remove(job); continue; }
+-            job.RemainingGameSeconds -= gameSeconds;
++            job.RemainingGameSeconds = Math.Max(0, job.RemainingGameSeconds - gameSeconds);
+             if (job.RemainingGameSeconds > 0) continue;
+             Mechanic mechanic = _mechanics[job.MechanicSlot];
+             if (job.Pricing == null && !TryRetainLegacyRepairQuote(job.ServiceKind, job.PartsNeeded,
+                 mechanic, Math.Max(0, _jobSeconds), job.Price, job.OrderId, q => job.Pricing = q)) continue;
+-            if (!CanCreditRepair(job.Price, true, true) || !TryConsumeQuotedSupplies(job.Pricing))
+-                continue; // A prior promise is never silently repriced or paid without reserved stock.
+-            _cash += job.Price; _revenue += job.Price; _customerRevenue += job.Price;
+-            _completed++; _customerCompleted++;
+-            _remoteSales += job.Price;
+-            _remoteJobsCompleted++;
+-            _remotePartsConsumed += job.PartsNeeded;
+-            _lastOrderOutcome = "REMOTE #" + job.OrderId + " PAID $" + job.Price;
+-            // Mark the virtual invoice ID before recording, never pay the same job twice.
+-            mechanic.HasJob = false;
+-            mechanic.WorkSeconds = 0;
+-            mechanic.IdleSeconds = 0;
+-            _remoteJobs.Remove(job);
+-            mechanic.Xp = Math.Min(100000, mechanic.Xp + 25);
+-            mechanic.JobsCompleted++;
++            if (!TrySettleRepair(job.Pricing, mechanic, null, job)) continue;
+             AppendRemoteInvoice(job, mechanic);
+             RecordRepairPricing(job.Pricing, "REMOTE");
+             changed = true;
+@@ -6898,6 +7160,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             }
+             for (int i = 0; i < VisualBayCount; i++)
+                 SavePoint(data, "BayApproach" + (i + 1), _bayApproaches[i]);
++            WriteRepairPromises(data);
+             if (!data.Save()) throw new IOException("ScriptSettings.Save returned false.");
+         }, ex => Log("Saving", ex));
+         if (!saved) Notify("Business save failed. Check GlassHeroesBusiness/Errors.log.");
+@@ -8419,6 +8682,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             Log("BOOT aborted before gameplay activation; saved business state preserved", null);
+             return;
+         }
++        ParkRuntimeRepairPromises(); // Preserve fixed accepted data before entity cleanup.
+         ReleasePendingVisualModels();
+         CancelAllCustomerOrders("Script aborted");
+         ClearStagedCustomers();

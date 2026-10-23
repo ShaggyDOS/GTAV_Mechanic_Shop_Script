@@ -10,8 +10,14 @@ class ScriptSettings {
  internal Dictionary<string,long> values=new Dictionary<string,long>();
  internal T GetValue<T>(string section,string key,T fallback){return values.TryGetValue(section+"."+key,out long value)?(T)Convert.ChangeType(value,typeof(T)):fallback;}
 }
-static class Game {internal static PlayerState Player=new PlayerState();internal class PlayerState {internal Ped Character=new Ped();}}
+static class Game {internal static bool IsPaused;internal static int GameTime=100;internal static PlayerState Player=new PlayerState();internal class PlayerState {internal Ped Character=new Ped();}}
 class Harness {
+    /*<source:SavedRepairPromise>*/
+    /*<source:RepairQuoteHasStock>*/
+    /*<source:TrySettleRepair>*/
+    /*<source:RestoreSavedNonphysicalRepairs>*/
+    const int MaxSavedRepairPromises=16;
+    readonly List<SavedRepairPromise> _pendingRepairPromises=new List<SavedRepairPromise>();
     /*<source:Mechanic>*/
     /*<source:CustomerStage>*/
     /*<source:CustomerOrder>*/
@@ -42,8 +48,10 @@ class Harness {
     /*<source:ProcessCustomerRepair>*/
     private const int PhaseRouteBlocked=7,PhaseWorking=5,PhaseAtBreak=3,VisualBayCount=3;
     private static string DataDirectory;
+    bool _bootGameplayActivated=true;
+    long _remoteJobsCompleted,_remotePartsConsumed;
     long _cash,_revenue,_customerRevenue,_remoteSales,_supplierInvoicesDue=567,_partsSpend=31,_payrollSpend=32;
-    int _parts=10,_completed,_customerCompleted,_remoteJobsCompleted,_remotePartsConsumed,_lastCustomerOrderId;
+    int _parts=10,_completed,_customerCompleted,_lastCustomerOrderId;
     int[] _specialStock={10,10,10},_specialUnitCosts={90,160,125};
     readonly long[] _unitCostEstimates=new long[4];ScriptSettings _configuration=new ScriptSettings();
     int _partCost=100,_jobRevenue=500,_wagePerEmployee=250,_jobSeconds=120,_betweenJobsSeconds=10,_wagePeriodSeconds=300;
@@ -56,7 +64,7 @@ class Harness {
     WorkBay[] _bays={new WorkBay{IsSet=true},new WorkBay{IsSet=true},new WorkBay{IsSet=true}},_vehicleParkingBays={new WorkBay(),new WorkBay(),new WorkBay()};
     CustomerOrder _customerOrder;int saves,invoiceWrites;List<string> notices=new List<string>();
     long savedCash,savedRevenue;int savedParts;
-    void Save(){saves++;savedCash=_cash;savedRevenue=_revenue;savedParts=_parts;}
+    bool Save(){saves++;savedCash=_cash;savedRevenue=_revenue;savedParts=_parts;return true;}
     void Notify(string text){notices.Add(text);}void Log(string text,Exception error){}
     int MechanicLevel(Mechanic m)=>Math.Min(10,1+m.Xp/200);
     bool SpecialistMatches(Mechanic m,int k)=>m.Specialty!=0&&m.Specialty==k;

@@ -28,6 +28,18 @@ if 'Save' in profile['changed'] and 'TryCommitBusinessSave' in profile['added']:
  for key in ['PartsSalesRevenue','PartsSalesUnitsSold']:
   new_payload=re.sub(r'^            data.SetValue\("Business", "'+key+r'", [^\n]+\n','',new_payload,flags=re.M)
  assert new_payload==old_payload,'Existing save value or point payload changed'
+if args.profile=='reload':
+ old_save=before['Save'];new_save=after['Save'].replace('            WriteRepairPromises(data);\n','')
+ assert old_save==new_save,'Existing save snapshot payload changed'
+ assert after['GlassHeroesBusinessV3Experimental'].index('LoadRepairPromises(data)')<after['GlassHeroesBusinessV3Experimental'].index('Tick += OnTick')
+ assert after['OnAborted'].replace('        ParkRuntimeRepairPromises(); // Preserve fixed accepted data before entity cleanup.\n','')==before['OnAborted']
+ assert after['CancelCustomerOrder'].index('RememberCancelledRepair(order)')<after['CancelCustomerOrder'].index('mechanic.WorkSeconds = 0')
+ assert after['AssignCustomerMechanic'].index('if (!Save())')<after['AssignCustomerMechanic'].index('BeginVehicleWalk(')
+ for method,audit in [('ProcessOneCustomerRepair','RecordCustomerInvoice'),('ProcessRemoteOperations','AppendRemoteInvoice'),('ProcessEconomy','RecordRepairPricing')]:
+  assert after[method].index('TrySettleRepair(')<after[method].index(audit+'(')
+ assert after['TrySettleRepair'].index('if (!Save())')<after['TrySettleRepair'].index('quote.CommitRetryPending = false')
+ fields=lambda name,op:set(re.findall(r'data\.'+op+r'\(section, "([^\"]+)"',after[name]))
+ assert fields('LoadRepairPromises','GetValue')==fields('WriteRepairPromises','SetValue'), 'Promise serializer field mismatch'
 for op in ['GetValue','SetValue']:
  keys=lambda t:set(re.findall(r'\.'+op+r'\("([^"]+)",\s*"([^"]+)"',t))
  old=keys(parent);new=keys(current);assert old<=new,op+' removed a key'

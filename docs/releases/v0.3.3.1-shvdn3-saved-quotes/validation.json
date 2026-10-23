@@ -1,0 +1,55 @@
+{
+  "label": "saved-quotes",
+  "profile": "reload",
+  "created_utc": "2026-10-23T03:57:23.341858+00:00",
+  "reference": "ScriptHookVDotNet3 3.6.0",
+  "target": "net48 / C# 7.3",
+  "sdk": "8.0.426",
+  "build": "PASS",
+  "build_errors": 0,
+  "warnings": [
+    "CS0169",
+    "CS0649"
+  ],
+  "inherited_behavior": {
+    "corrective": 54,
+    "logger": 9,
+    "migration": 22,
+    "total": 85
+  },
+  "feature_suites": {
+    "repair": {
+      "passed": 32,
+      "total": 32
+    },
+    "sales": {
+      "passed": 29,
+      "total": 29
+    },
+    "pallets": {
+      "passed": 23,
+      "total": 23
+    },
+    "wages": {
+      "passed": 22,
+      "total": 22
+    },
+    "reload": {
+      "passed": 41,
+      "total": 41
+    }
+  },
+  "behavior_total": 232,
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "source_sha256": "c7001f6f25d7306d43582101d4107c4e757ffc6420439511c784bb70ab72cc6f",
+  "clock_source_unchanged": true,
+  "v2_and_protected_baseline_unchanged": true,
+  "live_installation_or_saves_touched": false,
+  "gta_testing": "NOT RUN",
+  "crash_cause": "UNATTRIBUTED",
+  "enhanced_runtime_compatibility": "NOT VERIFIED",
+  "review_status": "DRAFT / PENDING"
+}

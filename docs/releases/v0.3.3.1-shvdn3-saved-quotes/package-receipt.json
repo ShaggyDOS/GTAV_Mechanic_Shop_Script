@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_SHVDN3_saved-quotes_EXPERIMENTAL.zip",
+  "sha256": "60a92ec1bc48a398563f339fa208f2d58ef6ab56c37af6951a802bd0bf4b68ca",
+  "source_sha256": "c7001f6f25d7306d43582101d4107c4e757ffc6420439511c784bb70ab72cc6f",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 232,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}
