@@ -25,6 +25,7 @@ class Model : IEquatable<Model> {
 class Prop {internal bool alive=true,IsPositionFrozen;internal float Heading;internal Vector3 Position;internal bool Exists()=>alive;internal void Delete(){alive=false;}}
 static class World {internal static int creates;internal static bool failCreate;internal static Prop CreateProp(Model m,Vector3 p,bool dynamic,bool ground){creates++;if(failCreate)throw new Exception("create");return new Prop{Position=p};}}
 class Harness {
+    long _financeActiveMs;
     bool _nativePauseYielded;
     bool YieldMenuToNativePause()=>Game.IsPaused;
     DateTime _supplierGameplayNow = DateTime.UtcNow;

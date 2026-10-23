@@ -52,7 +52,18 @@ for pth,sha in profile['protected_v2'].items():assert hashlib.sha256((repo/pth).
 for bad in ['ForensicProbe','ForensicsEnabled','WholesalePackageBlip','GlassHeroesV3Probe']:assert bad not in current,bad
 assert 'private const string SaveFile = @"scripts\\GlassHeroesBusiness\\Save.ini";' in current
 assert 'private const string SettingsFile = @"scripts\\GlassHeroesBusiness\\Settings.ini";' in current
-if args.profile == 'workflow':
+if args.profile == 'finance':
+ restored = after['OnTick'].replace('            _financeActiveMs = checked(_financeActiveMs + (long)Math.Round(activeGameSeconds * 1000d));\n', '').replace('if (_clockedIn && activeGameSeconds > 0) ProcessEconomy(activeGameSeconds);','if (_clockedIn && seconds > 0) ProcessEconomy(seconds);')
+ assert restored == before['OnTick'], 'Out-of-scope tick/clock change'
+ assert after['GlassHeroesBusinessV3Experimental'].replace('            LoadFinanceBook(data);\n','').replace('BOOT v0.3.3.3 SHVDN3 FINANCIAL TRANSPARENCY EXPERIMENTAL / constructor entered','BOOT v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES + SAVED QUOTES EXPERIMENTAL (#27, #25) / constructor entered') == before['GlassHeroesBusinessV3Experimental']
+ old_payload = before['Save'][before['Save'].index('            data.SetValue'):before['Save'].index('            if (!data.Save())')]
+ new_payload = after['Save'][after['Save'].index('            data.SetValue'):after['Save'].index('            if (!data.Save())')].replace('            WriteFinanceBook(data, candidate);\n', '')
+ assert old_payload == new_payload, 'Existing save values changed'
+ assert before['TryCommitBusinessSave'] == after['TryCommitBusinessSave']
+ for name in ['OpenPointEditor','ExecutePointEditorSelection','ConfigureWorkBay','ConfigureVehicleParkingBay','ConfigureArrivalPoint','ConfigureRoutePoint']:
+  assert before[name] == after[name], 'Crash/waypoint scope leaked into finance'
+ assert 'WaypointTrace' not in current
+elif args.profile == 'workflow':
  restored = after['OnTick'].replace('            _nativePauseYielded = YieldMenuToNativePause();\n', '')
  assert restored == before['OnTick'], 'Existing economy/ETA/route clock or tick ordering changed'
  assert after['Save'].replace('            WriteSupplierOrderLines(data);\n', '') == before['Save'], 'Existing save payload changed'
@@ -65,6 +76,6 @@ elif args.profile == 'supplier':
  assert before['TryCommitBusinessSave'] == after['TryCommitBusinessSave'], 'Atomic persistence boundary changed'
 else:
  assert before['OnTick']==after['OnTick'],'Active game-time sampling changed'
-result={'profile':args.profile,'parent':profile['parent'],'parent_source_sha256':profile['parent_sha256'],'candidate_source_sha256':hashlib.sha256((repo/'experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs').read_bytes()).hexdigest(),'changed_methods':changed,'new_helpers':added,'unchanged_methods':len(before)-len(changed),'clocks_and_startup_game_gate_unchanged':True,'original_v2_source_project_unchanged':True,'supplier_receipt_accounting_unchanged':args.profile not in {'supplier','workflow'},'out_of_scope_forensics_and_blip_features_absent':True,'gta_testing':'NOT RUN'}
+result={'profile':args.profile,'parent':profile['parent'],'parent_source_sha256':profile['parent_sha256'],'candidate_source_sha256':hashlib.sha256((repo/'experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs').read_bytes()).hexdigest(),'changed_methods':changed,'new_helpers':added,'unchanged_methods':len(before)-len(changed),'clocks_and_startup_game_gate_unchanged':True,'original_v2_source_project_unchanged':True,'supplier_receipt_accounting_unchanged':args.profile not in {'supplier','workflow','finance'},'out_of_scope_forensics_and_blip_features_absent':True,'gta_testing':'NOT RUN'}
 if args.output:args.output.write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2));print('PASS scope and preservation checks')

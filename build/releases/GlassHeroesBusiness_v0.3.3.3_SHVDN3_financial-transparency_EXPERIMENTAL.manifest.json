@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.3_SHVDN3_financial-transparency_EXPERIMENTAL.zip",
+  "sha256": "f21f53fd0b7b757cbeb9892d90ef87b13bff7becffff94a267364ac2bb40262c",
+  "source_sha256": "84125a3465adc717b21984d3e95cdf4c1faed77426eda979a90cf7a3a4917fe5",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 406,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

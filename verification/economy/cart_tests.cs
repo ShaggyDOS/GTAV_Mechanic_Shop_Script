@@ -10,6 +10,7 @@ class ScriptSettings {
 }
 static class Game {internal static bool IsPaused;}
 class Harness {
+ long _financeRebateIncome,_financeRefundIncome;
  /*<source:SupplierLineTotal>*/
  /*<source:SupplierCartCost>*/
  /*<source:TryPlaceSupplierOrder>*/

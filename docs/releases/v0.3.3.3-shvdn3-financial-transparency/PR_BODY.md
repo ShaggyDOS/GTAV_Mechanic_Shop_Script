@@ -1,0 +1,9 @@
+Implement Financial Transparency and Income Reporting on preserved SHVDN3 supplier/menu/cart/pause candidate 422baa7.
+
+Add Finances & Accounting with overview, physical/remote/autonomous/retail income, expenses, purchase-basis P&L, transaction history and owner transfers. Lifetime/current/last-shift labels distinguish gross sales, actual cash movements, accruals and bills. Remote is already a subset of legacy customer revenue; new partitions never count it twice. Returning-manager totals now explicitly say LIFETIME, not shift cash.
+
+Stage a bounded 256-entry journal with identity, active-game timestamp, category/amount/resulting cash inside the existing atomic business snapshot. Reconcile opening + inflows - outflows = closing, separate owner capital/credits/adjustments, retain history-opening checkpoint and since-upgrade totals. Preserve legacy counters without inventing old chronology. Harden bill/owner synchronous rollback; keep exactly-once job/cart settlement. ProcessEconomy now uses the existing active game clock instead of clamped UTC elapsed.
+
+Source audit does not establish the exact observed $5,000 sales/cash discrepancy without before/after snapshots. Regression proves $5,000 cash rise with no outflows and $200 rise after $4,800 payments. Purchase-expense P&L is explicitly not inventory-valued/GAAP accounting; pre-upgrade owner/credit history is unknown. GTA-wallet/business-file hard-crash atomicity remains a limitation.
+
+Genuine net48/C#7.3 SHVDN3 Release, inherited+financial regressions, 21 static predicates, preservation guards and hashed review ZIP/clean extracted rebuild are recorded in docs/releases/v0.3.3.3-shvdn3-financial-transparency. GTA/Windows testing NOT RUN. No main/QA R2/live changes or merges. Waypoint crash diagnostics are a separate branch; no crash attribution/fix claimed. Keep Draft.

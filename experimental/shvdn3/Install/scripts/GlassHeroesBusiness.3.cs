@@ -1,4 +1,4 @@
-// Glass Heroes Business Manager - v0.3.3.2 SHVDN3 SUPPLIER WORKFLOW / EXPERIMENTAL (#24, #25)
+// Glass Heroes Business Manager - v0.3.3.3 SHVDN3 FINANCIAL TRANSPARENCY / EXPERIMENTAL
 // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
 // Original project. Does not reference or modify Auto Work or its data.
 // GTA V Story Mode only | ScriptHookVDotNet3 3.6.0 / .NET Framework 4.8
@@ -30,7 +30,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     // PointEditor is a reusable sub-menu for EACH individual saved point.
     private enum MenuPage {
         Business, BusinessManagement, Employees, EmployeeSettings, EmployeePaths, ArrivalWaypoints, MechanicBays, ServiceWaypoints,
-        BayApproaches, ServiceVehicleBays, PointEditor, RouteRecovery, PlacementMarkers, Customers, Finances,
+        BayApproaches, ServiceVehicleBays, PointEditor, RouteRecovery, PlacementMarkers, Customers, Finances, FinancialOverview, IncomeSales, ProfitLoss, TransactionHistory, OwnerTransfers,
         StaffRoster, StaffProfile, VehicleDriveOptions, CustomerPlacements, EmployeePlacements,
         MechanicWalkingPaths, ReceptionWalkingPaths, ReceptionWaypoints, CustomerQueueSettings,
         PartsSales, VehicleAutoLotOptions, BusinessExpenses, MechanicInvoices, CustomerWalkingRoutes,
@@ -535,7 +535,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             RequireExclusiveBusinessInstallation(File.Exists);
             Directory.CreateDirectory(DataDirectory);
-            Log("BOOT v0.3.3.1 SHVDN3 ECONOMY + PALLETS + WAGES + SAVED QUOTES EXPERIMENTAL (#27, #25) / constructor entered", null);
+            Log("BOOT v0.3.3.3 SHVDN3 FINANCIAL TRANSPARENCY EXPERIMENTAL / constructor entered", null);
             _configuration = ScriptSettings.Load(SettingsFile);
             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
@@ -841,6 +841,7 @@ public class GlassHeroesBusinessV3Experimental : Script
 
             LoadSupplierOrderLines(data);
             LoadRepairPromises(data);
+            LoadFinanceBook(data);
 
             _clockedIn = false; // Opening shift is a deliberate action after every load.
             _lastTick = DateTime.UtcNow;
@@ -899,6 +900,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             double activeGameSeconds = !Game.IsPaused && elapsedGameMs > 0 && elapsedGameMs <= 30000L
                 ? Math.Min(2d, elapsedGameMs / 1000d) : 0d;
             _supplierGameplayNow = _supplierGameplayNow.AddSeconds(activeGameSeconds);
+            _financeActiveMs = checked(_financeActiveMs + (long)Math.Round(activeGameSeconds * 1000d));
             _diagnosticTickStage = "remote mode transition";
             if (_clockedIn && _managerTier >= 0 && Game.Player.Character != null && _placed &&
                 DistanceSquared(Game.Player.Character.Position, _location) >
@@ -908,7 +910,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             }
             else if (_remoteMode) LeaveRemoteOperations();
             _diagnosticTickStage = "economy";
-            if (_clockedIn && seconds > 0) ProcessEconomy(seconds);
+            if (_clockedIn && activeGameSeconds > 0) ProcessEconomy(activeGameSeconds);
             // Advance supplier ETA only while GTA is actively running and unpaused.
             // Persist every 15 seconds of gameplay to avoid per-frame disk writes.
             _diagnosticTickStage = "supplier timer";
@@ -1150,10 +1152,14 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.VehicleAutoLotOptions: _menuPage = MenuPage.VehicleDriveOptions; _selection = 3; break;
             case MenuPage.Customers: _menuPage = MenuPage.BusinessManagement; _selection = 1; break;
             case MenuPage.Finances:
-                _menuPage = _financesFromExpenses ? MenuPage.BusinessExpenses : MenuPage.BusinessManagement;
-                _selection = _financesFromExpenses ? 8 : 4;
-                break;
-            case MenuPage.BusinessExpenses: _menuPage = MenuPage.BusinessManagement; _selection = 3; break;
+                if (_financesFromExpenses) _financesFromExpenses = false;
+                _menuPage = MenuPage.BusinessManagement; _selection = 4; break;
+            case MenuPage.FinancialOverview: _menuPage = MenuPage.Finances; _selection = 0; break;
+            case MenuPage.IncomeSales: _menuPage = MenuPage.Finances; _selection = 1; break;
+            case MenuPage.BusinessExpenses: _menuPage = MenuPage.Finances; _selection = 2; break;
+            case MenuPage.ProfitLoss: _menuPage = MenuPage.Finances; _selection = 3; break;
+            case MenuPage.TransactionHistory: _menuPage = MenuPage.Finances; _selection = 4; break;
+            case MenuPage.OwnerTransfers: _menuPage = MenuPage.Finances; _selection = 5; break;
             case MenuPage.PartsSales: _menuPage = MenuPage.InventoryManagement; _selection = 3; break;
             case MenuPage.InventoryOverview: _menuPage = MenuPage.InventoryManagement; _selection = 0; break;
             case MenuPage.BuildSupplierOrder: _menuPage = MenuPage.InventoryManagement; _selection = 1; break;
@@ -1266,7 +1272,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             case MenuPage.BusinessManagement:
                 return new string[] { "Employees >", "Customers >", "Inventory & Suppliers >",
-                    "Expenses & Bills >", "Finances & Reports >", "Controller Controls >",
+                    "Expenses & Bills >", "Finances & Accounting >", "Controller Controls >",
                     "Deposit $1,000", "Withdraw $1,000", "Set Shop Location",
                     "< Back to Main" };
             case MenuPage.Employees:
@@ -1395,11 +1401,16 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Mechanic 3 Wage Invoice", "Pay Former Employee Wages", "Pay All Mechanic Wages",
                     "< Back to Expenses" };
             case MenuPage.Finances:
-                return new string[] { "Account Balance", "Revenue and Customer Sales", "Parts Inventory",
-                    "Employee Payroll", "Rent and Utilities", "Hiring Expenses", "Net Business Profit",
-                    "Supplier Orders & Cost Summary", "Current / Last Shift Profit",
-                    "Parts & Supplier Spending", "Hiring & Training Spending", "Payroll Due Dates & Morale",
-                    "< Back to Business Management" };
+                return new string[] { "Financial Overview >", "Income & Sales >", "Expenses & Bills >", "Profit & Loss >", "Transaction History >", "Owner Cash Transfers >", "Reporting Period: Toggle", "< Back to Management" };
+            case MenuPage.FinancialOverview:
+                return new string[] { "Reporting Period: Toggle", "Period Closing Cash", "Gross Revenue", "Cash Flow Reconciliation", "Outstanding Bills at Close", "Save / Audit State", "< Back to Accounting" };
+            case MenuPage.IncomeSales:
+                return new string[] { "Reporting Period: Toggle", "Physical Customer Repairs", "Manager Remote Repairs", "Autonomous Mechanic Jobs", "Parts Retail Sales", "Gross Revenue (No Overlap)", "Known Rebates / Refunds", "< Back to Accounting" };
+            case MenuPage.ProfitLoss:
+                return new string[] { "Reporting Period: Toggle", "Gross Revenue", "Cash Expense Payments", "Expenses Incurred", "Accounting Profit", "Accounting Basis / Notes", "< Back to Accounting" };
+            case MenuPage.TransactionHistory: return FinanceHistoryItems();
+            case MenuPage.OwnerTransfers:
+                return new string[] { "Deposit Owner Funds", "Withdraw Owner Funds", "Recorded Owner Deposits", "Recorded Owner Withdrawals", "Reporting Period: Toggle", "< Back to Accounting" };
             case MenuPage.SupplierDeliverySetup:
                 return new string[] { "Physical Mule Delivery", "Mule Road Spawn >", "Truck Unloading Spot >",
                     "Driver Box Handoff >", "Pallet Storage & Capacity >", "Driver Walk Stops (0-3) >",
@@ -1651,18 +1662,12 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.RouteRecovery:
                 return index == 0 ? (_routeRecoveryEnabled ? "ON" : "OFF") : ">";
             case MenuPage.Finances:
-                switch (index)
-                {
-                    case 0: return "$" + _cash.ToString("N0");
-                    case 1: return "$" + _revenue.ToString("N0");
-                    case 2: return _parts.ToString();
-                    case 3: return "$" + _payrollSpend.ToString("N0");
-                    case 4: return "$" + _overheadSpend.ToString("N0");
-                    case 5: return "$" + _hireSpend.ToString("N0");
-                    case 6: return "$" + (_revenue - (_partsSpend + _payrollSpend + _overheadSpend + _hireSpend + _trainingSpend + _equipmentSpend + TotalOutstandingBills())).ToString("N0");
-                    case 7: return _deliveryKind == -2 ? "NO ORDER" : "IN TRANSIT";
-                    default: return ">";
-                }
+                return index == 6 ? FinancePeriodLabel() : ">";
+            case MenuPage.FinancialOverview: case MenuPage.IncomeSales: case MenuPage.ProfitLoss: case MenuPage.OwnerTransfers:
+                return FinanceValue(_menuPage, index);
+            case MenuPage.TransactionHistory:
+                FinanceEntry[] rows = FinanceHistoryRows();
+                return index < rows.Length ? "$" + rows[index].Amount.ToString("N0") : ">";
             case MenuPage.CustomerQueueSettings:
                 if (index == 0) return _waitingCustomerRequests + "/" + EffectiveQueueCapacity() +
                     " (" + StagedCount() + " CARS)";
@@ -1953,8 +1958,12 @@ public class GlassHeroesBusinessV3Experimental : Script
                 if (_selection == 1) return "Queue 1-3 requests; no car enters occupied drop-off.";
                 if (_selection == 5) return "Schedule another customer, up to current queue limit.";
                 return "Customer queue, placements, driving and service settings.";
-            case MenuPage.Finances:
-                return "Income, accrued expenses and shift profit (including unpaid bills).";
+            case MenuPage.Finances: return "Separate gross sales, cash movements, bills and profit. Toggle lifetime/current shift; lifetime cash audit begins at upgrade.";
+            case MenuPage.FinancialOverview: return FinancePeriodLabel() + ": closing cash is not gross sales. Reconciliation separates expenses, owner transfers and adjustments.";
+            case MenuPage.IncomeSales: return FinancePeriodLabel() + ": four non-overlapping revenue sources. Remote was already included in legacy customer totals.";
+            case MenuPage.ProfitLoss: return FinancePeriodLabel() + ": purchase-expense accounting profit; unpaid accruals are not cash payments. Owner capital is excluded.";
+            case MenuPage.TransactionHistory: return "Latest 256 committed entries; older cash rolls into history opening checkpoint. Select for active time, identity and resulting cash.";
+            case MenuPage.OwnerTransfers: return "Capital transfers are not revenue. Legacy transfer totals are unknown; recorded totals start with this audit version.";
             default:
                 switch (_selection)
                 {
@@ -2003,7 +2012,12 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ServiceVehicleBays: return "SERVICE VEHICLE PARKING";
             case MenuPage.VehicleDriveOptions: return "VEHICLE DRIVING";
             case MenuPage.VehicleAutoLotOptions: return "AUTO LOT PARKING";
-            case MenuPage.Finances: return "FINANCIAL REPORTS";
+            case MenuPage.Finances: return "FINANCES & ACCOUNTING";
+            case MenuPage.FinancialOverview: return "FINANCIAL OVERVIEW";
+            case MenuPage.IncomeSales: return "INCOME & SALES";
+            case MenuPage.ProfitLoss: return "PROFIT & LOSS";
+            case MenuPage.TransactionHistory: return "TRANSACTION HISTORY";
+            case MenuPage.OwnerTransfers: return "OWNER CASH TRANSFERS";
             case MenuPage.BusinessExpenses: return "EXPENSES & BILLS";
             case MenuPage.PartsSales: return "PARTS SALES - ONE UNIT";
             case MenuPage.InventoryManagement: return "INVENTORY & SUPPLIERS";
@@ -2151,6 +2165,8 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.VehicleDriveOptions: ExecuteVehicleDriveOptionSelection(); break;
             case MenuPage.VehicleAutoLotOptions: ExecuteVehicleAutoLotSelection(); break;
             case MenuPage.Finances: ExecuteFinancesSelection(); break;
+            case MenuPage.FinancialOverview: case MenuPage.IncomeSales: case MenuPage.ProfitLoss:
+            case MenuPage.TransactionHistory: case MenuPage.OwnerTransfers: ExecuteFinancePage(); break;
             case MenuPage.BusinessExpenses: ExecuteBusinessExpensesSelection(); break;
             case MenuPage.MechanicInvoices: ExecuteMechanicInvoicesSelection(); break;
             case MenuPage.InventoryManagement: ExecuteInventorySelection(); break;
@@ -2247,7 +2263,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         _visualRefreshClock = 1.0;
         Notify(_clockedIn ? "Shop OPEN. Staff will report to their break area." :
             "Shop CLOSED. Employees dismissed; expenses stopped.");
-        Save();
+        if (!Save() && opening)
+        { _clockedIn = false; Notify("Opening save failed; shop remains closed and no income clock starts."); }
     }
 
     private void SetShopLocationFromPlayer()
@@ -2309,7 +2326,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         long payment = due;
         if ((wages ? _payrollSpend : _overheadSpend) > long.MaxValue - payment)
         { Notify(label + ": payment would overflow the expense ledger."); return false; }
-        long cash = _cash, payroll = _payrollSpend, overhead = _overheadSpend, savings = _managerSavings;
+        long cash = _cash, payroll = _payrollSpend, overhead = _overheadSpend, savings = _managerSavings, rebate = _financeRebateIncome;
         double managerAge = _managerWageAgeSeconds, receptionAge = _receptionWageUnpaidSeconds, rentAge = _rentUnpaidSeconds;
         bool receptionNotified = _receptionOverdueNotified;
         _cash -= payment;
@@ -2322,7 +2339,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (label == "Rent & utilities") _rentUnpaidSeconds = 0;
         if (!Save())
         {
-            due = payment; _cash = cash; _payrollSpend = payroll; _overheadSpend = overhead; _managerSavings = savings;
+            due = payment; _financeRebateIncome = rebate; _cash = cash; _payrollSpend = payroll; _overheadSpend = overhead; _managerSavings = savings;
             _managerWageAgeSeconds = managerAge; _receptionWageUnpaidSeconds = receptionAge;
             _rentUnpaidSeconds = rentAge; _receptionOverdueNotified = receptionNotified;
             Notify(label + ": payment cancelled because its save did not commit.");
@@ -2332,44 +2349,56 @@ public class GlassHeroesBusinessV3Experimental : Script
         return true;
     }
 
-    private bool PayMechanicInvoice(int slot)
-    {
-        if (slot < 0 || slot >= _mechanics.Count)
-        { Notify("No mechanic in slot " + (slot + 1) + "."); return false; }
-        Mechanic mechanic = _mechanics[slot];
-        long amount = mechanic.UnpaidWages;
-        if (amount <= 0) { Notify(mechanic.Name + ": no outstanding wages."); return false; }
-        if (_cash < amount)
-        {
-            Notify(mechanic.Name + " wage invoice $" + amount.ToString("N0") +
-                "; cash $" + _cash.ToString("N0") + ".");
-            return false;
-        }
-        mechanic.UnpaidWages = 0;
-        mechanic.WageUnpaidSeconds = 0;
-        _mechanicOverdueNotified.Remove(slot);
-        _cash -= amount;
-        _payrollSpend += amount;
-        GiveManagerPayrollRebate(amount);
-        Save();
-        Notify("Paid " + mechanic.Name + " $" + amount.ToString("N0") + " wages.");
-        return true;
-    }
+    private bool PayMechanicInvoice(int slot) { return TryPayBusinessBills(3, slot); }
 
-    private void PayAllMechanicWages()
+    private void PayAllMechanicWages() { TryPayBusinessBills(2); }
+
+    // Supplier/all/mechanic settlements share one rollback-safe save boundary.
+    private bool TryPayBusinessBills(int mode, int slot = -1)
     {
-        long total = MechanicWagesDue();
-        if (total <= 0) { Notify("No mechanic wages outstanding."); return; }
-        if (_cash < total) { Notify("Mechanic invoices total $" + total.ToString("N0") +
-            "; cash $" + _cash.ToString("N0") + ". Full settlement required."); return; }
-        foreach (Mechanic m in _mechanics) { m.UnpaidWages = 0; m.WageUnpaidSeconds = 0; }
-        _mechanicOverdueNotified.Clear();
-        _formerStaffWagesDue = 0;
-        _cash -= total;
-        _payrollSpend += total;
-        GiveManagerPayrollRebate(total);
-        Save();
-        Notify("All mechanic wage invoices paid: $" + total.ToString("N0") + ".");
+        if (!_bootGameplayActivated || Game.IsPaused || mode < 0 || mode > 3) return false;
+        if (mode == 3 && (slot < 0 || slot >= _mechanics.Count)) return false;
+        long staff = mode == 1 ? checked(MechanicWagesDue() + _receptionWagesDue) :
+            mode == 2 ? MechanicWagesDue() : mode == 3 ? _mechanics[slot].UnpaidWages : 0;
+        long wages = checked(staff + (mode == 1 ? _managerWagesDue : 0));
+        long rent = mode == 1 ? _rentUtilitiesDue : 0;
+        long supplies = mode <= 1 ? _supplierInvoicesDue : 0;
+        long total = checked(wages + rent + supplies);
+        if (total <= 0 || _cash < total) { Notify("No payable bill, or insufficient business cash. No payment made."); return false; }
+        if (_payrollSpend > long.MaxValue - wages || _overheadSpend > long.MaxValue - rent || _partsSpend > long.MaxValue - supplies) return false;
+        FinanceSnapshot before = CaptureFinanceSnapshot();
+        long former = _formerStaffWagesDue, reception = _receptionWagesDue, manager = _managerWagesDue, savings = _managerSavings;
+        double managerAge = _managerWageAgeSeconds, receptionAge = _receptionWageUnpaidSeconds, rentAge = _rentUnpaidSeconds;
+        bool notified = _receptionOverdueNotified;
+        long[] unpaid = new long[_mechanics.Count]; double[] ages = new double[_mechanics.Count];
+        var overdue = new HashSet<int>(_mechanicOverdueNotified);
+        for (int i = 0; i < _mechanics.Count; i++)
+        {
+            unpaid[i] = _mechanics[i].UnpaidWages; ages[i] = _mechanics[i].WageUnpaidSeconds;
+            if (mode == 1 || mode == 2 || mode == 3 && i == slot)
+            { _mechanics[i].UnpaidWages = 0; _mechanics[i].WageUnpaidSeconds = 0; _mechanicOverdueNotified.Remove(i); }
+        }
+        if (mode == 1 || mode == 2) _formerStaffWagesDue = 0;
+        if (mode <= 1) _supplierInvoicesDue = 0;
+        if (mode == 1)
+        {
+            _receptionWagesDue = 0; _managerWagesDue = 0; _rentUtilitiesDue = 0;
+            _managerWageAgeSeconds = 0; _receptionWageUnpaidSeconds = 0; _rentUnpaidSeconds = 0; _receptionOverdueNotified = false;
+        }
+        _cash -= total; _payrollSpend += wages; _overheadSpend += rent; _partsSpend += supplies;
+        GiveManagerPayrollRebate(staff);
+        if (!Save())
+        {
+            _cash = before.V[0]; _partsSpend = before.V[5]; _payrollSpend = before.V[6]; _overheadSpend = before.V[7];
+            _rentUtilitiesDue = before.V[12]; _supplierInvoicesDue = before.V[13]; _financeRebateIncome = before.V[16];
+            _formerStaffWagesDue = former; _receptionWagesDue = reception; _managerWagesDue = manager; _managerSavings = savings;
+            _managerWageAgeSeconds = managerAge; _receptionWageUnpaidSeconds = receptionAge; _rentUnpaidSeconds = rentAge; _receptionOverdueNotified = notified;
+            _mechanicOverdueNotified.Clear(); foreach (int item in overdue) _mechanicOverdueNotified.Add(item);
+            for (int i = 0; i < _mechanics.Count; i++) { _mechanics[i].UnpaidWages = unpaid[i]; _mechanics[i].WageUnpaidSeconds = ages[i]; }
+            Notify("Payment save failed; cash and bills restored."); return false;
+        }
+        Notify("Bills PAID $" + total.ToString("N0") + ". Cash, liabilities and audit committed together.");
+        return true;
     }
 
     private void ShowExpenseStatus()
@@ -2393,44 +2422,8 @@ public class GlassHeroesBusinessV3Experimental : Script
             case 1: _menuPage = MenuPage.MechanicInvoices; _selection = 0; break;
             case 2: PayInvoice(ref _receptionWagesDue, true, "Receptionist wages"); break;
             case 3: PayInvoice(ref _rentUtilitiesDue, false, "Rent & utilities"); break;
-            case 4:
-                if (_supplierInvoicesDue <= 0) { Notify("No supplier invoices are awaiting payment."); break; }
-                if (_cash < _supplierInvoicesDue)
-                { Notify("Supplier invoices $" + _supplierInvoicesDue.ToString("N0") +
-                    "; business cash $" + _cash.ToString("N0") + "."); break; }
-                long supplierPayment = _supplierInvoicesDue;
-                _cash -= supplierPayment;
-                _partsSpend += supplierPayment;
-                _supplierInvoicesDue = 0;
-                Save();
-                Notify("Supplier invoices PAID: $" + supplierPayment.ToString("N0") + ".");
-                break;
-            case 5:
-                long total = TotalOutstandingBills();
-                if (total <= 0) { Notify("All business bills are current."); break; }
-                if (_cash < total) { Notify("Pay all requires $" + total.ToString("N0") +
-                    "; cash $" + _cash.ToString("N0") + "."); break; }
-                long staffWages = MechanicWagesDue() + _receptionWagesDue;
-                long wages = staffWages + _managerWagesDue;
-                _cash -= total;
-                _payrollSpend += wages;
-                GiveManagerPayrollRebate(staffWages);
-                _overheadSpend += _rentUtilitiesDue;
-                _partsSpend += _supplierInvoicesDue;
-                _supplierInvoicesDue = 0;
-                foreach (Mechanic m in _mechanics) { m.UnpaidWages = 0; m.WageUnpaidSeconds = 0; }
-                _mechanicOverdueNotified.Clear();
-                _formerStaffWagesDue = 0;
-                _receptionWagesDue = 0;
-                _managerWagesDue = 0;
-                _managerWageAgeSeconds = 0;
-                _rentUtilitiesDue = 0;
-                _receptionWageUnpaidSeconds = 0;
-                _rentUnpaidSeconds = 0;
-                _receptionOverdueNotified = false;
-                Save();
-                Notify("All $" + total.ToString("N0") + " of outstanding business bills PAID.");
-                break;
+            case 4: TryPayBusinessBills(0); break;
+            case 5: TryPayBusinessBills(1); break;
             case 6: BuyInventory(-1, 10); break;
             case 7: _menuPage = MenuPage.EquipmentManagement; _selection = 0; break;
             case 8: _financesFromExpenses = true; _menuPage = MenuPage.Finances; _selection = 0; break;
@@ -2517,45 +2510,132 @@ public class GlassHeroesBusinessV3Experimental : Script
     // A summarized accounting view; customer receipts are also written to CSV.
     private void ExecuteFinancesSelection()
     {
-        long costs = AccruedBusinessCosts();
-        switch (_selection)
-        {
-            case 0: Notify("Business cash $" + _cash.ToString("N0") + ". Cash may differ from profit due to deposits/withdrawals."); break;
-            case 1: Notify("Lifetime sales $" + _revenue.ToString("N0") +
-                " | Customer orders $" + _customerRevenue.ToString("N0") +
-                " / " + _customerCompleted + " orders."); break;
-            case 2: ShowDetailedInventory(); break;
-            case 3: Notify("Payroll PAID $" + _payrollSpend.ToString("N0") +
-                " | Wage INVOICES $" + MechanicWagesDue().ToString("N0") +
-                " mechanic / $" + _receptionWagesDue.ToString("N0") + " reception."); break;
-            case 4: Notify("Rent paid $" + _overheadSpend.ToString("N0") +
-                " | OUTSTANDING $" + _rentUtilitiesDue.ToString("N0") +
-                " | New per period $" + _rentAndUtilities); break;
-            case 5: Notify("Hiring $" + _hireSpend.ToString("N0") +
-                " | Training $" + _trainingSpend.ToString("N0") +
-                " | Equipment $" + _equipmentSpend.ToString("N0") + "."); break;
-            case 6: Notify("Sales $" + _revenue.ToString("N0") + " - expenses (paid + owed) $" +
-                costs.ToString("N0") + " = accrued profit $" + (_revenue - costs).ToString("N0")); break;
-            case 7: ShowStatusNotice("SUPPLIER & PROFIT SUMMARY",
-                "Cash $" + _cash.ToString("N0") + " | Gross sales $" + _revenue.ToString("N0"),
-                "Parts PAID $" + _partsSpend.ToString("N0") +
-                    " | supplier invoices $" + _supplierInvoicesDue.ToString("N0"),
-                "Payroll, rent & supplier due $" + TotalOutstandingBills().ToString("N0"),
-                "Delivery " + (_deliveryKind == -2 ? "NONE" : _deliveryQuantity + " " + (_deliveryLines == null ? DeliveryItemName(_deliveryKind) : "mixed parts") + " ON WAY") +
-                    " | Profit $" + (_revenue - costs).ToString("N0")); break;
-            case 8: ShowShiftProfit(); break;
-            case 9: Notify("Supplier costs PAID $" + _partsSpend.ToString("N0") +
-                " | invoices DUE $" + _supplierInvoicesDue.ToString("N0") +
-                ". Pending " + (_deliveryKind == -2 ? "none" : DeliveryItemName(_deliveryKind)) + "."); break;
-            case 10: Notify("Hiring PAID $" + _hireSpend.ToString("N0") +
-                " | Training PAID $" + _trainingSpend.ToString("N0") + "."); break;
-            case 11: ShowPayrollHealth(); break;
-            case 12: NavigateBack(); break;
-        }
+        MenuPage[] pages = { MenuPage.FinancialOverview, MenuPage.IncomeSales, MenuPage.BusinessExpenses,
+            MenuPage.ProfitLoss, MenuPage.TransactionHistory, MenuPage.OwnerTransfers };
+        if (_selection == 6) { _financeLifetime = !_financeLifetime; return; }
+        if (_selection >= pages.Length) { NavigateBack(); return; }
+        _menuPage = pages[_selection]; _selection = 0; _financeHistoryPage = 0;
     }
 
-    // Explicit order progress helps diagnose why a customer has not paid yet.
-    // Call on demand (not every frame) to avoid flooding notifications.
+    private string FinancePeriodLabel()
+    { return _financeLifetime ? "LIFETIME" : _financeBook == null || _financeBook.ShiftNumber == 0 ? "NO SHIFT" : _financeBook.ShiftOpen && _clockedIn ? "CURRENT SHIFT" : "LAST SHIFT"; }
+
+    private FinanceSnapshot FinanceViewStart()
+    { return _financeLifetime ? new FinanceSnapshot() : _financeBook == null || _financeBook.ShiftNumber == 0 ? CaptureFinanceSnapshot() : _financeBook.ShiftStart; }
+
+    private FinanceSnapshot FinanceViewEnd()
+    {
+        if (_financeLifetime || _financeBook == null || _financeBook.ShiftNumber == 0 || (_financeBook.ShiftOpen && _clockedIn)) return CaptureFinanceSnapshot();
+        return _financeBook.ShiftEnd;
+    }
+
+    private string FinanceValue(MenuPage page, int index)
+    {
+        if (index == 0 && page != MenuPage.OwnerTransfers) return FinancePeriodLabel();
+        FinanceSnapshot end = FinanceViewEnd(), delta = FinanceSnapshot.Difference(end, FinanceViewStart());
+        long value;
+        if (page == MenuPage.IncomeSales)
+        { if (index >= 1 && index <= 4) value = delta.V[index]; else if (index == 5) value = FinanceSnapshot.Sales(delta); else if (index == 6) value = checked(delta.V[16] + delta.V[17]); else return "BACK"; }
+        else if (page == MenuPage.ProfitLoss)
+        { if (index == 1) value = FinanceSnapshot.Sales(delta); else if (index == 2) value = FinanceSnapshot.Paid(delta); else if (index == 3) value = checked(FinanceSnapshot.Paid(delta) + FinanceSnapshot.Due(delta)); else if (index == 4) value = FinanceSnapshot.Profit(delta); else return ">"; }
+        else if (page == MenuPage.OwnerTransfers)
+        { if (index == 2) value = delta.V[14]; else if (index == 3) value = delta.V[15]; else return index < 2 ? "$1,000" : index == 4 ? FinancePeriodLabel() : "BACK"; }
+        else
+        {
+            if (index == 5)
+            {
+                FinanceSnapshot live = CaptureFinanceSnapshot();
+                for (int i = 0; i < FinanceSnapshot.Size; i++) if (_financeBook == null || live.V[i] != _financeBook.Checkpoint.V[i]) return "UNSAVED";
+                return "COMMITTED";
+            }
+            if (index == 1) value = end.V[0]; else if (index == 2) value = FinanceSnapshot.Sales(delta); else if (index == 4) value = FinanceSnapshot.Due(end); else return ">"; }
+        return "$" + value.ToString("N0");
+    }
+
+    private void ShowFinanceBridge()
+    {
+        FinanceSnapshot start = _financeLifetime ? _financeBook.Opening : FinanceViewStart();
+        FinanceSnapshot end = FinanceViewEnd(), d = FinanceSnapshot.Difference(end, start);
+        long sales = FinanceSnapshot.Sales(d), paid = FinanceSnapshot.Paid(d);
+        long other = checked(d.V[16] + d.V[17]);
+        long adjustment = checked(d.V[0] - sales + paid - d.V[14] + d.V[15] - other);
+        long inflow = checked(sales + other + d.V[14] + Math.Max(0L, adjustment));
+        long outflow = checked(paid + d.V[15] - Math.Min(0L, adjustment));
+        ShowStatusNotice(_financeLifetime ? "CASH BRIDGE - SINCE AUDIT START" : "CASH BRIDGE - " + FinancePeriodLabel(),
+            "Opening $" + start.V[0].ToString("N0") + " + inflows $" + inflow.ToString("N0") + " - outflows $" + outflow.ToString("N0") + " = $" + end.V[0].ToString("N0"),
+            "Sales $" + sales.ToString("N0") + " | payments $" + paid.ToString("N0") + " | rebates/refunds $" + other.ToString("N0"),
+            "Owner deposits $" + d.V[14].ToString("N0") + " | withdrawals $" + d.V[15].ToString("N0"),
+            "Unclassified adjustment $" + adjustment.ToString("N0") + (adjustment != 0 ? " - REVIEW HISTORY" : " | balanced without adjustments"));
+    }
+
+    private FinanceEntry[] FinanceHistoryRows()
+    {
+        var rows = new List<FinanceEntry>();
+        if (_financeBook == null) return rows.ToArray();
+        int end = _financeBook.Entries.Count - 1 - _financeHistoryPage * 8;
+        for (int i = end; i >= Math.Max(0, end - 7); i--) rows.Add(_financeBook.Entries[i]);
+        return rows.ToArray();
+    }
+
+    private string[] FinanceHistoryItems()
+    {
+        var labels = new List<string>();
+        foreach (FinanceEntry e in FinanceHistoryRows()) labels.Add("#" + e.Id + " " + FinanceCategories[e.Category]);
+        labels.Add("Older Transactions >"); labels.Add("Newer Transactions >"); labels.Add("< Back to Accounting");
+        return labels.ToArray();
+    }
+
+    private void ExecuteFinancePage()
+    {
+        if (_menuPage == MenuPage.TransactionHistory)
+        {
+            FinanceEntry[] rows = FinanceHistoryRows();
+            if (_selection < rows.Length)
+            {
+                FinanceEntry e = rows[_selection];
+                ShowStatusNotice("TRANSACTION #" + e.Id, FinanceCategories[e.Category] + " | amount $" + e.Amount.ToString("N0"),
+                    "Active GTA seconds " + (e.ActiveMs / 1000d).ToString("0.000") + " | shift " + e.Shift,
+                    "Resulting business cash $" + e.CashAfter.ToString("N0"),
+                    e.IsCash ? "Cash movement; same-save entries form one batch." : "ACCRUAL ONLY - no cash payment. Purchase-expense basis.");
+            }
+            else if (_selection == rows.Length) { if ((_financeHistoryPage + 1) * 8 < _financeBook.Entries.Count) _financeHistoryPage++; _selection = 0; }
+            else if (_selection == rows.Length + 1) { _financeHistoryPage = Math.Max(0, _financeHistoryPage - 1); _selection = 0; }
+            else NavigateBack();
+            return;
+        }
+        if (_menuPage == MenuPage.OwnerTransfers)
+        {
+            if (_selection < 2) TransferPlayerMoney(_selection == 0);
+            else if (_selection == 4) _financeLifetime = !_financeLifetime;
+            else if (_selection == 5) NavigateBack();
+            else Notify("Owner transfers are capital movements, never sales or profit. Totals before the audit upgrade are unknown.");
+            return;
+        }
+        if (_selection == 0) { _financeLifetime = !_financeLifetime; return; }
+        if (_menuPage == MenuPage.IncomeSales)
+        {
+            if (_selection == 7) NavigateBack();
+            else ShowStatusNotice("INCOME & SALES - " + FinancePeriodLabel(),
+                "Physical customer repairs = old customer revenue minus remote subset.",
+                "Remote + physical + autonomous + retail = gross sales exactly once.",
+                "Manager rebates/refunds are other credits, not sales. Historical credits before audit are unknown.",
+                "Cash payments, deposits/withdrawals and outstanding bills are shown separately.");
+        }
+        else if (_menuPage == MenuPage.ProfitLoss)
+        {
+            if (_selection == 6) NavigateBack();
+            else ShowStatusNotice("PROFIT & LOSS - " + FinancePeriodLabel(),
+                "Accounting profit = sales + known rebates/refunds - paid expenses - outstanding expense change.",
+                "Purchase-expense basis: supplies recognized at receipt; not inventory-valued/COGS financial statements.",
+                "Paying an opening bill reduces cash but is not a second current-shift expense.",
+                "Owner deposits/withdrawals are excluded from profit. Lifetime historical credits may be incomplete.");
+        }
+        else if (_selection == 6) NavigateBack();
+        else if (_selection == 4) ShowExpenseStatus();
+        else ShowFinanceBridge();
+    }
+
+
     private void ShowCustomerOrderStatus()
     {
         foreach (SavedRepairPromise p in _pendingRepairPromises)
@@ -4504,29 +4584,30 @@ public class GlassHeroesBusinessV3Experimental : Script
             Notify("Cash transfer unavailable with this ped model. Use business earnings for now.");
             return;
         }
+        if (!_bootGameplayActivated || Game.IsPaused) return;
         int wallet = Game.Player.Money;
-        if (deposit)
+        if (deposit && wallet < 1000 || !deposit && (_cash < 1000 || wallet > int.MaxValue - 1000))
+        { Notify("Transfer unavailable: insufficient funds or wallet limit."); return; }
+        if (deposit && _cash > long.MaxValue - 1000) return;
+        long cash = _cash, deposits = _financeOwnerDeposits, withdrawals = _financeOwnerWithdrawals;
+        bool saved = false;
+        try
         {
-            if (wallet < 1000) { Notify("You need at least $1,000 personal cash."); return; }
-            Game.Player.Money = wallet - 1000;
-            _cash += 1000;
-            Save();
-            Notify("Deposited $1,000 into business cash.");
+            Game.Player.Money = deposit ? wallet - 1000 : wallet + 1000;
+            _cash += deposit ? 1000 : -1000;
+            if (deposit) _financeOwnerDeposits += 1000; else _financeOwnerWithdrawals += 1000;
+            saved = Save();
         }
-        else
+        catch (Exception ex) { Log("Owner cash transfer", ex); }
+        if (!saved)
         {
-            if (_cash < 1000) { Notify("Business account has insufficient funds."); return; }
-            if (wallet > int.MaxValue - 1000) { Notify("Personal wallet is at its limit."); return; }
-            Game.Player.Money = wallet + 1000;
-            _cash -= 1000;
-            Save();
-            Notify("Withdrew $1,000 from business cash.");
+            _cash = cash; _financeOwnerDeposits = deposits; _financeOwnerWithdrawals = withdrawals;
+            try { Game.Player.Money = wallet; } catch (Exception ex) { Log("Owner wallet rollback requires review", ex); }
+            Notify("Transfer failed; business state restored. Check wallet if an external mod intervened."); return;
         }
+        Notify(deposit ? "Owner deposit $1,000 committed (not sales)." : "Owner withdrawal $1,000 committed (not an expense).");
     }
 
-    // Customer drive-in uses road AI; mechanic handoff uses distinct, user-placed vehicle
-    // parking coordinates. A real drivable path is required; no vehicle teleport into MLOs.
-    // The tested parked drop-off behavior remains available at any time.
     private bool CustomerConfigurationReady()
     {
         if (!_placed || !_customerDropoff.IsSet || !_customerQueue.IsSet ||
@@ -6627,6 +6708,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (_managerTier < 0 || gross <= 0) return;
         long credit = gross * ManagerDiscountPercent() / 100;
         _cash += credit;
+        _financeRebateIncome += credit;
         _managerSavings += credit;
     }
     private void ExecuteManagerManagement()
@@ -6651,7 +6733,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                         " | Business savings $" + _managerSavings.ToString("N0"),
                     "Away mode " + (_remoteMode ? "ACTIVE" : "INACTIVE") +
                         " | Active remote orders " + _remoteJobs.Count,
-                    "Remote jobs " + _remoteJobsCompleted + " | Revenue $" + _remoteSales.ToString("N0") +
+                    "LIFETIME remote jobs " + _remoteJobsCompleted + " | gross sales $" + _remoteSales.ToString("N0") +
                         " | Parts used " + _remotePartsConsumed);
                 break;
             case 1:
@@ -6719,7 +6801,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         if (!_remoteMode) return;
         _remoteMode = false;
-        Save(); Notify("Returned to Glass Heroes. Manager offsite work report: " +
+        Save(); Notify("Returned to Glass Heroes. LIFETIME manager report (not shift cash): " +
             _remoteJobsCompleted + " completed / $" + _remoteSales.ToString("N0") + " sales.");
     }
     private void ProcessRemoteOperations(double gameSeconds)
@@ -7061,8 +7143,206 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
     }
 
+    // Additive reporting journal. Existing business counters remain authoritative.
+    private sealed class FinanceSnapshot
+    {
+        public const int Size = 18;
+        public long[] V = new long[Size];
+        public FinanceSnapshot CloneSnapshot() { return new FinanceSnapshot { V = (long[])V.Clone() }; }
+        public static long Sales(FinanceSnapshot s) { return checked(s.V[1] + s.V[2] + s.V[3] + s.V[4]); }
+        public static long Paid(FinanceSnapshot s) { long total = 0; for (int i = 5; i <= 10; i++) total = checked(total + s.V[i]); return total; }
+        public static long Due(FinanceSnapshot s) { return checked(s.V[11] + s.V[12] + s.V[13]); }
+        public static long Profit(FinanceSnapshot s) { return checked(Sales(s) - Paid(s) - Due(s) + s.V[16] + s.V[17]); }
+        public static FinanceSnapshot Difference(FinanceSnapshot end, FinanceSnapshot start)
+        {
+            var result = new FinanceSnapshot();
+            for (int i = 0; i < Size; i++) result.V[i] = checked(end.V[i] - start.V[i]);
+            return result;
+        }
+    }
+
+    private sealed class FinanceEntry
+    {
+        public long Id, ActiveMs, Amount, CashAfter, Shift;
+        public int Category;
+        public bool IsCash { get { return Category < 15; } }
+    }
+
+    private sealed class FinanceBook
+    {
+        public const int Retained = 256;
+        public FinanceSnapshot Opening, Checkpoint, ShiftStart, ShiftEnd;
+        public long NextId = 1, ActiveMs, ShiftNumber, HistoryOpeningCash, CashIn, CashOut;
+        public bool ShiftOpen;
+        public List<FinanceEntry> Entries = new List<FinanceEntry>();
+        public static FinanceBook Create(FinanceSnapshot opening)
+        {
+            return new FinanceBook { Opening = opening.CloneSnapshot(), Checkpoint = opening.CloneSnapshot(),
+                ShiftStart = opening.CloneSnapshot(), ShiftEnd = opening.CloneSnapshot(), HistoryOpeningCash = opening.V[0] };
+        }
+        public FinanceBook CloneBook()
+        {
+            return new FinanceBook { Opening = Opening.CloneSnapshot(), Checkpoint = Checkpoint.CloneSnapshot(),
+                ShiftStart = ShiftStart.CloneSnapshot(), ShiftEnd = ShiftEnd.CloneSnapshot(), NextId = NextId,
+                ActiveMs = ActiveMs, ShiftNumber = ShiftNumber, HistoryOpeningCash = HistoryOpeningCash,
+                CashIn = CashIn, CashOut = CashOut, ShiftOpen = ShiftOpen, Entries = new List<FinanceEntry>(Entries) };
+        }
+        private void Add(int category, long amount, long time, ref long cash)
+        {
+            if (amount == 0) return;
+            if (category < 15)
+            {
+                cash = checked(cash + amount);
+                if (amount > 0) CashIn = checked(CashIn + amount); else CashOut = checked(CashOut - amount);
+            }
+            Entries.Add(new FinanceEntry { Id = NextId, ActiveMs = time, Category = category,
+                Amount = amount, CashAfter = cash, Shift = ShiftOpen ? ShiftNumber : 0L });
+            NextId = checked(NextId + 1);
+            while (Entries.Count > Retained)
+            { HistoryOpeningCash = Entries[0].CashAfter; Entries.RemoveAt(0); }
+        }
+        public void Observe(FinanceSnapshot current, long time, bool businessOpen)
+        {
+            if (time < ActiveMs) throw new InvalidDataException("Finance active clock moved backwards.");
+            FinanceSnapshot delta = FinanceSnapshot.Difference(current, Checkpoint);
+            long cash = Checkpoint.V[0];
+            // Mutually exclusive sales: remote is a subset of the old customer total.
+            for (int i = 1; i <= 4; i++) Add(i - 1, delta.V[i], time, ref cash);
+            for (int i = 5; i <= 10; i++) Add(i - 1, checked(-delta.V[i]), time, ref cash);
+            Add(10, delta.V[14], time, ref cash); Add(11, checked(-delta.V[15]), time, ref cash);
+            Add(12, delta.V[16], time, ref cash); Add(13, delta.V[17], time, ref cash);
+            Add(14, checked(current.V[0] - cash), time, ref cash); // Never silently invent a sale.
+            // Expenses arise when owed, not a second time when the invoice is paid.
+            Add(15, checked(delta.V[6] + delta.V[11]), time, ref cash);
+            Add(16, checked(delta.V[7] + delta.V[12]), time, ref cash);
+            Add(17, checked(delta.V[5] + delta.V[13]), time, ref cash);
+            if (businessOpen && !ShiftOpen)
+            { ShiftNumber = checked(ShiftNumber + 1); ShiftStart = current.CloneSnapshot(); }
+            if (ShiftOpen || businessOpen) ShiftEnd = current.CloneSnapshot();
+            ShiftOpen = businessOpen;
+            Checkpoint = current.CloneSnapshot(); ActiveMs = time;
+        }
+    }
+
+    private FinanceBook _financeBook;
+    private long _financeActiveMs, _financeOwnerDeposits, _financeOwnerWithdrawals, _financeRebateIncome, _financeRefundIncome;
+    private bool _financeLifetime = true;
+    private int _financeHistoryPage;
+    private static readonly string[] FinanceCategories = {
+        "Physical repairs", "Remote repairs", "Autonomous jobs", "Parts retail", "Supplier payment",
+        "Wage payment", "Rent payment", "Hiring", "Training", "Equipment", "Owner deposit", "Owner withdrawal",
+        "Manager rebate", "Supplier refund", "Unclassified adjustment", "Wages accrued", "Rent accrued", "Supplies accrued" };
+
+    private FinanceSnapshot CaptureFinanceSnapshot()
+    {
+        var s = new FinanceSnapshot();
+        s.V[0] = _cash;
+        s.V[1] = checked(_customerRevenue - _remoteSales); s.V[2] = _remoteSales;
+        s.V[3] = checked(_revenue - _customerRevenue - _partsSalesRevenue); s.V[4] = _partsSalesRevenue;
+        s.V[5] = _partsSpend; s.V[6] = _payrollSpend; s.V[7] = _overheadSpend;
+        s.V[8] = _hireSpend; s.V[9] = _trainingSpend; s.V[10] = _equipmentSpend;
+        s.V[11] = checked(MechanicWagesDue() + _receptionWagesDue + _managerWagesDue);
+        s.V[12] = _rentUtilitiesDue; s.V[13] = _supplierInvoicesDue;
+        s.V[14] = _financeOwnerDeposits; s.V[15] = _financeOwnerWithdrawals;
+        s.V[16] = _financeRebateIncome; s.V[17] = _financeRefundIncome;
+        return s;
+    }
+
+    private static void WriteFinanceSnapshot(ScriptSettings data, string section, FinanceSnapshot state)
+    { for (int i = 0; i < FinanceSnapshot.Size; i++) data.SetValue(section, "V" + i, state.V[i]); }
+
+    private static FinanceSnapshot ReadFinanceSnapshot(ScriptSettings data, string section)
+    {
+        var state = new FinanceSnapshot();
+        for (int i = 0; i < FinanceSnapshot.Size; i++)
+        {
+            long value = data.GetValue(section, "V" + i, long.MinValue);
+            if (value == long.MinValue) throw new InvalidDataException("Missing finance snapshot value.");
+            state.V[i] = value;
+        }
+        return state;
+    }
+
+    private void WriteFinanceBook(ScriptSettings data, FinanceBook book)
+    {
+        const string section = "FinanceV1";
+        data.SetValue(section, "Version", 1); data.SetValue(section, "Count", book.Entries.Count);
+        data.SetValue(section, "NextId", book.NextId); data.SetValue(section, "ActiveMs", book.ActiveMs);
+        data.SetValue(section, "Shift", book.ShiftNumber); data.SetValue(section, "ShiftOpen", book.ShiftOpen);
+        data.SetValue(section, "HistoryOpeningCash", book.HistoryOpeningCash);
+        data.SetValue(section, "CashIn", book.CashIn); data.SetValue(section, "CashOut", book.CashOut);
+        data.SetValue(section, "Deposits", _financeOwnerDeposits); data.SetValue(section, "Withdrawals", _financeOwnerWithdrawals);
+        data.SetValue(section, "Rebates", _financeRebateIncome); data.SetValue(section, "Refunds", _financeRefundIncome);
+        WriteFinanceSnapshot(data, "FinanceOpeningV1", book.Opening); WriteFinanceSnapshot(data, "FinanceCheckpointV1", book.Checkpoint);
+        WriteFinanceSnapshot(data, "FinanceShiftStartV1", book.ShiftStart); WriteFinanceSnapshot(data, "FinanceShiftEndV1", book.ShiftEnd);
+        for (int i = 0; i < book.Entries.Count; i++)
+        {
+            FinanceEntry e = book.Entries[i]; string row = "FinanceEntryV1." + i;
+            data.SetValue(row, "Id", e.Id); data.SetValue(row, "ActiveMs", e.ActiveMs);
+            data.SetValue(row, "Category", e.Category); data.SetValue(row, "Amount", e.Amount);
+            data.SetValue(row, "CashAfter", e.CashAfter); data.SetValue(row, "Shift", e.Shift);
+        }
+    }
+
+    private void LoadFinanceBook(ScriptSettings data)
+    {
+        int version = data.GetValue("FinanceV1", "Version", 0);
+        if (version == 0) { _financeBook = FinanceBook.Create(CaptureFinanceSnapshot()); return; }
+        if (version != 1) throw new InvalidDataException("Unsupported finance journal version.");
+        _financeOwnerDeposits = data.GetValue("FinanceV1", "Deposits", 0L);
+        _financeOwnerWithdrawals = data.GetValue("FinanceV1", "Withdrawals", 0L);
+        _financeRebateIncome = data.GetValue("FinanceV1", "Rebates", 0L);
+        _financeRefundIncome = data.GetValue("FinanceV1", "Refunds", 0L);
+        if (_financeOwnerDeposits < 0 || _financeOwnerWithdrawals < 0 || _financeRebateIncome < 0 || _financeRefundIncome < 0) throw new InvalidDataException("Negative recorded finance credit/transfer total.");
+        var b = new FinanceBook { Opening = ReadFinanceSnapshot(data, "FinanceOpeningV1"),
+            Checkpoint = ReadFinanceSnapshot(data, "FinanceCheckpointV1"), ShiftStart = ReadFinanceSnapshot(data, "FinanceShiftStartV1"),
+            ShiftEnd = ReadFinanceSnapshot(data, "FinanceShiftEndV1"), NextId = data.GetValue("FinanceV1", "NextId", 0L),
+            ActiveMs = data.GetValue("FinanceV1", "ActiveMs", -1L), ShiftNumber = data.GetValue("FinanceV1", "Shift", -1L),
+            HistoryOpeningCash = data.GetValue("FinanceV1", "HistoryOpeningCash", long.MinValue),
+            CashIn = data.GetValue("FinanceV1", "CashIn", -1L), CashOut = data.GetValue("FinanceV1", "CashOut", -1L) };
+        int count = data.GetValue("FinanceV1", "Count", -1);
+        if (count < 0 || count > FinanceBook.Retained || b.NextId <= 0 || b.ActiveMs < 0 || b.ShiftNumber < 0 ||
+            b.CashIn < 0 || b.CashOut < 0 || b.HistoryOpeningCash == long.MinValue)
+            throw new InvalidDataException("Malformed finance journal header.");
+        long running = b.HistoryOpeningCash, lastId = 0, lastTime = 0;
+        for (int i = 0; i < count; i++)
+        {
+            string row = "FinanceEntryV1." + i;
+            var e = new FinanceEntry { Id = data.GetValue(row, "Id", 0L), ActiveMs = data.GetValue(row, "ActiveMs", -1L),
+                Category = data.GetValue(row, "Category", -1), Amount = data.GetValue(row, "Amount", 0L),
+                CashAfter = data.GetValue(row, "CashAfter", long.MinValue), Shift = data.GetValue(row, "Shift", -1L) };
+            if (e.Id <= lastId || (i > 0 && e.Id != lastId + 1) || e.Id >= b.NextId || e.ActiveMs < lastTime || e.ActiveMs > b.ActiveMs ||
+                e.Category < 0 || e.Category >= FinanceCategories.Length || e.Amount == 0 || e.Shift < 0 || e.Shift > b.ShiftNumber)
+                throw new InvalidDataException("Malformed finance journal transaction.");
+            if (e.IsCash) running = checked(running + e.Amount);
+            if (running != e.CashAfter) throw new InvalidDataException("Finance transaction cash does not reconcile.");
+            lastId = e.Id; lastTime = e.ActiveMs; b.Entries.Add(e);
+        }
+        if ((count == 0 && b.NextId != 1) || (count > 0 && lastId != b.NextId - 1)) throw new InvalidDataException("Missing finance transaction tail.");
+        FinanceSnapshot current = CaptureFinanceSnapshot();
+        for (int i = 0; i < FinanceSnapshot.Size; i++)
+            if (current.V[i] != b.Checkpoint.V[i]) throw new InvalidDataException("Finance journal is stale. Preserve save and restore matching source/data.");
+        if (running != current.V[0] || checked(b.Opening.V[0] + b.CashIn - b.CashOut) != current.V[0])
+            throw new InvalidDataException("Finance opening/inflow/outflow bridge does not reconcile.");
+        // Loading never opens the shop. The last saved shift remains inspectable.
+        b.ShiftOpen = false; _financeBook = b; _financeActiveMs = b.ActiveMs;
+    }
+
+    private FinanceBook PrepareFinanceCommit()
+    {
+        FinanceBook candidate = (_financeBook ?? FinanceBook.Create(CaptureFinanceSnapshot())).CloneBook();
+        candidate.Observe(CaptureFinanceSnapshot(), _financeActiveMs, _clockedIn);
+        return candidate;
+    }
+
     private bool Save()
     {
+        FinanceBook candidate;
+        try
+        {
+            candidate = PrepareFinanceCommit();
+        }
+        catch (Exception ex) { Log("Finance snapshot", ex); Notify("Finance snapshot failed; save not committed."); return false; }
         bool saved = TryCommitBusinessSave(SaveFile, snapshotPath =>
         {
             ScriptSettings data = ScriptSettings.Load(snapshotPath);
@@ -7220,10 +7500,12 @@ public class GlassHeroesBusinessV3Experimental : Script
             }
             for (int i = 0; i < VisualBayCount; i++)
                 SavePoint(data, "BayApproach" + (i + 1), _bayApproaches[i]);
+            WriteFinanceBook(data, candidate);
             WriteSupplierOrderLines(data);
             WriteRepairPromises(data);
             if (!data.Save()) throw new IOException("ScriptSettings.Save returned false.");
         }, ex => Log("Saving", ex));
+        if (saved) _financeBook = candidate;
         if (!saved) Notify("Business save failed. Check GlassHeroesBusiness/Errors.log.");
         return saved;
     }
@@ -8040,17 +8322,17 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (Game.IsPaused || _deliveryKind == -2) return false;
         int kind = _deliveryKind, quantity = _deliveryQuantity;
         int[] lines = _deliveryLines;
-        long cost = _deliveryCost, identity = _deliveryDueUtcTicks, cash = _cash;
+        long cost = _deliveryCost, identity = _deliveryDueUtcTicks, cash = _cash, refunds = _financeRefundIncome;
         double remaining = _deliveryRemainingGameSeconds, timer = _supplierTimerSaveSeconds;
         bool prepaid = _deliveryPrepaid, loaded = _wholesaleCargoLoaded, unloaded = _wholesaleCargoUnloaded;
         _deliveryKind = -2; _deliveryQuantity = 0; _deliveryLines = null;
         _deliveryCost = 0; _deliveryDueUtcTicks = 0; _deliveryRemainingGameSeconds = 0;
         _supplierTimerSaveSeconds = 0; _deliveryPrepaid = false;
         _wholesaleCargoLoaded = false; _wholesaleCargoUnloaded = false;
-        if (prepaid) _cash += cost;
+        if (prepaid) { _cash += cost; _financeRefundIncome += cost; }
         if (Save()) return true;
         _deliveryKind = kind; _deliveryQuantity = quantity; _deliveryLines = lines;
-        _deliveryCost = cost; _deliveryDueUtcTicks = identity; _cash = cash;
+        _deliveryCost = cost; _deliveryDueUtcTicks = identity; _cash = cash; _financeRefundIncome = refunds;
         _deliveryRemainingGameSeconds = remaining; _supplierTimerSaveSeconds = timer;
         _deliveryPrepaid = prepaid; _wholesaleCargoLoaded = loaded; _wholesaleCargoUnloaded = unloaded;
         return false;

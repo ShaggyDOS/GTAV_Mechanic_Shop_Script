@@ -3,9 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 static class Game {internal static bool IsPaused;}
 class Harness {
+ long _financeRebateIncome,_financeRefundIncome;
     /*<source:MenuPage>*/
     /*<source:GetMenuItems>*/
     /*<source:PayInvoice>*/
+    /*<source:TryPayBusinessBills>*/
+    /*<source:FinanceSnapshot>*/
+    string[] FinanceHistoryItems()=>new string[0];
+    FinanceSnapshot CaptureFinanceSnapshot(){var s=new FinanceSnapshot();s.V[0]=_cash;s.V[5]=_partsSpend;s.V[6]=_payrollSpend;s.V[7]=_overheadSpend;s.V[12]=_rentUtilitiesDue;s.V[13]=_supplierInvoicesDue;s.V[16]=_financeRebateIncome;return s;}
     /*<source:ExecuteBusinessExpensesSelection>*/
     /*<source:MechanicWagesDue>*/
     /*<source:TotalOutstandingBills>*/

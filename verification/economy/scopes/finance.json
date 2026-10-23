@@ -1,0 +1,103 @@
+{
+  "parent": "422baa756ce16f6af370278105731de2e82abdd3",
+  "fixture": "finance-parent.cs.txt",
+  "parent_sha256": "de2b07413870de4e61befc517682fbc3d03afea8df5f80a5c45a583e65ee5194",
+  "changed": [
+    "ExecuteBusinessExpensesSelection",
+    "ExecuteFinancesSelection",
+    "ExecuteManagerProfile",
+    "ExecuteSelection",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetSelectedDescription",
+    "GiveManagerPayrollRebate",
+    "GlassHeroesBusinessV3Experimental",
+    "LeaveRemoteOperations",
+    "NavigateBack",
+    "OnTick",
+    "PayAllMechanicWages",
+    "PayInvoice",
+    "PayMechanicInvoice",
+    "Save",
+    "ToggleBusinessShift",
+    "TransferPlayerMoney",
+    "TryCancelSupplierOrder"
+  ],
+  "added": [
+    "CaptureFinanceSnapshot",
+    "ExecuteFinancePage",
+    "FinanceHistoryItems",
+    "FinanceHistoryRows",
+    "FinancePeriodLabel",
+    "FinanceValue",
+    "FinanceViewEnd",
+    "FinanceViewStart",
+    "LoadFinanceBook",
+    "PrepareFinanceCommit",
+    "ReadFinanceSnapshot",
+    "ShowFinanceBridge",
+    "TryPayBusinessBills",
+    "WriteFinanceBook",
+    "WriteFinanceSnapshot"
+  ],
+  "added_keys": {
+    "GetValue": [
+      [
+        "FinanceV1",
+        "ActiveMs"
+      ],
+      [
+        "FinanceV1",
+        "CashIn"
+      ],
+      [
+        "FinanceV1",
+        "CashOut"
+      ],
+      [
+        "FinanceV1",
+        "Count"
+      ],
+      [
+        "FinanceV1",
+        "Deposits"
+      ],
+      [
+        "FinanceV1",
+        "HistoryOpeningCash"
+      ],
+      [
+        "FinanceV1",
+        "NextId"
+      ],
+      [
+        "FinanceV1",
+        "Rebates"
+      ],
+      [
+        "FinanceV1",
+        "Refunds"
+      ],
+      [
+        "FinanceV1",
+        "Shift"
+      ],
+      [
+        "FinanceV1",
+        "Version"
+      ],
+      [
+        "FinanceV1",
+        "Withdrawals"
+      ]
+    ],
+    "SetValue": []
+  },
+  "protected_v2": {
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  }
+}
