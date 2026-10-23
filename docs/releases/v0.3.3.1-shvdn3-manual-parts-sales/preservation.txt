@@ -1,0 +1,30 @@
+{
+  "profile": "sales",
+  "parent": "2532afe",
+  "parent_source_sha256": "1856d76ade0a9d0d00fb3b8c6d3a2a1a62da0b7e3a0ba5952bea4345609f8949",
+  "candidate_source_sha256": "72b054679ecaf20c712812759b9af2268060fb6f59141641b774d05f6f18c87d",
+  "changed_methods": [
+    "ExecuteInventorySelection",
+    "ExecuteSelection",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetSelectedDescription",
+    "GlassHeroesBusinessV3Experimental",
+    "NavigateBack",
+    "Save",
+    "ShowDetailedInventory"
+  ],
+  "new_helpers": [
+    "PartsSalePreview",
+    "TryCommitBusinessSave",
+    "TrySellPart"
+  ],
+  "unchanged_methods": 290,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": true,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}
+PASS scope and preservation checks

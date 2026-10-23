@@ -1,0 +1,225 @@
+diff --git a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+index bc51e88..7f0852f 100644
+--- a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
++++ b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -1,4 +1,4 @@
+-﻿// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 REPAIR COVERAGE / EXPERIMENTAL (#20 + #27)
++// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 MANUAL PARTS SALES / EXPERIMENTAL (#20 + #27)
+ // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet API 2.11.6 / .NET Framework 4.8
+@@ -33,7 +33,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         BayApproaches, ServiceVehicleBays, PointEditor, RouteRecovery, PlacementMarkers, Customers, Finances,
+         StaffRoster, StaffProfile, VehicleDriveOptions, CustomerPlacements, EmployeePlacements,
+         MechanicWalkingPaths, ReceptionWalkingPaths, ReceptionWaypoints, CustomerQueueSettings,
+-        VehicleAutoLotOptions, BusinessExpenses, MechanicInvoices, CustomerWalkingRoutes,
++        PartsSales, VehicleAutoLotOptions, BusinessExpenses, MechanicInvoices, CustomerWalkingRoutes,
+         InventoryManagement, EquipmentManagement, ControllerSettings, MechanicRouteRoster,
+         MechanicRouteDirection, MechanicRoutePoints, SupplierDeliverySetup, SupplierDriverWaypoints,
+         HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints
+@@ -243,6 +243,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+     private int _customerCompleted;
+     private int _lastCustomerOrderId;
+     private long _customerRevenue;
++    private long _partsSalesRevenue, _partsSalesUnitsSold;
++    private int _lastPartsSaleGameTime = int.MinValue;
+     private DateTime _nextCustomerAt = DateTime.MinValue;
+     private readonly Random _customerRandom = new Random();
+     private const string InvoiceFile = @"scripts\GlassHeroesBusiness\CustomerOrders.csv";
+@@ -527,7 +529,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             RequireExclusiveBusinessInstallation(File.Exists);
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.3.1 SHVDN3 REPAIR COVERAGE EXPERIMENTAL (#27) / constructor entered", null);
++            Log("BOOT v0.3.3.1 SHVDN3 MANUAL PARTS SALES EXPERIMENTAL (#27) / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -656,6 +658,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+             _lastOrderOutcome = data.GetValue("CustomerService", "LastOutcome", "NONE");
+             _lastCustomerOrderId = Math.Max(0, data.GetValue("CustomerService", "LastOrderId", 0));
+             _customerRevenue = data.GetValue("CustomerService", "GrossRevenue", 0L);
++            _partsSalesRevenue = Math.Max(0, data.GetValue("Business", "PartsSalesRevenue", 0L));
++            _partsSalesUnitsSold = Math.Max(0, data.GetValue("Business", "PartsSalesUnitsSold", 0L));
+             _trainingSpend = Math.Max(0L, data.GetValue("Business", "TrainingSpent", 0L));
+             for (int stock = 0; stock < 3; stock++)
+                 _specialStock[stock] = Math.Max(0, data.GetValue("DetailedInventory", "Stock" + stock, 0));
+@@ -1126,6 +1130,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 _selection = _financesFromExpenses ? 8 : 4;
+                 break;
+             case MenuPage.BusinessExpenses: _menuPage = MenuPage.BusinessManagement; _selection = 3; break;
++            case MenuPage.PartsSales: _menuPage = MenuPage.InventoryManagement; _selection = 10; break;
+             case MenuPage.InventoryManagement: _menuPage = MenuPage.BusinessManagement; _selection = 2; break;
+             case MenuPage.EquipmentManagement: _menuPage = MenuPage.BusinessExpenses; _selection = 7; break;
+             case MenuPage.ControllerSettings: _menuPage = MenuPage.BusinessManagement; _selection = 5; break;
+@@ -1303,7 +1308,10 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.InventoryManagement:
+                 return new string[] { "Inventory Status", "Order 10 Universal Parts", "Order 5 Service Filters",
+                     "Order 5 Brake Kits", "Order 5 Diagnostic Supplies", "Supplier: Change", "Reorder Advice",
+-                    "Pending Delivery Status", "Low-stock Threshold: Cycle", "Mule Delivery Settings >", "< Back to Business Management" };
++                    "Pending Delivery Status", "Low-stock Threshold: Cycle", "Mule Delivery Settings >", "Parts Sales >", "< Back to Business Management" };
++            case MenuPage.PartsSales:
++                return new string[] { "Sell 1 Universal Part", "Sell 1 Service Filter", "Sell 1 Brake Kit",
++                    "Sell 1 Diagnostic Supply", "< Back to Inventory" };
+             case MenuPage.EquipmentManagement:
+                 return new string[] { "Equipment Status", "Buy Tool Set", "Buy Diagnostic Scanner",
+                     "Buy Desk + Laptop", "Place Tool Chest", "Remove Tool Chest",
+@@ -1445,6 +1453,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 if (index == 8) return _reorderThreshold.ToString();
+                 if (index == 9) return "CONFIGURE";
+                 return ">";
++            case MenuPage.PartsSales:
++                return index < 4 ? PartsSalePreview(index - 1) : "BACK";
+             case MenuPage.EquipmentManagement:
+                 if (index == 1) return _toolSetPurchased ? "OWNED" : "$1,800";
+                 if (index == 2) return _diagnosticScannerPurchased ? "OWNED" : "$1,600";
+@@ -1820,6 +1830,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.HireManagerRoster: return "Recruit a manager: higher tiers reduce expenses and improve offsite shop efficiency.";
+             case MenuPage.HireMechanicRoster: return "Candidates have different starting skill, specialty, hiring price and wages.";
+             case MenuPage.HireReceptionistRoster: return "Recruit a receptionist; skills permit one, two or three pending customers.";
++            case MenuPage.PartsSales: return "One confirmation sells ONE unreserved unit at a fixed cost estimate; no skill markup. Pending cargo is excluded.";
+             case MenuPage.InventoryManagement:
+                 return new string[] {
+                     "Inspect available universal and service-specific parts inventory.",
+@@ -1937,6 +1948,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.VehicleAutoLotOptions: return "AUTO LOT PARKING";
+             case MenuPage.Finances: return "FINANCIAL REPORTS";
+             case MenuPage.BusinessExpenses: return "EXPENSES & BILLS";
++            case MenuPage.PartsSales: return "PARTS SALES - ONE UNIT";
+             case MenuPage.InventoryManagement: return "INVENTORY & SUPPLIERS";
+             case MenuPage.SupplierDeliverySetup: return "SUPPLIER DELIVERY SETTINGS";
+             case MenuPage.SupplierPalletStorage: return "PALLET STORAGE";
+@@ -2082,6 +2094,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.BusinessExpenses: ExecuteBusinessExpensesSelection(); break;
+             case MenuPage.MechanicInvoices: ExecuteMechanicInvoicesSelection(); break;
+             case MenuPage.InventoryManagement: ExecuteInventorySelection(); break;
++            case MenuPage.PartsSales: if (_selection < 4) TrySellPart(_selection - 1); else NavigateBack(); break;
+             case MenuPage.EquipmentManagement: ExecuteEquipmentSelection(); break;
+             case MenuPage.ControllerSettings: ExecuteControllerSelection(); break;
+             case MenuPage.MechanicRouteRoster: ExecuteRouteRosterSelection(); break;
+@@ -6635,13 +6648,88 @@ public class GlassHeroesBusinessV3Experimental : Script
+         Save(); Notify("Wholesale pickup vehicle assigned: " + plate + ". Use THIS vehicle at the warehouse.");
+     }
+ 
+-    private void Save()
++    // No Tick work: manual preview/confirmation only. No extra retail markup.
++    private string PartsSalePreview(int kind)
++    {
++        if (kind < -1 || kind > 2) return "INVALID";
++        int free = UnreservedRepairStock(null)[kind + 1];
++        int total = kind < 0 ? Math.Max(0, _parts) : Math.Max(0, _specialStock[kind]);
++        return free + "/" + total + " FREE | $" + EstimatedUnitAcquisitionCost(kind).ToString("N0") +
++            (free <= 0 ? " UNAVAILABLE" : " EST.");
++    }
++
++    private bool TrySellPart(int kind)
++    {
++        if (!_bootGameplayActivated || Game.IsPaused || kind < -1 || kind > 2) return false;
++        int now = Game.GameTime;
++        if (_lastPartsSaleGameTime == now) return false; // Defense beyond the shared input gate.
++        _lastPartsSaleGameTime = now;
++        if (UnreservedRepairStock(null)[kind + 1] < 1)
++        { Notify("No unreserved " + DeliveryItemName(kind) + " available to sell."); return false; }
++        long price = EstimatedUnitAcquisitionCost(kind);
++        if (price < 0 || _cash > long.MaxValue - price || _revenue > long.MaxValue - price ||
++            _partsSalesRevenue > long.MaxValue - price || _partsSalesUnitsSold == long.MaxValue)
++        { Notify("Parts sale cannot fit in the business ledger."); return false; }
++        long cash = _cash, revenue = _revenue, sales = _partsSalesRevenue, units = _partsSalesUnitsSold;
++        int stock = kind < 0 ? _parts : _specialStock[kind];
++        if (kind < 0) _parts--; else _specialStock[kind]--;
++        _cash += price; _revenue += price; _partsSalesRevenue += price; _partsSalesUnitsSold++;
++        if (!Save())
++        {
++            if (kind < 0) _parts = stock; else _specialStock[kind] = stock;
++            _cash = cash; _revenue = revenue; _partsSalesRevenue = sales; _partsSalesUnitsSold = units;
++            Notify("Parts sale cancelled because its save did not commit.");
++            return false;
++        }
++        // Successful stocking remains a historical earned-package visual, not a stock counter.
++        try
++        {
++            string path = Path.Combine(DataDirectory, "PartsSales.v1.csv");
++            if (!File.Exists(path)) File.AppendAllText(path, "Utc,Kind,Units,UnitEstimate,Total,GameTimeMs" + Environment.NewLine);
++            File.AppendAllText(path, DateTime.UtcNow.ToString("o", System.Globalization.CultureInfo.InvariantCulture) +
++                "," + kind + ",1," + price + "," + price + "," + now + Environment.NewLine);
++        }
++        catch (Exception ex) { Log("Parts sales audit (ledger already committed)", ex); }
++        Notify("Sold 1 " + DeliveryItemName(kind) + " for $" + price.ToString("N0") + " (fixed cost estimate).");
++        return true;
++    }
++
++    // Same-volume atomic snapshot. Failure never replaces a previously valid save.
++    private static bool TryCommitBusinessSave(string path, Action<string> writeSnapshot, Action<Exception> report)
+     {
++        string temporary = null;
+         try
+         {
+-            ScriptSettings data = ScriptSettings.Load(SaveFile);
++            string absolute = Path.GetFullPath(path);
++            string directory = Path.GetDirectoryName(absolute);
++            Directory.CreateDirectory(directory);
++            temporary = Path.Combine(directory, ".gh-save-" + Guid.NewGuid().ToString("N") + ".ini");
++            bool existing = File.Exists(absolute);
++            if (existing) File.Copy(absolute, temporary, false); // Retain unknown INI keys.
++            writeSnapshot(temporary);
++            if (!File.Exists(temporary)) throw new IOException("Snapshot writer did not create a save.");
++            if (existing) File.Replace(temporary, absolute, null);
++            else File.Move(temporary, absolute);
++            temporary = null;
++            return true;
++        }
++        catch (Exception ex) { report(ex); return false; }
++        finally
++        {
++            if (temporary != null)
++                try { File.Delete(temporary); } catch (Exception ex) { report(ex); }
++        }
++    }
++
++    private bool Save()
++    {
++        bool saved = TryCommitBusinessSave(SaveFile, snapshotPath =>
++        {
++            ScriptSettings data = ScriptSettings.Load(snapshotPath);
+             data.SetValue("Business", "Cash", _cash);
+             data.SetValue("Business", "Revenue", _revenue);
++            data.SetValue("Business", "PartsSalesRevenue", _partsSalesRevenue);
++            data.SetValue("Business", "PartsSalesUnitsSold", _partsSalesUnitsSold);
+             data.SetValue("Business", "PartsSpent", _partsSpend);
+             data.SetValue("Business", "PayrollSpent", _payrollSpend);
+             data.SetValue("BusinessBills", "ReceptionistWagesDue", _receptionWagesDue);
+@@ -6792,13 +6880,10 @@ public class GlassHeroesBusinessV3Experimental : Script
+             }
+             for (int i = 0; i < VisualBayCount; i++)
+                 SavePoint(data, "BayApproach" + (i + 1), _bayApproaches[i]);
+-            if (!data.Save())
+-            {
+-                Log("Failed to save: file write returned false at " + Path.GetFullPath(SaveFile), null);
+-                Notify("ERROR saving business. Check GlassHeroesBusiness/Errors.log.");
+-            }
+-        }
+-        catch (Exception ex) { Log("Saving", ex); }
++            if (!data.Save()) throw new IOException("ScriptSettings.Save returned false.");
++        }, ex => Log("Saving", ex));
++        if (!saved) Notify("Business save failed. Check GlassHeroesBusiness/Errors.log.");
++        return saved;
+     }
+ 
+     // Input map is intentionally opt-in to avoid clashing with other single-player mods.
+@@ -7549,6 +7634,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+             "Storage " + StoredPartsTotal() + "/" + TotalStorageCapacity() +
+                 " | Supplier invoices $" + _supplierInvoicesDue.ToString("N0"),
+             "Order: " + (_deliveryKind == -2 ? "NONE" : _deliveryQuantity + " " + DeliveryItemName(_deliveryKind) + " PENDING"));
++        Notify("Manual parts sales $" + _partsSalesRevenue.ToString("N0") + " | " +
++            _partsSalesUnitsSold + " units; stock reserved for repairs cannot be sold.");
+     }
+ 
+     private void BuyInventory(int kind, int quantity)
+@@ -7610,6 +7697,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case 8: _reorderThreshold = _reorderThreshold == 3 ? 5 : _reorderThreshold == 5 ? 10 : 3;
+                 Save(); Notify("Low-stock reorder threshold: " + _reorderThreshold + " dedicated parts."); break;
+             case 9: _menuPage = MenuPage.SupplierDeliverySetup; _selection = 0; break;
++            case 10: _menuPage = MenuPage.PartsSales; _selection = 0; break;
+             default: NavigateBack(); break;
+         }
+     }

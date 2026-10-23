@@ -1,0 +1,50 @@
+{
+  "parent": "2532afe",
+  "fixture": "repair-parent.cs.txt",
+  "parent_sha256": "1856d76ade0a9d0d00fb3b8c6d3a2a1a62da0b7e3a0ba5952bea4345609f8949",
+  "changed": [
+    "ExecuteInventorySelection",
+    "ExecuteSelection",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetSelectedDescription",
+    "GlassHeroesBusinessV3Experimental",
+    "NavigateBack",
+    "Save",
+    "ShowDetailedInventory"
+  ],
+  "added": [
+    "PartsSalePreview",
+    "TryCommitBusinessSave",
+    "TrySellPart"
+  ],
+  "added_keys": {
+    "GetValue": [
+      [
+        "Business",
+        "PartsSalesRevenue"
+      ],
+      [
+        "Business",
+        "PartsSalesUnitsSold"
+      ]
+    ],
+    "SetValue": [
+      [
+        "Business",
+        "PartsSalesRevenue"
+      ],
+      [
+        "Business",
+        "PartsSalesUnitsSold"
+      ]
+    ]
+  },
+  "protected_v2": {
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  }
+}

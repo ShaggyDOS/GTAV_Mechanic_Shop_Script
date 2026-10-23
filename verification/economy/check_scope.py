@@ -22,6 +22,12 @@ assert changed==profile['changed'],('Out-of-scope method change',changed,profile
 assert added==profile['added'] and not removed,('Unexpected helpers/removal',added,removed)
 for name in ['OnTick','ProcessSupplierDelivery','TrySupplierPackageInteraction','CommitSupplierDelivery','UpdateWholesalePalletVisual','RecoverSupplierShipment','CancelSupplierOrderWithConfirmation']:
  if name not in profile['changed']:assert before[name]==after[name],name+' changed'
+if 'Save' in profile['changed'] and 'TryCommitBusinessSave' in profile['added']:
+ old_payload=before['Save'][before['Save'].index('            data.SetValue'):before['Save'].index('            if (!data.Save())')]
+ new_payload=after['Save'][after['Save'].index('            data.SetValue'):after['Save'].index('            if (!data.Save())')]
+ for key in ['PartsSalesRevenue','PartsSalesUnitsSold']:
+  new_payload=re.sub(r'^            data.SetValue\("Business", "'+key+r'", [^\n]+\n','',new_payload,flags=re.M)
+ assert new_payload==old_payload,'Existing save value or point payload changed'
 for op in ['GetValue','SetValue']:
  keys=lambda t:set(re.findall(r'\.'+op+r'\("([^"]+)",\s*"([^"]+)"',t))
  old=keys(parent);new=keys(current);assert old<=new,op+' removed a key'
