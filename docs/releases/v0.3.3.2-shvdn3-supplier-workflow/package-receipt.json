@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.2_SHVDN3_supplier-workflow_EXPERIMENTAL.zip",
+  "sha256": "81d0354ff1499043ee10a93add7834469994f4eb2d3d9571bd4f87f548dfb7b3",
+  "source_sha256": "e50e9bba4889ab7670514e238dbf250ad9d38ced5d4e9cb8f0bd6ca64606e5ed",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 373,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

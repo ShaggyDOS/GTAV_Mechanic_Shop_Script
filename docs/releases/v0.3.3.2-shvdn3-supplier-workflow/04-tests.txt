@@ -1,0 +1,11 @@
+PASS #2 Escape hides overlay and never navigates or transacts
+PASS #2 controller native pause yields overlay FrontendPause
+PASS #2 controller native pause yields overlay FrontendPauseAlternate
+PASS #2 already paused hides overlay even with controller disabled
+PASS #2 native pause wins over mapped accept and open combo
+PASS #2 pause releases held keyboard arbitration for later reopening
+PASS #2 Backspace remains submenu navigation
+PASS #2 paused F2 cannot reopen overlay
+PASS #2 cart arrow keyboard/frontend echo is one semantic action
+pause 9/9 PASS; production input/pause yielding, GTA native menu NOT RUN
+focus 8/8 PASS; native pause controls enabled on foot/driving, GTA NOT RUN

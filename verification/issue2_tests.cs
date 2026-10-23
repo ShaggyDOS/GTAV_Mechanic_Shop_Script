@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-namespace GTA { enum Control { OpenModifier, OpenButton, Up, Down, Accept, Back, FrontendLeft, FrontendRight } }
+namespace GTA { enum Control { OpenModifier, OpenButton, Up, Down, Accept, Back, FrontendLeft, FrontendRight, FrontendPause, FrontendPauseAlternate } }
 static class Game { internal static bool IsPaused; }
 class Harness
 {
@@ -11,11 +11,14 @@ class Harness
     /*<source:MenuInputGate>*/
     /*<source:MenuActionForKey>*/
     /*<source:PointEditorActionLabel>*/
+    /*<source:HideBusinessMenuForPause>*/
+    /*<source:YieldMenuToNativePause>*/
     /*<source:OnKeyDown>*/
     /*<source:OnKeyUp>*/
     /*<source:PollController>*/
     /*<source:NavigateBack>*/
     /*<source:OpenPointEditor>*/
+    bool _nativePauseYielded;
     bool _bootGameplayActivated=true, _showMenu=true, _controllerEnabled=true, _requireCtrlForMenu;
     bool _managerPathsFromManagement, _mechanicPathsFromManagement, _receptionPathsFromManagement;
     bool _customCarBaysFromDriveOptions, _financesFromExpenses, _mechanicRosterFromManagement, _editingRoutePoint;
@@ -75,7 +78,7 @@ class Harness
             Check(h.selections==2,"pad callbacks");
         });
         Test("keyboard Back and frontend Back return only one page",()=> {
-            var h=new Harness{_menuPage=MenuPage.ArrivalWaypoints};h.Key(Keys.Escape);h.Pad(GTA.Control.Back);
+            var h=new Harness{_menuPage=MenuPage.ArrivalWaypoints};h.Key(Keys.Back);h.Pad(GTA.Control.Back);
             Check(h._menuPage==MenuPage.MechanicWalkingPaths && h._selection==2,"Back skipped parent or lost row");
         });
         Test("nested editor returns exact saved page and cursor",()=> {

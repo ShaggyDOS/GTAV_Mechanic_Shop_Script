@@ -1,0 +1,10 @@
+PASS 30 minutes of stable idle writes exactly one state checkpoint
+PASS rapid state changes coalesce and retain latest observed state
+PASS all observed state dimensions can independently trigger a checkpoint
+PASS 10,000 repeated or alternating errors produce one write per 10 seconds
+PASS startup and teardown checkpoints remain available during error throttle
+PASS disk failures back off for 30 seconds and unchanged state retries
+PASS reentrant writer cannot recurse through logger
+PASS clock failures cannot escape and writer guard recovers
+PASS UTC timestamp and tick context survive exception formatting
+9/9 diagnostic behavior tests passed; GTA gameplay NOT RUN.

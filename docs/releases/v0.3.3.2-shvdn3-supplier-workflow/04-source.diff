@@ -1,0 +1,112 @@
+diff --git a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+index 908613a..2d69575 100644
+--- a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
++++ b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -1,4 +1,4 @@
+-// Glass Heroes Business Manager - v0.3.3.1 SHVDN3 MANAGER SUPPLIER DELIVERIES / EXPERIMENTAL (#24)
++// Glass Heroes Business Manager - v0.3.3.2 SHVDN3 SUPPLIER WORKFLOW / EXPERIMENTAL (#24, #25)
+ // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet3 3.6.0 / .NET Framework 4.8
+@@ -923,6 +923,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             if (_clockedIn && activeGameSeconds > 0 && (_remoteMode || _remoteJobs.Count > 0))
+                 ProcessRemoteOperations(activeGameSeconds);
+             _diagnosticTickStage = "controller input";
++            _nativePauseYielded = YieldMenuToNativePause();
+             if (_showMenu && _controllerEnabled) DisableControllerControlsWhileMenuOpen();
+             PollController();
+             _diagnosticTickStage = "supplier interaction";
+@@ -988,6 +989,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             // No menu or supplier native calls before a live Story Mode player exists.
+             if (!_bootGameplayActivated) return;
++            if (e.KeyCode == Keys.Escape || Game.IsPaused)
++            { HideBusinessMenuForPause(); return; }
+             // The game's key callback may auto-repeat while Enter is held.
+             // A single physical press must cause only one menu selection.
+             if (!_heldKeys.Add(e.KeyCode)) return;
+@@ -1008,7 +1011,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 if (IsPlayerAtOfficeDesk()) { OpenBusinessFromOffice(); return; }
+             }
+             if (!_showMenu) return;
+-            if (e.KeyCode == Keys.Escape || e.KeyCode == Keys.Back)
++            if (e.KeyCode == Keys.Back)
+             {
+                 NavigateBack();
+                 return;
+@@ -1035,6 +1038,13 @@ public class GlassHeroesBusinessV3Experimental : Script
+         private readonly long[] _controllerAt = { -1, -1, -1, -1, -1, -1, -1 };
+         private const long EchoTicks = 250 * TimeSpan.TicksPerMillisecond;
+ 
++        internal void Reset()
++        {
++            Array.Clear(_keyboardHeld, 0, _keyboardHeld.Length);
++            for (int i = 0; i < _keyboardAt.Length; i++)
++            { _keyboardAt[i] = -1; _controllerAt[i] = -1; }
++        }
++
+         internal bool TryKeyboard(int action, long now)
+         {
+             if (++_keyboardHeld[action] > 1) return false;
+@@ -1069,7 +1079,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         if (key == Keys.Up) return 0;
+         if (key == Keys.Down) return 1;
+         if (key == Keys.Enter || key == Keys.Return) return 2;
+-        if (key == Keys.Escape || key == Keys.Back) return 3;
++        if (key == Keys.Back) return 3;
+         return key == _menuKey ? 4 : -1;
+     }
+ 
+@@ -2093,7 +2103,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         string[] wrapped = WrapMenuDescription(hint, 53);
+         Label(wrapped[0], left + 13, footerTop + 10, 0.30f, subtle);
+         if (wrapped[1].Length > 0) Label(wrapped[1], left + 13, footerTop + 40, 0.30f, subtle);
+-        Label("UP/DOWN MOVE   ENTER SELECT   " + MenuKeyLabel() + " CLOSE", left + 13,
++        Label("ENTER SELECT  BACKSPACE BACK  ESC PAUSE", left + 13,
+             footerTop + 86, 0.27f, white);
+         Label((_selection + 1) + "/" + menuCount, left + 367, footerTop + 86, 0.27f, white);
+     }
+@@ -7251,6 +7261,25 @@ public class GlassHeroesBusinessV3Experimental : Script
+             GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_DISABLED_CONTROL_PRESSED, 2, (int)input);
+     }
+ 
++    private bool _nativePauseYielded;
++
++    private void HideBusinessMenuForPause()
++    {
++        _showMenu = false;
++        _heldKeys.Clear();
++        _menuInput.Reset();
++        _lastControllerAction = DateTime.UtcNow;
++    }
++
++    private bool YieldMenuToNativePause()
++    {
++        if (!_showMenu) return Game.IsPaused;
++        if (!Game.IsPaused && !PadJustPressed(GTA.Control.FrontendPause) &&
++            !PadJustPressed(GTA.Control.FrontendPauseAlternate)) return false;
++        HideBusinessMenuForPause();
++        return true;
++    }
++
+     private void DisableControllerControlsWhileMenuOpen()
+     {
+         // Strict controller focus: walk / look only. Prevent firing, interacting,
+@@ -7273,11 +7302,16 @@ public class GlassHeroesBusinessV3Experimental : Script
+             };
+         foreach (GTA.Control input in permitted)
+             GTA.Native.Function.Call(GTA.Native.Hash.ENABLE_CONTROL_ACTION, 0, (int)input, true);
++        // Keep GTA's native Pause/Start paths available even during custom focus.
++        GTA.Native.Function.Call(GTA.Native.Hash.ENABLE_CONTROL_ACTION, 0, (int)GTA.Control.FrontendPause, true);
++        GTA.Native.Function.Call(GTA.Native.Hash.ENABLE_CONTROL_ACTION, 0, (int)GTA.Control.FrontendPauseAlternate, true);
++        GTA.Native.Function.Call(GTA.Native.Hash.ENABLE_CONTROL_ACTION, 2, (int)GTA.Control.FrontendPause, true);
++        GTA.Native.Function.Call(GTA.Native.Hash.ENABLE_CONTROL_ACTION, 2, (int)GTA.Control.FrontendPauseAlternate, true);
+     }
+ 
+     private void PollController()
+     {
+-        if (!_controllerEnabled || Game.IsPaused) return;
++        if (!_controllerEnabled || Game.IsPaused || _nativePauseYielded) return;
+         DateTime now = DateTime.UtcNow;
+         try
+         {

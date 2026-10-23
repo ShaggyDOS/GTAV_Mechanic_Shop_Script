@@ -1,0 +1,101 @@
+{
+  "parent": "b777c64da7fc64241a2ac175b4013ff40cc864ec",
+  "fixture": "workflow-parent.cs.txt",
+  "parent_sha256": "36df493478adc3e52ddd2043af1036e486662ddeebb2370401daddf6f2abc56f",
+  "changed": [
+    "BuyInventory",
+    "CancelSupplierOrderWithConfirmation",
+    "CommitSupplierDelivery",
+    "DisableControllerControlsWhileMenuOpen",
+    "DrawMenu",
+    "ExecuteFinancesSelection",
+    "ExecuteInventorySelection",
+    "ExecuteSelection",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetSelectedDescription",
+    "GlassHeroesBusinessV3Experimental",
+    "MenuActionForKey",
+    "NavigateBack",
+    "OnKeyDown",
+    "OnTick",
+    "PollController",
+    "Save",
+    "ShowDetailedInventory",
+    "ShowSupplierDeliveryStatus",
+    "StartMuleDelivery",
+    "SupplierPlayerAway"
+  ],
+  "added": [
+    "AdjustSupplierCart",
+    "ApplySupplierInventory",
+    "ExecuteSupplierCart",
+    "FitMenuText",
+    "HideBusinessMenuForPause",
+    "LabelColumn",
+    "LoadSupplierOrderLines",
+    "SetSupplierPickupWaypoint",
+    "ShowReorderAdvice",
+    "ShowSupplierOrderContents",
+    "SupplierCartCost",
+    "SupplierLineTotal",
+    "SupplierPhysicalRange",
+    "TryCancelSupplierOrder",
+    "TryPlaceSupplierOrder",
+    "WriteSupplierOrderLines",
+    "YieldMenuToNativePause"
+  ],
+  "added_keys": {
+    "GetValue": [
+      [
+        "SupplierOrderV1",
+        "Cost"
+      ],
+      [
+        "SupplierOrderV1",
+        "Line"
+      ],
+      [
+        "SupplierOrderV1",
+        "OrderTicks"
+      ],
+      [
+        "SupplierOrderV1",
+        "Supplier"
+      ],
+      [
+        "SupplierOrderV1",
+        "Version"
+      ]
+    ],
+    "SetValue": [
+      [
+        "SupplierOrderV1",
+        "Cost"
+      ],
+      [
+        "SupplierOrderV1",
+        "Line"
+      ],
+      [
+        "SupplierOrderV1",
+        "OrderTicks"
+      ],
+      [
+        "SupplierOrderV1",
+        "Supplier"
+      ],
+      [
+        "SupplierOrderV1",
+        "Version"
+      ]
+    ]
+  },
+  "protected_v2": {
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  }
+}

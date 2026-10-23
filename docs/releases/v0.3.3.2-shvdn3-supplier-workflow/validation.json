@@ -1,0 +1,79 @@
+{
+  "label": "supplier-workflow",
+  "profile": "workflow",
+  "created_utc": "2026-10-23T05:33:16.197540+00:00",
+  "reference": "ScriptHookVDotNet3 3.6.0",
+  "target": "net48 / C# 7.3",
+  "sdk": "8.0.426",
+  "build": "PASS",
+  "build_errors": 0,
+  "warnings": [
+    "CS0169",
+    "CS0649"
+  ],
+  "inherited_behavior": {
+    "corrective": 54,
+    "logger": 9,
+    "migration": 22,
+    "total": 85
+  },
+  "feature_suites": {
+    "repair": {
+      "passed": 32,
+      "total": 32
+    },
+    "sales": {
+      "passed": 29,
+      "total": 29
+    },
+    "pallets": {
+      "passed": 25,
+      "total": 25
+    },
+    "wages": {
+      "passed": 22,
+      "total": 22
+    },
+    "reload": {
+      "passed": 41,
+      "total": 41
+    },
+    "supplier": {
+      "passed": 37,
+      "total": 37
+    },
+    "range": {
+      "passed": 40,
+      "total": 40
+    },
+    "menu": {
+      "passed": 13,
+      "total": 13
+    },
+    "cart": {
+      "passed": 32,
+      "total": 32
+    },
+    "pause": {
+      "passed": 9,
+      "total": 9
+    },
+    "focus": {
+      "passed": 8,
+      "total": 8
+    }
+  },
+  "behavior_total": 373,
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "source_sha256": "e50e9bba4889ab7670514e238dbf250ad9d38ced5d4e9cb8f0bd6ca64606e5ed",
+  "clock_source_unchanged": true,
+  "v2_and_protected_baseline_unchanged": true,
+  "live_installation_or_saves_touched": false,
+  "gta_testing": "NOT RUN",
+  "crash_cause": "UNATTRIBUTED",
+  "enhanced_runtime_compatibility": "NOT VERIFIED",
+  "review_status": "DRAFT / PENDING"
+}
