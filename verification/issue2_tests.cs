@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-namespace GTA { enum Control { OpenModifier, OpenButton, Up, Down, Accept, Back } }
+namespace GTA { enum Control { OpenModifier, OpenButton, Up, Down, Accept, Back, FrontendLeft, FrontendRight } }
 static class Game { internal static bool IsPaused; }
 class Harness
 {
-    enum Keys { None, Up, Down, Enter, Return=Enter, Escape, Back, F2, E }
+    enum Keys { None, Up, Down, Left, Right, Enter, Return=Enter, Escape, Back, F2, E }
     class KeyEventArgs { internal Keys KeyCode; internal bool Control; internal KeyEventArgs(Keys k) { KeyCode=k; } }
     class WorkBay { }
     /*<source:MenuPage>*/
@@ -39,6 +39,7 @@ class Harness
     bool IsPlayerAtOfficeDesk() { return false; }
     void OpenBusinessFromOffice() { }
     string[] GetMenuItems() { return new string[10]; }
+    void AdjustSupplierCart(int direction){}
     void ExecuteSelection() { selections++; _menuPage=MenuPage.PointEditor; }
     static void Log(string c, Exception e) { throw new Exception(c,e); }
     void Key(Keys k) { OnKeyDown(null,new KeyEventArgs(k)); }

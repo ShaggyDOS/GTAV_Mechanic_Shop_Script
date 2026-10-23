@@ -35,6 +35,8 @@ class Harness {
  /*<source:SupplierPhysicalRange>*/
  /*<source:AvailableSupplierPallet>*/
  /*<source:CommitSupplierDelivery>*/
+    /*<source:ApplySupplierInventory>*/
+    int[] _deliveryLines;
  /*<source:TryManagerSupplierDeposit>*/
  /*<source:ProcessSupplierDelivery>*/
  WorkBay StoragePalletPoint(int i)=>points[i];bool CanStoreShipment(int q)=>capacity;

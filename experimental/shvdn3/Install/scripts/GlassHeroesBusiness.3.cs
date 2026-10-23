@@ -839,6 +839,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _mechanics.Add(profile);
             }
 
+            LoadSupplierOrderLines(data);
             LoadRepairPromises(data);
 
             _clockedIn = false; // Opening shift is a deliberate action after every load.
@@ -1012,6 +1013,8 @@ public class GlassHeroesBusinessV3Experimental : Script
                 NavigateBack();
                 return;
             }
+            if (_menuPage == MenuPage.BuildSupplierOrder && (e.KeyCode == Keys.Left || e.KeyCode == Keys.Right))
+            { AdjustSupplierCart(e.KeyCode == Keys.Left ? -1 : 1); return; }
             int menuCount = GetMenuItems().Length;
             if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down)
             {
@@ -1027,9 +1030,9 @@ public class GlassHeroesBusinessV3Experimental : Script
     // ISSUE2: semantic input arbitration; no gameplay clock or disk access.
     private sealed class MenuInputGate
     {
-        private readonly int[] _keyboardHeld = new int[5];
-        private readonly long[] _keyboardAt = { -1, -1, -1, -1, -1 };
-        private readonly long[] _controllerAt = { -1, -1, -1, -1, -1 };
+        private readonly int[] _keyboardHeld = new int[7];
+        private readonly long[] _keyboardAt = { -1, -1, -1, -1, -1, -1, -1 };
+        private readonly long[] _controllerAt = { -1, -1, -1, -1, -1, -1, -1 };
         private const long EchoTicks = 250 * TimeSpan.TicksPerMillisecond;
 
         internal bool TryKeyboard(int action, long now)
@@ -1061,6 +1064,8 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private int MenuActionForKey(Keys key)
     {
+        if (key == Keys.Left) return 5;
+        if (key == Keys.Right) return 6;
         if (key == Keys.Up) return 0;
         if (key == Keys.Down) return 1;
         if (key == Keys.Enter || key == Keys.Return) return 2;
@@ -1352,7 +1357,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.InventoryOverview:
                 return new string[] { "Universal Parts", "Service Filters", "Brake Kits", "Diagnostic Supplies", "Storage Capacity", "Reorder Advice", "Low-stock Threshold", "< Back to Inventory" };
             case MenuPage.BuildSupplierOrder:
-                return new string[] { "Order 10 Universal Parts", "Order 5 Filters", "Order 5 Brake Kits", "Order 5 Diagnostics", "Supplier: Change", "< Back to Inventory" };
+                return new string[] { "Universal Parts", "Service Filters", "Brake Kits", "Diagnostic Supplies", "Supplier: Change", "Cost / Capacity Preview", "Place Purchase Order", "Fill Low-stock Cart", "Clear Cart", "< Back to Inventory" };
             case MenuPage.ActiveDeliveries:
                 return new string[] { "Delivery Status", "Order Contents", "Recover Original Order", "Cancel Pending Order", "< Back to Inventory" };
             case MenuPage.PartsSales:
@@ -1497,7 +1502,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 if (index < 4) return _specialStock[index - 1].ToString("N0");
                 return index == 4 ? StoredPartsTotal() + "/" + TotalStorageCapacity() : index == 6 ? _reorderThreshold.ToString() : ">";
             case MenuPage.BuildSupplierOrder:
-                return index < 4 ? "$" + InventoryPurchaseCost(index - 1, index == 0 ? 10 : 5).ToString("N0") : index == 4 ? SupplierName(_selectedSupplier) : "BACK";
+                return index < 4 ? _supplierCart[index] + " units" : index == 4 ? SupplierName(_selectedSupplier) : index == 5 ? "$" + SupplierCartCost(_supplierCart).ToString("N0") : index == 6 ? (_deliveryKind == -2 ? "CONFIRM" : "PENDING") : ">";
             case MenuPage.ActiveDeliveries:
                 return index == 0 ? (_deliveryKind == -2 ? "NONE" : ((int)Math.Ceiling(_deliveryRemainingGameSeconds)) + "s") : ">";
             case MenuPage.PartsSales:
@@ -1884,7 +1889,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.InventoryManagement:
                 return new string[] { "Inspect stock on hand and shared storage capacity.", "Choose supplier and build an order; invoiced only after stocking.", "Track ETA, inspect contents, recover or cancel the original shipment.", "Sell one unreserved unit; see availability and fixed sale estimate below.", "Buy or position pallets and inspect the stockroom.", "Configure supplier fleet, road route and pickup vehicle.", "Return to Business Management." }[Math.Min(_selection, 6)];
             case MenuPage.InventoryOverview: return "Stock on hand excludes pending cargo. Repair-reserved stock cannot be sold. Capacity is shared by all four items.";
-            case MenuPage.BuildSupplierOrder: return "Choose one supplier and order parts. Stock and invoice are credited only after receipt; Wholesale requires player pickup.";
+            case MenuPage.BuildSupplierOrder: return _selection < 4 ? "LEFT subtracts 1; RIGHT or ENTER adds 1. One supplier, shipment and invoice. Draft is not saved until Place Purchase Order." : "Preview total/capacity before Place Purchase Order. Fill Low-stock prepares a draft only. Wholesale remains player pickup.";
             case MenuPage.ActiveDeliveries: return "Inspect the original pending order. Recover retains its contents; cancel requires a second confirmation and adds no stock.";
             case MenuPage.EquipmentManagement:
                 if (_selection == 1) return "Tool set $1,800: permanent 7% shorter repair duration on all jobs.";
@@ -2143,12 +2148,10 @@ public class GlassHeroesBusinessV3Experimental : Script
                 if (_selection == 5) ShowReorderAdvice();
                 else if (_selection == 6) { _reorderThreshold = _reorderThreshold == 3 ? 5 : _reorderThreshold == 5 ? 10 : 3; Save(); }
                 else if (_selection == 7) NavigateBack(); else ShowDetailedInventory(); break;
-            case MenuPage.BuildSupplierOrder:
-                if (_selection < 4) BuyInventory(_selection - 1, _selection == 0 ? 10 : 5);
-                else if (_selection == 4) { _selectedSupplier = (_selectedSupplier + 1) % 3; Save(); }
-                else NavigateBack(); break;
+            case MenuPage.BuildSupplierOrder: ExecuteSupplierCart(); break;
             case MenuPage.ActiveDeliveries:
-                if (_selection < 2) ShowSupplierDeliveryStatus();
+                if (_selection == 0) ShowSupplierDeliveryStatus();
+                else if (_selection == 1) ShowSupplierOrderContents();
                 else if (_selection == 2) RecoverSupplierShipment();
                 else if (_selection == 3) CancelSupplierOrderWithConfirmation();
                 else NavigateBack(); break;
@@ -2528,7 +2531,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 "Parts PAID $" + _partsSpend.ToString("N0") +
                     " | supplier invoices $" + _supplierInvoicesDue.ToString("N0"),
                 "Payroll, rent & supplier due $" + TotalOutstandingBills().ToString("N0"),
-                "Delivery " + (_deliveryKind == -2 ? "NONE" : _deliveryQuantity + " " + DeliveryItemName(_deliveryKind) + " ON WAY") +
+                "Delivery " + (_deliveryKind == -2 ? "NONE" : _deliveryQuantity + " " + (_deliveryLines == null ? DeliveryItemName(_deliveryKind) : "mixed parts") + " ON WAY") +
                     " | Profit $" + (_revenue - costs).ToString("N0")); break;
             case 8: ShowShiftProfit(); break;
             case 9: Notify("Supplier costs PAID $" + _partsSpend.ToString("N0") +
@@ -7207,6 +7210,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             }
             for (int i = 0; i < VisualBayCount; i++)
                 SavePoint(data, "BayApproach" + (i + 1), _bayApproaches[i]);
+            WriteSupplierOrderLines(data);
             WriteRepairPromises(data);
             if (!data.Save()) throw new IOException("ScriptSettings.Save returned false.");
         }, ex => Log("Saving", ex));
@@ -7289,6 +7293,13 @@ public class GlassHeroesBusinessV3Experimental : Script
             return;
         }
         if (!_showMenu) return;
+        if (_menuPage == MenuPage.BuildSupplierOrder &&
+            (PadJustPressed(GTA.Control.FrontendLeft) || PadJustPressed(GTA.Control.FrontendRight)))
+        {
+            int direction = PadJustPressed(GTA.Control.FrontendLeft) ? -1 : 1;
+            if (_menuInput.TryController(direction < 0 ? 5 : 6, now.Ticks)) AdjustSupplierCart(direction);
+            _lastControllerAction = now; return;
+        }
         // Unlike keyboard KeyDown, gamepad edges must be polled during Tick.
         // Some frontend controls are used elsewhere, so suppress only when menu active.
         if (PadJustPressed(_controllerBack) && _menuInput.TryController(3, now.Ticks)) { _lastPadDetected = "BACK"; NavigateBack(); _lastControllerAction = now; }
@@ -7342,7 +7353,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         double remain = Math.Max(0, _deliveryRemainingGameSeconds);
         ShowStatusNotice("SUPPLIER DELIVERY",
-            _deliveryQuantity + " " + DeliveryItemName(_deliveryKind) + " | " + SupplierName(_deliverySupplier),
+            _deliveryQuantity + " " + (_deliveryLines == null ? DeliveryItemName(_deliveryKind) : "mixed parts") + " | " + SupplierName(_deliverySupplier),
             (_deliveryPrepaid ? "PREPAID" : "BILL AFTER STOCKING") + " $" + _deliveryCost.ToString("N0") +
                 " | ETA " + (int)Math.Ceiling(remain) + " sec",
             _deliverySupplier == 0 ? "WHOLESALE PICKUP " + Status(_wholesaleWarehousePickup) +
@@ -7698,9 +7709,9 @@ public class GlassHeroesBusinessV3Experimental : Script
         int oldMask = palletSlot >= 0 ? _deliveredPackageMasks[palletSlot] : 0;
         int kind = _deliveryKind;
         int quantity = _deliveryQuantity;
+        int[] oldLines = _deliveryLines;
         long invoice = _deliveryPrepaid ? 0L : _deliveryCost;
-        if (kind < 0) _parts += quantity;
-        else _specialStock[kind] += quantity;
+        ApplySupplierInventory(kind, quantity, oldLines, 1);
         if (palletSlot >= 0)
         {
             _deliveredPackageMasks[palletSlot] |= 1 << _storedDeliveryCrates[palletSlot];
@@ -7710,6 +7721,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         _supplierInvoicesDue += invoice;
         _completedSupplierDeliveries++;
         _deliveryKind = -2;
+        _deliveryLines = null;
         _deliveryQuantity = 0;
         _deliveryDueUtcTicks = 0L;
         _deliveryRemainingGameSeconds = 0;
@@ -7720,7 +7732,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         _wholesaleCargoUnloaded = false;
         if (!Save())
         {
-            if (kind < 0) _parts -= quantity; else _specialStock[kind] -= quantity;
+            ApplySupplierInventory(kind, quantity, oldLines, -1);
+            _deliveryLines = oldLines;
             if (palletSlot >= 0)
             { _storedDeliveryCrates[palletSlot]--; _deliveredPackageMasks[palletSlot] = oldMask; }
             _palletVisualDirty = oldDirty;
@@ -7731,7 +7744,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             _wholesaleCargoLoaded = oldLoaded; _wholesaleCargoUnloaded = oldUnloaded;
             return false;
         }
-        Notify("STOCKED " + quantity + " " + DeliveryItemName(kind) +
+        Notify("STOCKED " + quantity + " " + (oldLines == null ? DeliveryItemName(kind) : "supplier order units") +
             (invoice > 0 ? "; supplier invoice $" + invoice.ToString("N0") + " now DUE." :
                 "; previously paid purchase completed."));
         return true;
@@ -7968,33 +7981,45 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (now > _cancelSupplierConfirmUntil)
         {
             _cancelSupplierConfirmUntil = now.AddSeconds(12);
-            Notify("Press CANCEL PENDING ORDER again within 12 seconds to confirm. No stock will be added.");
+            Notify("Press CANCEL PENDING ORDER again within 12 seconds. No stock will be added.");
             return;
         }
         _cancelSupplierConfirmUntil = DateTime.MinValue;
+        bool wasCarrying = _supplierPlayerCarrying;
+        bool prepaid = _deliveryPrepaid;
+        if (!TryCancelSupplierOrder()) return;
         try
         {
             Ped player = Game.Player.Character;
-            if (player != null && player.Exists() && _supplierPlayerCarrying)
+            if (player != null && player.Exists() && wasCarrying)
                 GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
         }
         catch (Exception ex) { Log("Supplier cancellation pose cleanup", ex); }
-        long refund = _deliveryPrepaid ? _deliveryCost : 0L;
         DeleteSupplierVisuals();
-        _wholesaleCargoLoaded = false;
-        _wholesaleCargoUnloaded = false;
         _cachedWholesaleVehicle = null;
-        _deliveryKind = -2;
-        _deliveryQuantity = 0;
-        _deliveryCost = 0;
-        _deliveryPrepaid = false;
-        _deliveryDueUtcTicks = 0L;
-        _deliveryRemainingGameSeconds = 0;
-        _supplierTimerSaveSeconds = 0;
-        if (refund > 0) _cash += refund; // legacy prepayment refunded once
-        Save();
         SupplierCheckpoint("manual cancellation");
-        Notify("Supplier order cancelled" + (refund > 0 ? "; prepaid refund $" + refund.ToString("N0") : "; no invoice created") + ".");
+        Notify(prepaid ? "Order cancelled; prepaid amount refunded once." : "Order cancelled; no invoice or stock created.");
+    }
+
+    private bool TryCancelSupplierOrder()
+    {
+        if (Game.IsPaused || _deliveryKind == -2) return false;
+        int kind = _deliveryKind, quantity = _deliveryQuantity;
+        int[] lines = _deliveryLines;
+        long cost = _deliveryCost, identity = _deliveryDueUtcTicks, cash = _cash;
+        double remaining = _deliveryRemainingGameSeconds, timer = _supplierTimerSaveSeconds;
+        bool prepaid = _deliveryPrepaid, loaded = _wholesaleCargoLoaded, unloaded = _wholesaleCargoUnloaded;
+        _deliveryKind = -2; _deliveryQuantity = 0; _deliveryLines = null;
+        _deliveryCost = 0; _deliveryDueUtcTicks = 0; _deliveryRemainingGameSeconds = 0;
+        _supplierTimerSaveSeconds = 0; _deliveryPrepaid = false;
+        _wholesaleCargoLoaded = false; _wholesaleCargoUnloaded = false;
+        if (prepaid) _cash += cost;
+        if (Save()) return true;
+        _deliveryKind = kind; _deliveryQuantity = quantity; _deliveryLines = lines;
+        _deliveryCost = cost; _deliveryDueUtcTicks = identity; _cash = cash;
+        _deliveryRemainingGameSeconds = remaining; _supplierTimerSaveSeconds = timer;
+        _deliveryPrepaid = prepaid; _wholesaleCargoLoaded = loaded; _wholesaleCargoUnloaded = unloaded;
+        return false;
     }
 
     private void ExecuteSupplierDriverWaypoints()
@@ -8081,47 +8106,163 @@ public class GlassHeroesBusinessV3Experimental : Script
             "Brake kits " + _specialStock[1] + " | Diagnostics " + _specialStock[2],
             "Storage " + StoredPartsTotal() + "/" + TotalStorageCapacity() +
                 " | Supplier invoices $" + _supplierInvoicesDue.ToString("N0"),
-            "Order: " + (_deliveryKind == -2 ? "NONE" : _deliveryQuantity + " " + DeliveryItemName(_deliveryKind) + " PENDING"));
+            "Order: " + (_deliveryKind == -2 ? "NONE" : _deliveryQuantity + " " + (_deliveryLines == null ? DeliveryItemName(_deliveryKind) : "mixed parts") + " PENDING"));
         Notify("Manual parts sales $" + _partsSalesRevenue.ToString("N0") + " | " +
             _partsSalesUnitsSold + " units; stock reserved for repairs cannot be sold.");
     }
 
+    private int[] _deliveryLines; // Null means an unchanged legacy single-item order.
+    private readonly int[] _supplierCart = new int[4]; // Unsubmitted draft; never stock.
+
     private void BuyInventory(int kind, int quantity)
     {
-        if (_deliveryKind != -2)
-        { Notify("Delivery already pending. Open Pending Delivery Status before ordering again."); return; }
-        long cost = InventoryPurchaseCost(kind, quantity);
-        // New orders are invoiced after successful physical stock handoff.
-        // A legacy pending order loaded from an older save remains PREPAID.
-        if (!CanStoreShipment(quantity))
-        { Notify("Not enough pallet capacity. Stored " + StoredPartsTotal() + "/" +
-            TotalStorageCapacity() + ". Buy/place extra pallets in Mule Delivery Settings."); return; }
+        if (kind < -1 || kind > 2) return;
+        int[] lines = new int[4]; lines[kind + 1] = quantity;
+        TryPlaceSupplierOrder(lines);
+    }
+
+    private static int SupplierLineTotal(int[] lines)
+    {
+        if (lines == null || lines.Length != 4) return -1;
+        int total = 0;
+        foreach (int quantity in lines)
+        {
+            if (quantity < 0 || quantity > 100) return -1;
+            total += quantity;
+        }
+        return total <= 100 ? total : -1;
+    }
+
+    private long SupplierCartCost(int[] lines)
+    {
+        if (SupplierLineTotal(lines) < 0) return 0L;
+        long cost = 0;
+        for (int i = 0; i < 4; i++)
+            if (lines[i] > 0) cost += InventoryPurchaseCost(i - 1, lines[i]);
+        return cost;
+    }
+
+    private bool TryPlaceSupplierOrder(int[] requested)
+    {
+        int total = SupplierLineTotal(requested);
+        if (Game.IsPaused || _deliveryKind != -2 || total <= 0)
+        { Notify("Order not placed: unpause, clear the pending shipment, and choose at least one item (maximum 100 total)."); return false; }
+        if (!CanStoreShipment(total))
+        { Notify("Order exceeds available pallet capacity. No order or invoice created."); return false; }
         if (_selectedSupplier == 0 && !HasWholesaleVehicle())
-        { Notify("Wholesale requires an assigned pickup vehicle. Sit in your vehicle and use Supplier Delivery Settings > Assign Pickup Vehicle."); return; }
-        _deliveryPrepaid = false;
-        _wholesaleCargoLoaded = false;
-        _wholesaleCargoUnloaded = false;
-        _deliveryKind = kind;
-        _deliveryQuantity = quantity;
+        { Notify("Wholesale requires an assigned pickup vehicle in Supplier Settings."); return false; }
+        int oldKind = _deliveryKind, oldQuantity = _deliveryQuantity, oldSupplier = _deliverySupplier;
+        int[] oldLines = _deliveryLines;
+        long oldCost = _deliveryCost, oldIdentity = _deliveryDueUtcTicks, oldSavings = _managerSavings;
+        double oldRemaining = _deliveryRemainingGameSeconds, oldTimer = _supplierTimerSaveSeconds;
+        bool oldPrepaid = _deliveryPrepaid, oldLoaded = _wholesaleCargoLoaded, oldUnloaded = _wholesaleCargoUnloaded;
+        _deliveryLines = (int[])requested.Clone();
+        _deliveryKind = 0;
+        while (_deliveryLines[_deliveryKind] == 0) _deliveryKind++;
+        _deliveryKind--; // Keep a valid legacy kind; the additive payload owns distribution.
+        _deliveryQuantity = total;
         _deliverySupplier = _selectedSupplier;
-        _deliveryCost = cost;
-        int baseUnit = kind < 0 ? _partCost : _specialUnitCosts[kind];
-        int supplierPct = _selectedSupplier == 0 ? 90 : _selectedSupplier == 1 ? 100 : 125;
-        long noManagerQuote = ((long)baseUnit * quantity * supplierPct + 99) / 100;
-        _managerSavings += Math.Max(0L, noManagerQuote - cost);
-        // Keep the old field as an order identity for Mule visual lifecycle only.
-        _deliveryDueUtcTicks = DateTime.UtcNow.Ticks;
+        _deliveryCost = SupplierCartCost(_deliveryLines);
+        long noManagerCost = 0;
+        int pct = _selectedSupplier == 0 ? 90 : _selectedSupplier == 1 ? 100 : 125;
+        for (int i = 0; i < 4; i++)
+            if (_deliveryLines[i] > 0)
+                noManagerCost += ((long)(i == 0 ? _partCost : _specialUnitCosts[i - 1]) * _deliveryLines[i] * pct + 99) / 100;
+        _managerSavings += Math.Max(0L, noManagerCost - _deliveryCost);
+        _deliveryPrepaid = false; _wholesaleCargoLoaded = false; _wholesaleCargoUnloaded = false;
+        _deliveryDueUtcTicks = DateTime.UtcNow.Ticks; // Identity only; never elapsed progress.
         _deliveryRemainingGameSeconds = SupplierDeliverySeconds(_selectedSupplier);
         _supplierTimerSaveSeconds = 0;
-        if (_selectedSupplier == 0 && _wholesaleWarehousePickup.IsSet)
-            try { GTA.Native.Function.Call(GTA.Native.Hash.SET_NEW_WAYPOINT,
-                _wholesaleWarehousePickup.Position.X, _wholesaleWarehousePickup.Position.Y); }
-            catch { } // Waypoint assistance is optional; saved order is authoritative.
-        Save();
-        Notify("Ordered " + quantity + " " + DeliveryItemName(kind) + " from " +
-            SupplierName(_deliverySupplier) + " for $" + cost.ToString("N0") +
-            ". INVOICE ON RECEIPT. " + (_deliverySupplier == 0 ? "Collect at FIXED wholesale warehouse in assigned vehicle after ETA." :
-            "Mule ETA " + SupplierDeliverySeconds(_deliverySupplier) + " seconds."));
+        if (!Save())
+        {
+            _deliveryKind = oldKind; _deliveryQuantity = oldQuantity; _deliverySupplier = oldSupplier;
+            _deliveryLines = oldLines; _deliveryCost = oldCost; _deliveryDueUtcTicks = oldIdentity;
+            _managerSavings = oldSavings; _deliveryRemainingGameSeconds = oldRemaining;
+            _supplierTimerSaveSeconds = oldTimer; _deliveryPrepaid = oldPrepaid;
+            _wholesaleCargoLoaded = oldLoaded; _wholesaleCargoUnloaded = oldUnloaded;
+            return false;
+        }
+        DeleteSupplierVisuals();
+        _nextSupplierVisualRetryUtc = DateTime.MinValue;
+        SetSupplierPickupWaypoint();
+        Notify("Order saved: " + total + " units | " + SupplierName(_deliverySupplier) + " | $" + _deliveryCost.ToString("N0") +
+            " invoice after stocking. " + (_deliverySupplier == 0 ? "Player warehouse pickup required." : "One shipment / one ETA."));
+        return true;
+    }
+
+    private void SetSupplierPickupWaypoint()
+    {
+        if (_deliverySupplier != 0 || !_wholesaleWarehousePickup.IsSet) return;
+        try { GTA.Native.Function.Call(GTA.Native.Hash.SET_NEW_WAYPOINT,
+            _wholesaleWarehousePickup.Position.X, _wholesaleWarehousePickup.Position.Y); } catch { }
+    }
+
+    private void ApplySupplierInventory(int kind, int quantity, int[] lines, int direction)
+    {
+        if (lines == null)
+        { if (kind < 0) _parts += quantity * direction; else _specialStock[kind] += quantity * direction; }
+        else
+        {
+            _parts += lines[0] * direction;
+            for (int i = 0; i < 3; i++) _specialStock[i] += lines[i + 1] * direction;
+        }
+    }
+
+    private void LoadSupplierOrderLines(ScriptSettings data)
+    {
+        int version = data.GetValue("SupplierOrderV1", "Version", 0);
+        if (version == 0) return; // Legacy single-item order, including prepaid.
+        if (version != 1) throw new InvalidDataException("Unsupported supplier cart version. Preserve the save for review.");
+        int[] lines = new int[4];
+        for (int i = 0; i < 4; i++) lines[i] = data.GetValue("SupplierOrderV1", "Line" + i, 0);
+        int total = SupplierLineTotal(lines);
+        long identity = data.GetValue("SupplierOrderV1", "OrderTicks", 0L);
+        if (total == 0 && identity == 0L) return; // Cleared cart or legacy order snapshot.
+        if (total <= 0 || _deliveryKind == -2 || total != _deliveryQuantity || identity != _deliveryDueUtcTicks ||
+            data.GetValue("SupplierOrderV1", "Cost", -1L) != _deliveryCost ||
+            data.GetValue("SupplierOrderV1", "Supplier", -1) != _deliverySupplier)
+            throw new InvalidDataException("Supplier cart does not match pending order. Restore matching source/data; do not delete keys.");
+        int first = 0; while (lines[first] == 0) first++;
+        if (first - 1 != _deliveryKind) throw new InvalidDataException("Supplier cart kind mismatch.");
+        _deliveryLines = lines;
+    }
+
+    private void WriteSupplierOrderLines(ScriptSettings data)
+    {
+        data.SetValue("SupplierOrderV1", "Version", 1);
+        for (int i = 0; i < 4; i++) data.SetValue("SupplierOrderV1", "Line" + i, _deliveryLines == null ? 0 : _deliveryLines[i]);
+        data.SetValue("SupplierOrderV1", "OrderTicks", _deliveryLines == null ? 0L : _deliveryDueUtcTicks);
+        data.SetValue("SupplierOrderV1", "Cost", _deliveryLines == null ? 0L : _deliveryCost);
+        data.SetValue("SupplierOrderV1", "Supplier", _deliveryLines == null ? -1 : _deliverySupplier);
+    }
+
+    private void AdjustSupplierCart(int direction)
+    {
+        if (_menuPage != MenuPage.BuildSupplierOrder || _selection < 0 || _selection >= 4) return;
+        _supplierCart[_selection] = Math.Max(0, Math.Min(100, _supplierCart[_selection] + direction));
+    }
+
+    private void ExecuteSupplierCart()
+    {
+        if (_selection < 4) AdjustSupplierCart(1);
+        else if (_selection == 4) { _selectedSupplier = (_selectedSupplier + 1) % 3; Save(); }
+        else if (_selection == 5) Notify("Cart " + SupplierLineTotal(_supplierCart) + " units | $" + SupplierCartCost(_supplierCart).ToString("N0") + " | free capacity " + Math.Max(0, TotalStorageCapacity() - StoredPartsTotal()));
+        else if (_selection == 6) { if (TryPlaceSupplierOrder(_supplierCart)) Array.Clear(_supplierCart, 0, 4); }
+        else if (_selection == 7)
+        { _supplierCart[0] = Math.Max(0, Math.Max(5, _reorderThreshold) - _parts); for (int i = 1; i < 4; i++) _supplierCart[i] = Math.Max(0, _reorderThreshold - _specialStock[i - 1]); }
+        else if (_selection == 8) Array.Clear(_supplierCart, 0, 4);
+        else NavigateBack();
+    }
+
+    private void ShowSupplierOrderContents()
+    {
+        if (_deliveryKind == -2) { Notify("No pending supplier order."); return; }
+        int[] lines = _deliveryLines;
+        if (lines == null) { lines = new int[4]; lines[_deliveryKind + 1] = _deliveryQuantity; }
+        ShowStatusNotice("PENDING ORDER CONTENTS", "Universal " + lines[0] + " | Filters " + lines[1],
+            "Brake kits " + lines[2] + " | Diagnostics " + lines[3],
+            SupplierName(_deliverySupplier) + " | " + (int)Math.Ceiling(_deliveryRemainingGameSeconds) + " active seconds remaining",
+            "$" + _deliveryCost.ToString("N0") + (_deliveryPrepaid ? " PREPAID" : " consolidated invoice on stocking"));
     }
 
     private void ShowReorderAdvice()

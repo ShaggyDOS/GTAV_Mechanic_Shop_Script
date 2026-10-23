@@ -1,0 +1,89 @@
+PASS cart four items one order ETA and consolidated price
+PASS cart submission copies draft without aliasing
+PASS cart one receipt applies all inventory once
+PASS cart pending cart roundtrip no offline catchup
+PASS cart completed snapshot clears additive payload
+PASS cart capacity blocks whole cart at ordering and receipt
+PASS cart failed receipt restores four buckets and original cart
+PASS cart failed placement retains no pending order and no savings drift
+PASS cart second order cannot replace pending
+PASS cart wholesale assignment remains required
+PASS cart legacy pending single item loads unchanged
+PASS cart legacy pending survives additive empty payload
+PASS cart cancel clears all lines without stock or invoice
+PASS cart failed cancel restores cart and prepaid refund exactly
+PASS cart pause blocks placement and cancellation
+PASS cart reject invalid/empty cart null
+PASS cart reject invalid/empty cart 1
+PASS cart reject invalid/empty cart -1,0,0,0
+PASS cart reject invalid/empty cart 101,0,0,0
+PASS cart reject invalid/empty cart 50,50,1,0
+PASS cart reject invalid/empty cart 2147483647,0,0,0
+PASS cart reject invalid/empty cart 0,0,0,0
+PASS cart malformed/mismatching payload Version
+PASS cart malformed/mismatching payload Line0
+PASS cart malformed/mismatching payload Line1
+PASS cart malformed/mismatching payload OrderTicks
+PASS cart malformed/mismatching payload Cost
+PASS cart malformed/mismatching payload Supplier
+PASS cart legacy downgrade cleared order cannot replay stale lines
+PASS cart quantity edits clamp and never write stock or disk
+PASS cart roundtrip preserves unknown keys
+PASS cart stale physical identity rejects whole mixed receipt
+cart 32/32 PASS; production submission/serialization/receipt/cancel against deterministic INI adapter; GTA NOT RUN
+PASS supplier away receipt supplier 1
+PASS supplier away receipt supplier 2
+PASS supplier ETA pending
+PASS supplier manager eligibility gate 0
+PASS supplier manager eligibility gate 1
+PASS supplier manager eligibility gate 2
+PASS supplier pause prevents ready receipt and route work
+PASS supplier wholesale remains player only prepaid False
+PASS supplier wholesale remains player only prepaid True
+PASS supplier wholesale missing pickup does not auto-credit
+PASS supplier aggregate capacity blocks then recovers
+PASS supplier full and missing pallets block
+PASS supplier player carrying is never stolen
+PASS supplier near receipt requires actual pallet arrival
+PASS supplier near receipt durable before visual cleanup
+PASS supplier near missing support/entity/layout 0
+PASS supplier near missing support/entity/layout 1
+PASS supplier near missing support/entity/layout 2
+PASS supplier near missing support/entity/layout 3
+PASS supplier save failure restores every accounting field then retries once
+PASS supplier prepaid obeys capacity and never bills twice
+PASS supplier stream out during route becomes single virtual receipt
+PASS supplier manager removed during route retains order
+PASS supplier blocked route defers without teleport or stock
+PASS supplier failed save virtual retries are rate limited
+PASS supplier spawn attempts rate limited
+PASS supplier no manager direct handoff remains
+PASS supplier near incomplete physical configuration retains order
+PASS supplier invalid pallet commit cannot mutate
+PASS supplier special stock receipt
+PASS supplier atomic disk snapshot preserves original on writer failure
+PASS supplier atomic disk snapshot commits receipt and cleared order together
+PASS supplier failure before first snapshot leaves no invented receipt
+PASS supplier manager driver route ends at selected pallet and ignores player chase
+PASS supplier manager route capacity loss retains order
+PASS supplier stale visual order identity cannot settle another order
+PASS supplier virtual receipt grants a fresh finite visual budget
+supplier 37/37 PASS; production receipt/policy/route methods with deterministic world stubs; GTA testing NOT RUN
+/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Program.cs(254,10): warning CS0649: Field 'Harness._routeConfigReturning' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Program.cs(8,63): warning CS0649: Field 'Harness.KeyEventArgs.Control' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Program.cs(4,42): warning CS0649: Field 'Game.IsPaused' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Program.cs(253,21): warning CS0649: Field 'Harness._editingStaffSlot' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Program.cs(252,42): warning CS0649: Field 'Harness._financesFromExpenses' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Program.cs(253,64): warning CS0649: Field 'Harness._routeConfigSlot' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Program.cs(250,80): warning CS0649: Field 'Harness._requireCtrlForMenu' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-683xch3g/Tests.csproj]
+PASS #2 keyboard Enter plus held/repeated frontend Accept performs one action
+PASS #2 controller-first mapped keyboard echo does not execute twice
+PASS #2 held Enter cannot satisfy the next confirmation after ten seconds
+PASS #2 controller-only consecutive physical presses remain accepted
+PASS #2 keyboard Back and frontend Back return only one page
+PASS #2 nested editor returns exact saved page and cursor
+PASS #2 all corrected parent rows match source menu positions
+PASS #2 Back aliases hold until both physical keys are released
+PASS #2 point editor labels distinguish unset saved and marker state
+PASS #2 boot gate prevents both input effects and held-key registration
+#2 10/10 PASS; GTA testing NOT RUN

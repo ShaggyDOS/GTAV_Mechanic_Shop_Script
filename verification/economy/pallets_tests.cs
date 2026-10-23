@@ -27,6 +27,8 @@ class Harness {
     void ReleaseVisualModel(Model model){modelReleases++;}
     int modelRequests,modelReleases;
     /*<source:CommitSupplierDelivery>*/
+    /*<source:ApplySupplierInventory>*/
+    int[] _deliveryLines;
     const int MaxStoragePallets=4,CratesPerPallet=9;
     int _ownedStoragePallets=1,_storageVisualAttempts;
     int[] _storedDeliveryCrates={3,0,0,0},_deliveredPackageMasks=new int[4];
