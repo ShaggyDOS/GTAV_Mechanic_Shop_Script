@@ -1,0 +1,244 @@
+diff --git a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+index c928123..51e05d3 100644
+--- a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
++++ b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -34,7 +34,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         StaffRoster, StaffProfile, VehicleDriveOptions, CustomerPlacements, EmployeePlacements,
+         MechanicWalkingPaths, ReceptionWalkingPaths, ReceptionWaypoints, CustomerQueueSettings,
+         PartsSales, VehicleAutoLotOptions, BusinessExpenses, MechanicInvoices, CustomerWalkingRoutes,
+-        InventoryManagement, EquipmentManagement, ControllerSettings, MechanicRouteRoster,
++        InventoryManagement, InventoryOverview, BuildSupplierOrder, ActiveDeliveries, EquipmentManagement, ControllerSettings, MechanicRouteRoster,
+         MechanicRouteDirection, MechanicRoutePoints, SupplierDeliverySetup, SupplierDriverWaypoints,
+         HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints
+     }
+@@ -1090,8 +1090,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.Employees: _menuPage = MenuPage.BusinessManagement; _selection = 0; break;
+             case MenuPage.HireMechanicRoster: _menuPage = MenuPage.MechanicManagement; _selection = 1; break;
+             case MenuPage.HireReceptionistRoster: _menuPage = MenuPage.ReceptionistManagement; _selection = 1; break;
+-            case MenuPage.SupplierDeliverySetup: _menuPage = MenuPage.InventoryManagement; _selection = 9; break;
+-            case MenuPage.SupplierPalletStorage: _menuPage = MenuPage.SupplierDeliverySetup; _selection = 4; break;
++            case MenuPage.SupplierDeliverySetup: _menuPage = MenuPage.InventoryManagement; _selection = 5; break;
++            case MenuPage.SupplierPalletStorage: _menuPage = MenuPage.InventoryManagement; _selection = 4; break;
+             case MenuPage.SupplierDriverWaypoints: _menuPage = MenuPage.SupplierDeliverySetup; _selection = 5; break;
+             case MenuPage.StaffRoster: _menuPage = MenuPage.MechanicManagement; _selection = 0; break;
+             case MenuPage.StaffProfile: _menuPage = MenuPage.StaffRoster; _selection = Math.Max(0, _editingStaffSlot); break;
+@@ -1139,7 +1139,10 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 _selection = _financesFromExpenses ? 8 : 4;
+                 break;
+             case MenuPage.BusinessExpenses: _menuPage = MenuPage.BusinessManagement; _selection = 3; break;
+-            case MenuPage.PartsSales: _menuPage = MenuPage.InventoryManagement; _selection = 10; break;
++            case MenuPage.PartsSales: _menuPage = MenuPage.InventoryManagement; _selection = 3; break;
++            case MenuPage.InventoryOverview: _menuPage = MenuPage.InventoryManagement; _selection = 0; break;
++            case MenuPage.BuildSupplierOrder: _menuPage = MenuPage.InventoryManagement; _selection = 1; break;
++            case MenuPage.ActiveDeliveries: _menuPage = MenuPage.InventoryManagement; _selection = 2; break;
+             case MenuPage.InventoryManagement: _menuPage = MenuPage.BusinessManagement; _selection = 2; break;
+             case MenuPage.EquipmentManagement: _menuPage = MenuPage.BusinessExpenses; _selection = 7; break;
+             case MenuPage.ControllerSettings: _menuPage = MenuPage.BusinessManagement; _selection = 5; break;
+@@ -1212,6 +1215,36 @@ public class GlassHeroesBusinessV3Experimental : Script
+             GTA.UI.Font.ChaletLondon, GTA.UI.Alignment.Left).Draw();
+     }
+ 
++    private static readonly Dictionary<string, string> _menuFitCache = new Dictionary<string, string>();
++
++    private static string FitMenuText(string caption, float maxWidth, float scale)
++    {
++        string key = maxWidth + "|" + scale + "|" + caption;
++        string fitted;
++        if (_menuFitCache.TryGetValue(key, out fitted)) return fitted;
++        fitted = caption;
++        if (GTA.UI.TextElement.GetStringWidth(fitted, GTA.UI.Font.ChaletLondon, scale * MenuScale) > maxWidth * MenuScale)
++        {
++            int low = 0, high = Math.Min(128, caption.Length);
++            while (low < high)
++            {
++                int mid = (low + high + 1) / 2;
++                if (GTA.UI.TextElement.GetStringWidth(caption.Substring(0, mid) + "...", GTA.UI.Font.ChaletLondon, scale * MenuScale) <= maxWidth * MenuScale) low = mid;
++                else high = mid - 1;
++            }
++            fitted = caption.Substring(0, low) + "...";
++        }
++        if (_menuFitCache.Count >= 128) _menuFitCache.Clear();
++        _menuFitCache[key] = fitted;
++        return fitted;
++    }
++
++    private static void LabelColumn(string caption, int x, int y, int width, float scale, Color color, bool right)
++    {
++        new GTA.UI.TextElement(FitMenuText(caption, width, scale), new PointF(CompactX(x), CompactY(y)),
++            scale * MenuScale, color, GTA.UI.Font.ChaletLondon, right ? GTA.UI.Alignment.Right : GTA.UI.Alignment.Left).Draw();
++    }
++
+     private string[] GetMenuItems()
+     {
+         switch (_menuPage)
+@@ -1315,12 +1348,16 @@ public class GlassHeroesBusinessV3Experimental : Script
+                     "Pay All Bills", "Order 10 Universal Parts", "Equipment & Office >",
+                     "Financial Reports >", "Pay Manager Wages", "< Back to Business Management" };
+             case MenuPage.InventoryManagement:
+-                return new string[] { "Inventory Status", "Order 10 Universal Parts", "Order 5 Service Filters",
+-                    "Order 5 Brake Kits", "Order 5 Diagnostic Supplies", "Supplier: Change", "Reorder Advice",
+-                    "Pending Delivery Status", "Low-stock Threshold: Cycle", "Mule Delivery Settings >", "Parts Sales >", "< Back to Business Management" };
++                return new string[] { "Inventory Overview >", "Build Supplier Order >", "Active Deliveries >", "Parts Sales >", "Stockroom & Pallets >", "Supplier Settings >", "< Back to Management" };
++            case MenuPage.InventoryOverview:
++                return new string[] { "Universal Parts", "Service Filters", "Brake Kits", "Diagnostic Supplies", "Storage Capacity", "Reorder Advice", "Low-stock Threshold", "< Back to Inventory" };
++            case MenuPage.BuildSupplierOrder:
++                return new string[] { "Order 10 Universal Parts", "Order 5 Filters", "Order 5 Brake Kits", "Order 5 Diagnostics", "Supplier: Change", "< Back to Inventory" };
++            case MenuPage.ActiveDeliveries:
++                return new string[] { "Delivery Status", "Order Contents", "Recover Original Order", "Cancel Pending Order", "< Back to Inventory" };
+             case MenuPage.PartsSales:
+-                return new string[] { "Sell 1 Universal Part", "Sell 1 Service Filter", "Sell 1 Brake Kit",
+-                    "Sell 1 Diagnostic Supply", "< Back to Inventory" };
++                return new string[] { "Universal Part", "Service Filter", "Brake Kit",
++                    "Diagnostic Supply", "< Back to Inventory" };
+             case MenuPage.EquipmentManagement:
+                 return new string[] { "Equipment Status", "Buy Tool Set", "Buy Diagnostic Scanner",
+                     "Buy Desk + Laptop", "Place Tool Chest", "Remove Tool Chest",
+@@ -1357,7 +1394,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.SupplierPalletStorage:
+                 return new string[] { "Storage Capacity Status", "Purchase Additional Pallet ($750)",
+                     "Place / Move Pallet 1 >", "Place / Move Pallet 2 >", "Place / Move Pallet 3 >",
+-                    "Place / Move Pallet 4 >", "< Back to Mule Delivery" };
++                    "Place / Move Pallet 4 >", "< Back to Inventory" };
+             case MenuPage.SupplierDriverWaypoints:
+                 return new string[] { "Driver Stop 1 / 3 >", "Driver Stop 2 / 3 >", "Driver Stop 3 / 3 >",
+                     "< Back to Delivery Setup" };
+@@ -1454,16 +1491,17 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 if (index == 1) return _autoLotOffsetMeters.ToString("0") + " m";
+                 if (index == 2) return _autoLotPreview ? "ON" : "OFF";
+                 return ">";
+-            case MenuPage.InventoryManagement:
+-                if (index == 0) return StoredPartsTotal() + "/" + TotalStorageCapacity();
+-                if (index == 5) return SupplierName(_selectedSupplier);
+-                if (index >= 1 && index <= 4) return "$" + InventoryPurchaseCost(index == 1 ? -1 : index - 2, index == 1 ? 10 : 5).ToString("N0");
+-                if (index == 7) return _deliveryKind == -2 ? "NONE" : MuleStageName();
+-                if (index == 8) return _reorderThreshold.ToString();
+-                if (index == 9) return "CONFIGURE";
+-                return ">";
++            case MenuPage.InventoryManagement: return ">";
++            case MenuPage.InventoryOverview:
++                if (index == 0) return _parts.ToString("N0");
++                if (index < 4) return _specialStock[index - 1].ToString("N0");
++                return index == 4 ? StoredPartsTotal() + "/" + TotalStorageCapacity() : index == 6 ? _reorderThreshold.ToString() : ">";
++            case MenuPage.BuildSupplierOrder:
++                return index < 4 ? "$" + InventoryPurchaseCost(index - 1, index == 0 ? 10 : 5).ToString("N0") : index == 4 ? SupplierName(_selectedSupplier) : "BACK";
++            case MenuPage.ActiveDeliveries:
++                return index == 0 ? (_deliveryKind == -2 ? "NONE" : ((int)Math.Ceiling(_deliveryRemainingGameSeconds)) + "s") : ">";
+             case MenuPage.PartsSales:
+-                return index < 4 ? PartsSalePreview(index - 1) : "BACK";
++                return index < 4 ? "$" + EstimatedUnitAcquisitionCost(index - 1).ToString("N0") : "BACK";
+             case MenuPage.EquipmentManagement:
+                 if (index == 1) return _toolSetPurchased ? "OWNED" : "$1,800";
+                 if (index == 2) return _diagnosticScannerPurchased ? "OWNED" : "$1,600";
+@@ -1842,20 +1880,12 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.HireManagerRoster: return "Recruit a manager: higher tiers reduce expenses and improve offsite shop efficiency.";
+             case MenuPage.HireMechanicRoster: return "Candidates have different starting skill, specialty, hiring price and wages.";
+             case MenuPage.HireReceptionistRoster: return "Recruit a receptionist; skills permit one, two or three pending customers.";
+-            case MenuPage.PartsSales: return "One confirmation sells ONE unreserved unit at a fixed cost estimate; no skill markup. Pending cargo is excluded.";
++            case MenuPage.PartsSales: return _selection < 4 ? PartsSalePreview(_selection - 1) + ". ENTER sells ONE unreserved unit. Pending cargo excluded." : "Return to Inventory & Suppliers.";
+             case MenuPage.InventoryManagement:
+-                return new string[] {
+-                    "Inspect available universal and service-specific parts inventory.",
+-                    "Order ten universal parts; new shipment is invoiced when stocked.",
+-                    "Order five oil/service filters; invoiced after actual delivery.",
+-                    "Order five brake kits; credited after actual delivery.",
+-                    "Order five diagnostic supplies; credited after actual delivery.",
+-                    "Cycle Wholesale, Local and Express fleets, prices and lead times.",
+-                    "View suggested restocking quantities at your current threshold.",
+-                    "Inspect shipment, ETA, supplier invoice and box handoff.",
+-                    "Set the low-stock reorder threshold (3, 5 or 10 units).",
+-                    "Configure physical Mule spawn, unloading and parts pallet handoff.",
+-                    "Return to Business Management." }[Math.Min(_selection, 10)];
++                return new string[] { "Inspect stock on hand and shared storage capacity.", "Choose supplier and build an order; invoiced only after stocking.", "Track ETA, inspect contents, recover or cancel the original shipment.", "Sell one unreserved unit; see availability and fixed sale estimate below.", "Buy or position pallets and inspect the stockroom.", "Configure supplier fleet, road route and pickup vehicle.", "Return to Business Management." }[Math.Min(_selection, 6)];
++            case MenuPage.InventoryOverview: return "Stock on hand excludes pending cargo. Repair-reserved stock cannot be sold. Capacity is shared by all four items.";
++            case MenuPage.BuildSupplierOrder: return "Choose one supplier and order parts. Stock and invoice are credited only after receipt; Wholesale requires player pickup.";
++            case MenuPage.ActiveDeliveries: return "Inspect the original pending order. Recover retains its contents; cancel requires a second confirmation and adds no stock.";
+             case MenuPage.EquipmentManagement:
+                 if (_selection == 1) return "Tool set $1,800: permanent 7% shorter repair duration on all jobs.";
+                 if (_selection == 2) return "Scanner $1,600: permanent 10% shorter engine diagnostics.";
+@@ -1962,8 +1992,11 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.BusinessExpenses: return "EXPENSES & BILLS";
+             case MenuPage.PartsSales: return "PARTS SALES - ONE UNIT";
+             case MenuPage.InventoryManagement: return "INVENTORY & SUPPLIERS";
+-            case MenuPage.SupplierDeliverySetup: return "SUPPLIER DELIVERY SETTINGS";
+-            case MenuPage.SupplierPalletStorage: return "PALLET STORAGE";
++            case MenuPage.InventoryOverview: return "INVENTORY OVERVIEW";
++            case MenuPage.BuildSupplierOrder: return "BUILD SUPPLIER ORDER";
++            case MenuPage.ActiveDeliveries: return "ACTIVE DELIVERIES";
++            case MenuPage.SupplierDeliverySetup: return "SUPPLIER SETTINGS";
++            case MenuPage.SupplierPalletStorage: return "STOCKROOM & PALLETS";
+             case MenuPage.SupplierDriverWaypoints: return "DRIVER WALK (0-3)";
+             case MenuPage.HireMechanicRoster: return "HIRE A MECHANIC";
+             case MenuPage.HireReceptionistRoster: return "HIRE RECEPTIONIST";
+@@ -2043,8 +2076,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 Panel(left, rowY, 5, rowHeight - 1, yellow);
+ 
+             Color textColor = selected ? Color.FromArgb(20, 29, 34) : white;
+-            Label(items[i], left + 15, rowY + 3, 0.34f, textColor);
+-            Label(GetMenuItemValue(i), left + 329, rowY + 3, 0.31f, textColor);
++            LabelColumn(items[i], left + 15, rowY + 3, 255, 0.34f, textColor, false);
++            LabelColumn(GetMenuItemValue(i), left + width - 14, rowY + 3, 125, 0.31f, textColor, true);
+         }
+ 
+         // Help footer replaces the former flickering GTA help-message overlay.
+@@ -2106,6 +2139,19 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.BusinessExpenses: ExecuteBusinessExpensesSelection(); break;
+             case MenuPage.MechanicInvoices: ExecuteMechanicInvoicesSelection(); break;
+             case MenuPage.InventoryManagement: ExecuteInventorySelection(); break;
++            case MenuPage.InventoryOverview:
++                if (_selection == 5) ShowReorderAdvice();
++                else if (_selection == 6) { _reorderThreshold = _reorderThreshold == 3 ? 5 : _reorderThreshold == 5 ? 10 : 3; Save(); }
++                else if (_selection == 7) NavigateBack(); else ShowDetailedInventory(); break;
++            case MenuPage.BuildSupplierOrder:
++                if (_selection < 4) BuyInventory(_selection - 1, _selection == 0 ? 10 : 5);
++                else if (_selection == 4) { _selectedSupplier = (_selectedSupplier + 1) % 3; Save(); }
++                else NavigateBack(); break;
++            case MenuPage.ActiveDeliveries:
++                if (_selection < 2) ShowSupplierDeliveryStatus();
++                else if (_selection == 2) RecoverSupplierShipment();
++                else if (_selection == 3) CancelSupplierOrderWithConfirmation();
++                else NavigateBack(); break;
+             case MenuPage.PartsSales: if (_selection < 4) TrySellPart(_selection - 1); else NavigateBack(); break;
+             case MenuPage.EquipmentManagement: ExecuteEquipmentSelection(); break;
+             case MenuPage.ControllerSettings: ExecuteControllerSelection(); break;
+@@ -8078,30 +8124,19 @@ public class GlassHeroesBusinessV3Experimental : Script
+             "Mule ETA " + SupplierDeliverySeconds(_deliverySupplier) + " seconds."));
+     }
+ 
++    private void ShowReorderAdvice()
++    {
++        ShowStatusNotice("REORDER ADVICE", "Universal " + _parts + " | Filters " + _specialStock[0],
++            "Brake kits " + _specialStock[1] + " | Diagnostics " + _specialStock[2],
++            "Low stock threshold " + _reorderThreshold, "Pending cargo is excluded from stock on hand.");
++    }
++
+     private void ExecuteInventorySelection()
+     {
+-        switch (_selection)
+-        {
+-            case 0: ShowDetailedInventory(); break;
+-            case 1: BuyInventory(-1, 10); break;
+-            case 2: case 3: case 4: BuyInventory(_selection - 2, 5); break;
+-            case 5: _selectedSupplier = (_selectedSupplier + 1) % 3; Save();
+-                Notify("Preferred supplier: " + SupplierName(_selectedSupplier) +
+-                    ". Estimated delivery " + SupplierDeliverySeconds(_selectedSupplier) + " seconds."); break;
+-            case 6: ShowStatusNotice("REORDER ADVICE",
+-                "Universal " + _parts + (_parts < Math.Max(5, _reorderThreshold) ? " LOW" : " OK"),
+-                "Filters " + _specialStock[0] + (_specialStock[0] < _reorderThreshold ? " LOW" : " OK") +
+-                    " | Brakes " + _specialStock[1] + (_specialStock[1] < _reorderThreshold ? " LOW" : " OK"),
+-                "Diagnostics " + _specialStock[2] + (_specialStock[2] < _reorderThreshold ? " LOW" : " OK") +
+-                    " | Threshold " + _reorderThreshold,
+-                "Supplier order: " + (_deliveryKind == -2 ? "NONE" : "ON THE WAY - check status")); break;
+-            case 7: ShowSupplierDeliveryStatus(); break;
+-            case 8: _reorderThreshold = _reorderThreshold == 3 ? 5 : _reorderThreshold == 5 ? 10 : 3;
+-                Save(); Notify("Low-stock reorder threshold: " + _reorderThreshold + " dedicated parts."); break;
+-            case 9: _menuPage = MenuPage.SupplierDeliverySetup; _selection = 0; break;
+-            case 10: _menuPage = MenuPage.PartsSales; _selection = 0; break;
+-            default: NavigateBack(); break;
+-        }
++        MenuPage[] destinations = { MenuPage.InventoryOverview, MenuPage.BuildSupplierOrder,
++            MenuPage.ActiveDeliveries, MenuPage.PartsSales, MenuPage.SupplierPalletStorage, MenuPage.SupplierDeliverySetup };
++        if (_selection >= destinations.Length) { NavigateBack(); return; }
++        _menuPage = destinations[_selection]; _selection = 0;
+     }
+ 
+     private bool BuyEquipment(int price, string name)
