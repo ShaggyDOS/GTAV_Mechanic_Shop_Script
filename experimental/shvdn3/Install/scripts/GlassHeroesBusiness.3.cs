@@ -8357,8 +8357,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _deliveredPackageProps[packageIndex] = _supplierCrate;
                 _supplierCrate = null; // delivered parcel ownership is separate from obsolete displays
             }
-            _nextStorageVisualAttempt = DateTime.MinValue;
-            UpdateSupplierPalletVisual();
+            RefreshStoragePalletAfterDeposit();
             GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
             _supplierPlayerCarrying = false;
             // Warehouse pickup has no delivery truck to send away.
@@ -8451,6 +8450,15 @@ public class GlassHeroesBusinessV3Experimental : Script
         _storageVisualAttempts = 0;
         _nextStorageVisualAttempt = DateTime.MinValue;
         _palletVisualDirty = true;
+    }
+
+    private void RefreshStoragePalletAfterDeposit()
+    {
+        // A new successful deposit gets a fresh bounded visual budget, even if
+        // earlier model streaming exhausted retries while the player stayed nearby.
+        _storageVisualAttempts = 0;
+        _nextStorageVisualAttempt = DateTime.MinValue;
+        UpdateSupplierPalletVisual();
     }
 
     private void HideUnsupportedPalletBoxes(int palletSlot, int firstMissingBox)

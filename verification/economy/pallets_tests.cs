@@ -12,6 +12,7 @@ class Harness {
     /*<source:CompatiblePackageVisualMask>*/
     /*<source:DeleteLegacyStockroomDisplayBoxes>*/
     /*<source:DeleteStoragePalletVisuals>*/
+    /*<source:RefreshStoragePalletAfterDeposit>*/
     /*<source:HideUnsupportedPalletBoxes>*/
     /*<source:UpdateSupplierPalletVisual>*/
     /*<source:StoredBoxPosition>*/
@@ -80,6 +81,8 @@ class Harness {
         Test("visual refresh never changes original saved pallet position or heading",()=>{var h=new Harness();h.point.Heading=90;h._deliveredPackageMasks[0]=7;h.UpdateSupplierPalletVisual();Check(Near(h.point.Position.Z,6)&&Near(h.point.Heading,90)&&Near(h._deliveredPackageProps[0].Heading,90),"saved position");});
         Test("out of range box indexes are rejected including tenth parcel",()=>{var h=new Harness();Vector3 p;float heading;Check(!h.TryStoredBoxTransform(0,-1,true,out p,out heading)&&!h.TryStoredBoxTransform(0,9,true,out p,out heading),"index");});
         Test("failed lower box creation never draws unsupported upper parcels",()=>{var h=new Harness{failFirstBox=true};h._storedDeliveryCrates[0]=9;h._deliveredPackageMasks[0]=511;h._deliveredPackageProps[8]=new Prop();var upper=h._deliveredPackageProps[8];h.UpdateSupplierPalletVisual();Check(h.boxes==0&&!upper.alive&&h._deliveredPackageProps[8]==null&&h._palletVisualDirty&&h._deliveredPackageMasks[0]==511&&h._storedDeliveryCrates[0]==9,"unsupported upper");});
+        Test("new deposit rebuilds centered partial layer after prior retries were exhausted",()=>{var h=new Harness();h._storedDeliveryCrates[0]=1;h._deliveredPackageMasks[0]=1;h.UpdateSupplierPalletVisual();var first=h._deliveredPackageProps[0];h._storageVisualAttempts=5;h._nextStorageVisualAttempt=DateTime.UtcNow.AddHours(1);h._storedDeliveryCrates[0]=2;h._deliveredPackageMasks[0]=3;h._palletVisualDirty=true;h.RefreshStoragePalletAfterDeposit();Check(h._storageVisualAttempts==1&&first.alive&&h._deliveredPackageProps[0]==first&&first.Position.X<0&&h._deliveredPackageProps[1].Position.X>0&&!h._palletVisualDirty&&h.saves==0,"exhausted deposit overlap");});
+        Test("new deposit grants one bounded retry budget without per-frame model requests",()=>{var h=new Harness{failModels=true};h._storagePalletProps[0]=new Prop{Position=new Vector3(0,0,4)};h._storageVisualAttempts=5;h._deliveredPackageMasks[0]=7;h.RefreshStoragePalletAfterDeposit();int requests=h.modelRequests;for(int i=0;i<100;i++)h.UpdateSupplierPalletVisual();Check(h._storageVisualAttempts==1&&h.modelRequests==requests&&requests==1&&h._storedDeliveryCrates[0]==3&&h._deliveredPackageMasks[0]==7&&h._supplierInvoicesDue==0&&h.saves==0,"unbounded refresh or billing");});
         Console.WriteLine("pallets "+passed+"/"+passed+" PASS; production geometry and owned-visual helpers; GTA testing NOT RUN");
     }
 }

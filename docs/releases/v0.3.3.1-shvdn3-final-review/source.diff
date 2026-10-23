@@ -1,0 +1,30 @@
+diff --git a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+index 72092d1..cca5ccb 100644
+--- a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
++++ b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -8357,8 +8357,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 _deliveredPackageProps[packageIndex] = _supplierCrate;
+                 _supplierCrate = null; // delivered parcel ownership is separate from obsolete displays
+             }
+-            _nextStorageVisualAttempt = DateTime.MinValue;
+-            UpdateSupplierPalletVisual();
++            RefreshStoragePalletAfterDeposit();
+             GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
+             _supplierPlayerCarrying = false;
+             // Warehouse pickup has no delivery truck to send away.
+@@ -8453,6 +8452,15 @@ public class GlassHeroesBusinessV3Experimental : Script
+         _palletVisualDirty = true;
+     }
+ 
++    private void RefreshStoragePalletAfterDeposit()
++    {
++        // A new successful deposit gets a fresh bounded visual budget, even if
++        // earlier model streaming exhausted retries while the player stayed nearby.
++        _storageVisualAttempts = 0;
++        _nextStorageVisualAttempt = DateTime.MinValue;
++        UpdateSupplierPalletVisual();
++    }
++
+     private void HideUnsupportedPalletBoxes(int palletSlot, int firstMissingBox)
+     {
+         // Never show an upper parcel without its lower support after a spawn failure.

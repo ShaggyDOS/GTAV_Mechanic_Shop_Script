@@ -28,6 +28,10 @@ if 'Save' in profile['changed'] and 'TryCommitBusinessSave' in profile['added']:
  for key in ['PartsSalesRevenue','PartsSalesUnitsSold']:
   new_payload=re.sub(r'^            data.SetValue\("Business", "'+key+r'", [^\n]+\n','',new_payload,flags=re.M)
  assert new_payload==old_payload,'Existing save value or point payload changed'
+if args.profile=='final':
+ restored=after['TrySupplierPackageInteraction'].replace('            RefreshStoragePalletAfterDeposit();','            _nextStorageVisualAttempt = DateTime.MinValue;\n            UpdateSupplierPalletVisual();')
+ assert restored==before['TrySupplierPackageInteraction'],'Nonvisual supplier interaction changed'
+ assert after['TrySupplierPackageInteraction'].index('CommitSupplierDelivery(slot)')<after['TrySupplierPackageInteraction'].index('RefreshStoragePalletAfterDeposit()')
 if args.profile=='reload':
  old_save=before['Save'];new_save=after['Save'].replace('            WriteRepairPromises(data);\n','')
  assert old_save==new_save,'Existing save snapshot payload changed'

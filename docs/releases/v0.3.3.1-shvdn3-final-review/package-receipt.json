@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_SHVDN3_final-review_EXPERIMENTAL.zip",
+  "sha256": "b240a033b8c0825232e96d5a24d737df0ac2e92f5e6d47e337ceb303f34fdf48",
+  "source_sha256": "3146152304eb25599074e58403796719ced2eca9077eb003f917e81474d670f0",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 234,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}
