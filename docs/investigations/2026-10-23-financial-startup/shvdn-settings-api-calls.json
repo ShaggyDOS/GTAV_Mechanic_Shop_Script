@@ -1,0 +1,102 @@
+[
+  {
+    "method": "GTA.ScriptSettings::.ctor",
+    "token": "060006AC",
+    "calls": [
+      "System.Object::.ctor",
+      "TypeSpecification::.ctor"
+    ]
+  },
+  {
+    "method": "GTA.ScriptSettings::Load",
+    "token": "060006AD",
+    "calls": [
+      "GTA.ScriptSettings::.ctor",
+      "System.Array::Empty",
+      "System.IO.File::Exists",
+      "System.IO.StreamReader::.ctor",
+      "System.IO.TextReader::Close",
+      "System.IO.TextReader::ReadLine",
+      "System.String::Concat",
+      "System.String::Contains",
+      "System.String::EndsWith",
+      "System.String::Format",
+      "System.String::get_Length",
+      "System.String::IndexOf",
+      "System.String::StartsWith",
+      "System.String::Substring",
+      "System.String::ToUpper",
+      "System.String::Trim",
+      "System.String::TrimEnd",
+      "TypeSpecification::Add",
+      "TypeSpecification::ContainsKey"
+    ]
+  },
+  {
+    "method": "GTA.ScriptSettings::Save",
+    "token": "060006AE",
+    "calls": [
+      "System.IDisposable::Dispose",
+      "System.IO.File::CreateText",
+      "System.IO.TextWriter::Close",
+      "System.IO.TextWriter::WriteLine",
+      "System.String::Concat",
+      "System.String::IndexOf",
+      "System.String::LastIndexOf",
+      "System.String::Remove",
+      "System.String::Substring",
+      "TypeSpecification::.ctor",
+      "TypeSpecification::Add",
+      "TypeSpecification::ContainsKey",
+      "TypeSpecification::get_Current",
+      "TypeSpecification::get_Item",
+      "TypeSpecification::get_Item1",
+      "TypeSpecification::get_Item2",
+      "TypeSpecification::get_Key",
+      "TypeSpecification::get_Value",
+      "TypeSpecification::GetEnumerator",
+      "TypeSpecification::MoveNext"
+    ]
+  },
+  {
+    "method": "GTA.ScriptSettings::GetValue",
+    "token": "060006AF",
+    "calls": [
+      "System.Convert::ChangeType",
+      "System.Enum::Parse",
+      "System.String::Concat",
+      "System.String::ToUpper",
+      "System.Type::get_IsEnum",
+      "System.Type::GetTypeFromHandle",
+      "TypeSpecification::TryGetValue"
+    ]
+  },
+  {
+    "method": "GTA.ScriptSettings::SetValue",
+    "token": "060006B0",
+    "calls": [
+      "System.Object::ToString",
+      "System.String::Concat",
+      "System.String::ToUpper",
+      "TypeSpecification::Add",
+      "TypeSpecification::ContainsKey",
+      "TypeSpecification::set_Item"
+    ]
+  },
+  {
+    "method": "GTA.ScriptSettings::GetAllValues",
+    "token": "060006B1",
+    "calls": [
+      "System.Convert::ChangeType",
+      "System.Enum::Parse",
+      "System.String::Format",
+      "System.String::ToUpper",
+      "System.Type::get_IsEnum",
+      "System.Type::GetTypeFromHandle",
+      "TypeSpecification::.ctor",
+      "TypeSpecification::Add",
+      "TypeSpecification::ToArray",
+      "TypeSpecification::TryGetValue"
+    ]
+  }
+]

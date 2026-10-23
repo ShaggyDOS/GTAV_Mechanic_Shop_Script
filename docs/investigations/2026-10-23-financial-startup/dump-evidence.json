@@ -1,0 +1,227 @@
+{
+  "file": "Crash_2026-10-23_01-35-40.dmp",
+  "sha256": "ea83f90005453d4694df99077d7fdea1efea4f7ddeb5d63ce98cb840690dfe74",
+  "bytes": 7171477,
+  "dump_header_timestamp_utc": "2026-10-23T06:35:41+00:00",
+  "flags": "0x201070",
+  "streams": {
+    "3": 11236,
+    "17": 14988,
+    "4": 30352,
+    "14": 300,
+    "13": 176692,
+    "5": 258356,
+    "6": 168,
+    "7": 56,
+    "15": 1364,
+    "21": 492,
+    "22": 152,
+    "0": 0
+  },
+  "module_count": 281,
+  "exception": {
+    "thread_id": 23412,
+    "code": "0xc0000005",
+    "address": "0x7ff69e482e79",
+    "module_offset": "GTA5.exe+0xF62E79",
+    "parameters": [
+      "0x0",
+      "0x20653505708"
+    ],
+    "context_size": 1663,
+    "registers": {
+      "RAX": "0x1fe53505710",
+      "RCX": "0xffffffff",
+      "RDX": "0xffffffff",
+      "RBX": "0x1fe54a4b5e0",
+      "RSP": "0xab3c91ec88",
+      "RBP": "0xab3c91ed90",
+      "RSI": "0x2",
+      "RDI": "0x2",
+      "R8": "0x1fe54a4b5e0",
+      "R9": "0x1fe59855340",
+      "R10": "0x7ff69f3d4210",
+      "R11": "0x2011f1ea7d0",
+      "R12": "0x48a1",
+      "R13": "0x0",
+      "R14": "0x3",
+      "R15": "0xab3c91f210",
+      "RIP": "0x7ff69e482e79"
+    },
+    "effective_indexed_address": "0x20653505708"
+  },
+  "thread_count": 234,
+  "raw_stack_module_pointers_NOT_UNWOUND": [
+    {
+      "stack_offset": "0x0",
+      "value": "0x7ff69db47024",
+      "module_offset": "GTA5.exe+0x627024"
+    },
+    {
+      "stack_offset": "0x160",
+      "value": "0x7ff69db5d453",
+      "module_offset": "GTA5.exe+0x63D453"
+    },
+    {
+      "stack_offset": "0x190",
+      "value": "0x7ff69db58d4d",
+      "module_offset": "GTA5.exe+0x638D4D"
+    },
+    {
+      "stack_offset": "0x1f0",
+      "value": "0x7ff69db58f99",
+      "module_offset": "GTA5.exe+0x638F99"
+    },
+    {
+      "stack_offset": "0x210",
+      "value": "0x7ff69fa0d6f8",
+      "module_offset": "GTA5.exe+0x24ED6F8"
+    },
+    {
+      "stack_offset": "0x220",
+      "value": "0x7ff69ebabb20",
+      "module_offset": "GTA5.exe+0x168BB20"
+    },
+    {
+      "stack_offset": "0x248",
+      "value": "0x7ff6a03c23d0",
+      "module_offset": "GTA5.exe+0x2EA23D0"
+    },
+    {
+      "stack_offset": "0x250",
+      "value": "0x7ff69fa0d6f8",
+      "module_offset": "GTA5.exe+0x24ED6F8"
+    },
+    {
+      "stack_offset": "0x260",
+      "value": "0x7ff69db616cc",
+      "module_offset": "GTA5.exe+0x6416CC"
+    },
+    {
+      "stack_offset": "0x290",
+      "value": "0x7ff69ebae909",
+      "module_offset": "GTA5.exe+0x168E909"
+    },
+    {
+      "stack_offset": "0x2b0",
+      "value": "0x7ff69fa0d6f8",
+      "module_offset": "GTA5.exe+0x24ED6F8"
+    },
+    {
+      "stack_offset": "0x2c0",
+      "value": "0x7ff69ebb46c4",
+      "module_offset": "GTA5.exe+0x16946C4"
+    },
+    {
+      "stack_offset": "0x2d8",
+      "value": "0x7ff6a03c23d0",
+      "module_offset": "GTA5.exe+0x2EA23D0"
+    },
+    {
+      "stack_offset": "0x538",
+      "value": "0x7ff6a03c5040",
+      "module_offset": "GTA5.exe+0x2EA5040"
+    },
+    {
+      "stack_offset": "0x540",
+      "value": "0x7ff69ebbb630",
+      "module_offset": "GTA5.exe+0x169B630"
+    },
+    {
+      "stack_offset": "0xdd8",
+      "value": "0x7ff6a03c5040",
+      "module_offset": "GTA5.exe+0x2EA5040"
+    },
+    {
+      "stack_offset": "0xde0",
+      "value": "0x7ff69ebbb7be",
+      "module_offset": "GTA5.exe+0x169B7BE"
+    },
+    {
+      "stack_offset": "0xe10",
+      "value": "0x7ff69ebc2de5",
+      "module_offset": "GTA5.exe+0x16A2DE5"
+    },
+    {
+      "stack_offset": "0xe40",
+      "value": "0x7ff69dd357dc",
+      "module_offset": "GTA5.exe+0x8157DC"
+    },
+    {
+      "stack_offset": "0xed8",
+      "value": "0x7ff69f48a820",
+      "module_offset": "GTA5.exe+0x1F6A820"
+    },
+    {
+      "stack_offset": "0xee0",
+      "value": "0x7ff69dd34fbd",
+      "module_offset": "GTA5.exe+0x814FBD"
+    },
+    {
+      "stack_offset": "0xf08",
+      "value": "0x7ff69f48a820",
+      "module_offset": "GTA5.exe+0x1F6A820"
+    },
+    {
+      "stack_offset": "0xf10",
+      "value": "0x7ff69eba7bad",
+      "module_offset": "GTA5.exe+0x1687BAD"
+    },
+    {
+      "stack_offset": "0xf40",
+      "value": "0x7ff69eba739f",
+      "module_offset": "GTA5.exe+0x168739F"
+    },
+    {
+      "stack_offset": "0xf68",
+      "value": "0x7ff69f3d4101",
+      "module_offset": "GTA5.exe+0x1EB4101"
+    }
+  ],
+  "exception_thread_stack": {
+    "start": "0xab3c91daf8",
+    "bytes": 9480,
+    "rva": 6044261
+  },
+  "captured_memory_ranges": 16147,
+  "interpretation_limits": "Raw module pointers are NOT an unwound stack. No symbols, managed stack attribution, or causal component identification.",
+  "fault_instruction_bytes": "488b04d0c3",
+  "fault_disassembly": [
+    "0x7ff69e482e79: mov rax, qword ptr [rax + rdx*8]",
+    "0x7ff69e482e7d: ret "
+  ],
+  "selected_module_versions": [
+    {
+      "name": "GTA5.exe",
+      "version": "1.0.3889.0"
+    },
+    {
+      "name": "ScriptHookV.dll",
+      "version": "3889.0.1158.13"
+    },
+    {
+      "name": "ScriptHookVDotNet.asi",
+      "version": "3.6.0.0"
+    },
+    {
+      "name": "clr.dll",
+      "version": "4.8.9310.0"
+    },
+    {
+      "name": "ScriptHookVDotNet.asi",
+      "version": "3.6.0.0"
+    },
+    {
+      "name": "RAGEPluginHook.exe",
+      "version": "1.131.1424.17745"
+    },
+    {
+      "name": "ScriptHookVDotNet2.dll",
+      "version": "2.11.6.0"
+    },
+    {
+      "name": "ScriptHookVDotNet3.dll",
+      "version": "3.9.0.0"
+    }
+  ]
+}

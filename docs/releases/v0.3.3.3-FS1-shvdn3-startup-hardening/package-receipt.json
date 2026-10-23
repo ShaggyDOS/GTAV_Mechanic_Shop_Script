@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.3-FS1_SHVDN3_startup-hardening_EXPERIMENTAL.zip",
+  "sha256": "49c9d7f35b7cd66602f4b15cad9ab13d087a10fd4c0adf9f046bbca856f6ae7d",
+  "source_sha256": "0b14e8f9402007912b8316ecfc345a7ff9043ff866072d0429f00cc6ee76109b",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 433,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

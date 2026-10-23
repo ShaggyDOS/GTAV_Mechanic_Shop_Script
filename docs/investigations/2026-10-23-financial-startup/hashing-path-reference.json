@@ -1,0 +1,13 @@
+{
+  "compile_reference_api_sha256": "f328a36445c1d3e282e70b2791efc0d516ae3009d0d1461bf076893805a01cd9",
+  "upstream_core_source_url": "https://raw.githubusercontent.com/scripthookvdotnet/scripthookvdotnet/v3.6.0/source/core/NativeMemory.cs",
+  "upstream_core_source_sha256": "32c01093a13a847ed22a061b61b07f819fa37075c7466748e6291f04d3304a9d",
+  "chain": [
+    "GTA.Model(string)",
+    "GTA.Game.GenerateHash",
+    "SHVDN.NativeMemory.GetHashKey",
+    "ScriptDomain.CurrentDomain.PinString",
+    "GetHashKeyFunc(keyPtr, 0)"
+  ],
+  "scope": "Pinned official 3.6.0 compile-reference path. Deployed Enhanced 3.9.0.6 implementation has not been independently inspected. Shared constructor model calls are inherited by both candidates; causality not established."
+}

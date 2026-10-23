@@ -1,0 +1,46 @@
+[
+  {
+    "method": "GTA.Model::.ctor",
+    "token": "06000195",
+    "calls": [
+      "GTA.Model::set_Hash"
+    ]
+  },
+  {
+    "method": "GTA.Model::.ctor",
+    "token": "06000196",
+    "calls": [
+      "GTA.Game::GenerateHash",
+      "GTA.Model::.ctor"
+    ]
+  },
+  {
+    "method": "GTA.Model::.ctor",
+    "token": "06000197",
+    "calls": [
+      "GTA.Model::.ctor"
+    ]
+  },
+  {
+    "method": "GTA.Model::.ctor",
+    "token": "06000198",
+    "calls": [
+      "GTA.Model::.ctor"
+    ]
+  },
+  {
+    "method": "GTA.Model::.ctor",
+    "token": "06000199",
+    "calls": [
+      "GTA.Model::.ctor"
+    ]
+  },
+  {
+    "method": "GTA.Game::GenerateHash",
+    "token": "0600059C",
+    "calls": [
+      "SHVDN.NativeMemory::GetHashKey",
+      "System.String::IsNullOrEmpty"
+    ]
+  }
+]

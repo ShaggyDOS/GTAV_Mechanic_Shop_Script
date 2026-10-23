@@ -1,0 +1,91 @@
+[
+  {
+    "method": ".GlassHeroesBusinessV3Experimental::MechanicWagesDue",
+    "token": "06000020",
+    "calls": [
+      "System.IDisposable::Dispose",
+      "TypeSpecification::get_Current",
+      "TypeSpecification::GetEnumerator",
+      "TypeSpecification::MoveNext"
+    ]
+  },
+  {
+    "method": ".GlassHeroesBusinessV3Experimental::CaptureFinanceSnapshot",
+    "token": "060000FF",
+    "calls": [
+      ".FinanceSnapshot::.ctor",
+      ".GlassHeroesBusinessV3Experimental::MechanicWagesDue"
+    ]
+  },
+  {
+    "method": ".GlassHeroesBusinessV3Experimental::ReadFinanceSnapshot",
+    "token": "06000101",
+    "calls": [
+      ".FinanceSnapshot::.ctor",
+      "GTA.ScriptSettings::GetValue",
+      "System.Int32::ToString",
+      "System.IO.InvalidDataException::.ctor",
+      "System.String::Concat"
+    ]
+  },
+  {
+    "method": ".GlassHeroesBusinessV3Experimental::LoadFinanceBook",
+    "token": "06000103",
+    "calls": [
+      ".FinanceBook::.ctor",
+      ".FinanceBook::Create",
+      ".FinanceEntry::.ctor",
+      ".FinanceEntry::get_IsCash",
+      ".GlassHeroesBusinessV3Experimental::CaptureFinanceSnapshot",
+      ".GlassHeroesBusinessV3Experimental::ReadFinanceSnapshot",
+      "GTA.ScriptSettings::GetValue",
+      "System.Int32::ToString",
+      "System.IO.InvalidDataException::.ctor",
+      "System.String::Concat",
+      "TypeSpecification::Add"
+    ]
+  },
+  {
+    "method": ".FinanceSnapshot::CloneSnapshot",
+    "token": "06000174",
+    "calls": [
+      ".FinanceSnapshot::.ctor",
+      "System.Array::Clone"
+    ]
+  },
+  {
+    "method": ".FinanceSnapshot::.ctor",
+    "token": "0600017A",
+    "calls": [
+      "System.Object::.ctor"
+    ]
+  },
+  {
+    "method": ".FinanceEntry::get_IsCash",
+    "token": "0600017B",
+    "calls": []
+  },
+  {
+    "method": ".FinanceEntry::.ctor",
+    "token": "0600017C",
+    "calls": [
+      "System.Object::.ctor"
+    ]
+  },
+  {
+    "method": ".FinanceBook::Create",
+    "token": "0600017D",
+    "calls": [
+      ".FinanceBook::.ctor",
+      ".FinanceSnapshot::CloneSnapshot"
+    ]
+  },
+  {
+    "method": ".FinanceBook::.ctor",
+    "token": "06000181",
+    "calls": [
+      "System.Object::.ctor",
+      "TypeSpecification::.ctor"
+    ]
+  }
+]

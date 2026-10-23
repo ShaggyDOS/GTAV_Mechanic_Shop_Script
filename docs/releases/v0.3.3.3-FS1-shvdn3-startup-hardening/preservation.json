@@ -1,0 +1,20 @@
+{
+  "profile": "startup",
+  "parent": "0fefcf8798da54b53fae505f488d3b3d41fae985",
+  "parent_source_sha256": "84125a3465adc717b21984d3e95cdf4c1faed77426eda979a90cf7a3a4917fe5",
+  "candidate_source_sha256": "0b14e8f9402007912b8316ecfc345a7ff9043ff866072d0429f00cc6ee76109b",
+  "changed_methods": [
+    "GlassHeroesBusinessV3Experimental",
+    "OnTick"
+  ],
+  "new_helpers": [
+    "LogStartupSourceIdentity",
+    "TryInitializeGameplayModels"
+  ],
+  "unchanged_methods": 355,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": true,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}

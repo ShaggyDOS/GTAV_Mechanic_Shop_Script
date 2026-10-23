@@ -74,6 +74,9 @@ elif args.profile == 'supplier':
  assert restored == before['OnTick'], 'Existing gameplay clock sampling or system ordering changed'
  assert before['Save'] == after['Save'], 'Existing atomic save snapshot changed'
  assert before['TryCommitBusinessSave'] == after['TryCommitBusinessSave'], 'Atomic persistence boundary changed'
+elif args.profile == 'startup':
+ assert after['OnTick'].replace('                if (!TryInitializeGameplayModels(DateTime.UtcNow)) return;\n', '') == before['OnTick'], 'Out-of-scope gameplay clock change'
+ assert 'new Model(' not in after['GlassHeroesBusinessV3Experimental'], 'Early native hashing returned to constructor'
 else:
  assert before['OnTick']==after['OnTick'],'Active game-time sampling changed'
 result={'profile':args.profile,'parent':profile['parent'],'parent_source_sha256':profile['parent_sha256'],'candidate_source_sha256':hashlib.sha256((repo/'experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs').read_bytes()).hexdigest(),'changed_methods':changed,'new_helpers':added,'unchanged_methods':len(before)-len(changed),'clocks_and_startup_game_gate_unchanged':True,'original_v2_source_project_unchanged':True,'supplier_receipt_accounting_unchanged':args.profile not in {'supplier','workflow','finance'},'out_of_scope_forensics_and_blip_features_absent':True,'gta_testing':'NOT RUN'}

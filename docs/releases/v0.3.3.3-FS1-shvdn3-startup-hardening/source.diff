@@ -1,0 +1,122 @@
+diff --git a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+index 71b3853..edcf489 100644
+--- a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
++++ b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -1,4 +1,4 @@
+-// Glass Heroes Business Manager - v0.3.3.3 SHVDN3 FINANCIAL TRANSPARENCY / EXPERIMENTAL
++// Glass Heroes Business Manager - v0.3.3.3-FS1 SHVDN3 FINANCIAL STARTUP HARDENING / EXPERIMENTAL
+ // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
+ // Original project. Does not reference or modify Auto Work or its data.
+ // GTA V Story Mode only | ScriptHookVDotNet3 3.6.0 / .NET Framework 4.8
+@@ -535,7 +535,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             RequireExclusiveBusinessInstallation(File.Exists);
+             Directory.CreateDirectory(DataDirectory);
+-            Log("BOOT v0.3.3.3 SHVDN3 FINANCIAL TRANSPARENCY EXPERIMENTAL / constructor entered", null);
++            Log("BOOT v0.3.3.3-FS1 SHVDN3 FINANCIAL STARTUP HARDENING EXPERIMENTAL / constructor entered", null);
+             _configuration = ScriptSettings.Load(SettingsFile);
+             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
+             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
+@@ -573,11 +573,10 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 _configuration.GetValue("Suppliers", "ExpressDeliverySeconds", 20)));
+             _physicalMuleDeliveries = _configuration.GetValue("Suppliers", "PhysicalMuleDeliveries", true);
+             _muleModelName = _configuration.GetValue("Suppliers", "MuleModel", "mule2");
+-            _muleModel = new Model(_muleModelName);
+             _muleLiveryBySupplier[0] = _configuration.GetValue("Suppliers", "WholesaleMuleLivery", 0);
+             _muleLiveryBySupplier[1] = _configuration.GetValue("Suppliers", "LocalMuleLivery", 1);
+             _muleLiveryBySupplier[2] = _configuration.GetValue("Suppliers", "ExpressMuleLivery", 2);
+-            _supplierDriverModel = new Model(_configuration.GetValue("Suppliers", "DeliveryDriverModel", "s_m_m_trucker_01"));
++            _supplierDriverModelName = _configuration.GetValue("Suppliers", "DeliveryDriverModel", "s_m_m_trucker_01");
+             _jobRevenue = Math.Max(1, _configuration.GetValue("Economy", "JobRevenue", 500));
+             _wagePerEmployee = Math.Max(0, _configuration.GetValue("Economy", "WagePerPeriod", 250));
+             _rentAndUtilities = Math.Max(0, _configuration.GetValue("Economy", "OverheadPerPeriod", 575));
+@@ -602,12 +601,10 @@ public class GlassHeroesBusinessV3Experimental : Script
+             _walkSpeed = Math.Max(0.65f, Math.Min(2.0f, _configuration.GetValue("Visuals", "WalkSpeed", 1.0f)));
+             _breakSpacing = Math.Max(0.5f, Math.Min(2.0f, _configuration.GetValue("Visuals", "BreakSpotSpacingMeters", 1.0f)));
+             _breakAnimationsEnabled = _configuration.GetValue("Visuals", "BreakAnimationsEnabled", true);
+-            _mechanicModel = new Model(_pedModelName);
+             _receptionistModelName = _configuration.GetValue("Visuals", "ReceptionistPedModel", "s_f_y_shop_mid");
+-            _receptionistModel = new Model(_receptionistModelName);
+-            _managerPedModel = new Model(_configuration.GetValue("Management", "ManagerPedModel", "a_m_y_business_01"));
+-            _customerPedModel = new Model(_configuration.GetValue("CustomerService", "CustomerPedModel", "a_m_y_business_01"));
+-            _customerVehicleModel = new Model(_configuration.GetValue("CustomerService", "CustomerVehicleModel", "asea"));
++            _managerPedModelName = _configuration.GetValue("Management", "ManagerPedModel", "a_m_y_business_01");
++            _customerPedModelName = _configuration.GetValue("CustomerService", "CustomerPedModel", "a_m_y_business_01");
++            _customerVehicleModelName = _configuration.GetValue("CustomerService", "CustomerVehicleModel", "asea");
+             _customerIntervalSeconds = Math.Max(30, Math.Min(900,
+                 _configuration.GetValue("CustomerService", "SecondsBetweenCustomers", 150)));
+             _driveInEnabled = _configuration.GetValue("CustomerService", "DriveInEnabled", false);
+@@ -841,7 +838,10 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+             LoadSupplierOrderLines(data);
+             LoadRepairPromises(data);
++            LogStartupSourceIdentity();
++            Log("BOOT FinanceV1 read begin", null);
+             LoadFinanceBook(data);
++            Log("BOOT FinanceV1 read complete; retained rows=" + _financeBook.Entries.Count + "; activeMs=" + _financeActiveMs, null);
+ 
+             _clockedIn = false; // Opening shift is a deliberate action after every load.
+             _lastTick = DateTime.UtcNow;
+@@ -865,6 +865,54 @@ public class GlassHeroesBusinessV3Experimental : Script
+         }
+     }
+ 
++    private string _supplierDriverModelName, _managerPedModelName, _customerPedModelName, _customerVehicleModelName;
++    private bool _gameplayModelsReady;
++    private int _gameplayModelAttempts;
++    private DateTime _nextGameplayModelAttemptUtc;
++
++    private bool TryInitializeGameplayModels(DateTime now)
++    {
++        if (_gameplayModelsReady) return true;
++        if (_gameplayModelAttempts >= 3 || now < _nextGameplayModelAttemptUtc) return false;
++        _gameplayModelAttempts++;
++        _nextGameplayModelAttemptUtc = now.AddSeconds(5); // Startup retry throttle, never economic elapsed time.
++        try
++        {
++            Log("BOOT gameplay model hashes begin; attempt=" + _gameplayModelAttempts, null);
++            // Model(string) reaches Game.GenerateHash / SHVDN.NativeMemory.GetHashKey.
++            // Invoke only after the delay and a valid, unpaused player. No model requests/spawns.
++            Model mule = new Model(_muleModelName), driver = new Model(_supplierDriverModelName);
++            Model mechanic = new Model(_pedModelName), receptionist = new Model(_receptionistModelName);
++            Model manager = new Model(_managerPedModelName), customer = new Model(_customerPedModelName);
++            Model vehicle = new Model(_customerVehicleModelName);
++            _muleModel = mule; _supplierDriverModel = driver; _mechanicModel = mechanic;
++            _receptionistModel = receptionist; _managerPedModel = manager;
++            _customerPedModel = customer; _customerVehicleModel = vehicle;
++            _gameplayModelsReady = true;
++            Log("BOOT gameplay model hashes complete", null);
++            return true;
++        }
++        catch (Exception ex)
++        {
++            Log("BOOT gameplay model hashes failed; attempt=" + _gameplayModelAttempts + "/3; business remains inactive", ex);
++            return false; // An unmanaged access violation is not claimed catchable or fixed.
++        }
++    }
++
++    private void LogStartupSourceIdentity()
++    {
++        const string path = @"scripts\GlassHeroesBusiness.3.cs";
++        try
++        {
++            if (!File.Exists(path) || new FileInfo(path).Length > 2097152)
++            { Log("BOOT source SHA256=UNVERIFIED; conventional source missing/oversized", null); return; }
++            using (var stream = File.OpenRead(path))
++            using (var sha = System.Security.Cryptography.SHA256.Create())
++                Log("BOOT conventional source SHA256=" + BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant(), null);
++        }
++        catch { Log("BOOT source SHA256=UNVERIFIED; source read failed", null); }
++    }
++
+     private void OnTick(object sender, EventArgs e)
+     {
+         try
+@@ -878,6 +926,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 Ped readyPlayer = Game.Player.Character;
+                 if (readyPlayer == null || !readyPlayer.Exists() || Game.IsPaused)
+                     return;
++                if (!TryInitializeGameplayModels(DateTime.UtcNow)) return;
+                 _lastGameTimeSample = Game.GameTime;
+                 _lastTick = DateTime.UtcNow;
+                 _bootGameplayActivated = true;

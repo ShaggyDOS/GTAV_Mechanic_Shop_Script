@@ -39,6 +39,11 @@ class Harness {
     /*<source:UpdateOfficeDeskVisuals>*/
     /*<source:DeleteOfficeDeskProps>*/
     /*<source:OnTick>*/
+    /*<source:TryInitializeGameplayModels>*/
+    string _muleModelName="mule2",_supplierDriverModelName="driver",_pedModelName="mechanic",_receptionistModelName="receptionist",_managerPedModelName="manager",_customerPedModelName="customer",_customerVehicleModelName="asea";
+    Model _muleModel,_supplierDriverModel,_mechanicModel,_receptionistModel,_managerPedModel,_customerPedModel,_customerVehicleModel;
+    bool _gameplayModelsReady;int _gameplayModelAttempts;DateTime _nextGameplayModelAttemptUtc;
+
     class Point {internal bool IsSet=true;internal Vector3 Position;internal float Heading;}
     HashSet<Model> _requestedVisualModels=new HashSet<Model>();
     bool _officeDeskPurchased=true,_officeDeskPlaced=true;Point _officeDeskLocation=new Point();

@@ -1,0 +1,20 @@
+{
+  "source_sha256": "84125a3465adc717b21984d3e95cdf4c1faed77426eda979a90cf7a3a4917fe5",
+  "base": "422baa756ce16f6af370278105731de2e82abdd3",
+  "financial_candidate": "0fefcf8798da54b53fae505f488d3b3d41fae985",
+  "checks": [
+    "constructor delta is BOOT label plus one LoadFinanceBook call",
+    "OnKeyDown unchanged from supplier parent",
+    "OnKeyUp unchanged from supplier parent",
+    "OnAborted unchanged from supplier parent",
+    "pre-activation OnTick gate unchanged",
+    "financial initialization helpers contain no game/world/native/save/notification/model-request calls",
+    "journal row count explicitly bounded at 256 before row loop",
+    "FS1 defers seven named models; all downstream Tick/economy ordering unchanged"
+  ],
+  "source_changed": true,
+  "candidate_source_sha256": "0b14e8f9402007912b8316ecfc345a7ff9043ff866072d0429f00cc6ee76109b",
+  "gta_execution": "NOT RUN",
+  "native_crash_cause": "UNATTRIBUTED",
+  "limits": "Source boundary checks and separate PE call audit do not prove runtime safety of the entire mod stack."
+}

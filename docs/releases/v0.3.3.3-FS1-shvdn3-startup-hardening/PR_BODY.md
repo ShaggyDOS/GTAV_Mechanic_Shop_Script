@@ -1,0 +1,9 @@
+Financial startup audit and bounded pre-gate model deferral (EXPERIMENTAL)
+
+The uploaded October 23 dump confirms 0xC0000005 at GTA5.exe+0xF62E79 during a hash-confirmed financial build launch. The native instruction reads a pointer table using index 0xFFFFFFFF; the originating component is UNATTRIBUTED. The user has not verified identical runtime/mod/complete-backup conditions for the successful independent waypoint launch. This PR does not claim a financial regression or crash fix.
+
+Based directly on financial 0fefcf8, defer seven inherited named Model constructions until startup delay plus a valid unpaused player. Pinned 3.6.0 API/core inspection reveals an indirect native hashing path during those constructors, common to both reviewed builds. Publish model references together; bound managed failures to three attempts at least five seconds apart. Add transition-only finance/model/startup-source checkpoints. Preserve financial loader, journal, save/rollback, exactly-once settlement and all post-activation business clock logic.
+
+Validation: actual net48/C#7.3 SHVDN3 3.6.0 Release, 0 errors/two inherited warnings; 433/433 behaviors; 21/21 static checks; source/scope preservation. Added tests cover read-only journal initialization, stale/malformed journals, readiness blocking, failure/partial publication and bounded retries. Clean extracted package rebuild and hashes are recorded in package-receipt.json when generated. GTA/Windows/Enhanced compatibility and controlled A/B launches NOT RUN. Sanitized dump evidence and versioned Word/PDF guide included; raw dump/private paths excluded.
+
+Refs #1. Financial/waypoint/Mule integration is held separately pending this startup investigation. Do not merge main/QA R2 or deploy automatically. Preserve complete matching source/data backups; never alternate builds on a modified sole save.
