@@ -12,3 +12,5 @@ Use PR_BODY.md, keep Draft; successful PR creation is claimed only if github-pr-
 Source audit: remote total is lifetime and already included in legacy customer revenue; successful remote payment adds full quote to cash and revenue atomically. Exact observed session discrepancy remains unproven. Reports and tests separate sales, payments, accruals, owner capital and adjustments. Legacy chronology is unavailable; audit starts at preserved current balance, with last 256 rows plus checkpoint/aggregates. Owner wallet/file hard-crash atomicity and purchase-expense P&L basis are explicit limitations. Existing save values are preserved; schema is additive and stale journals fail closed.
 
 Separate October 23 crash evidence keeps deployed source commit/SHA256 UNVERIFIED. Do not attribute the crash to this branch or the preserved parent merely from a reused startup label. Raw matching logs/dump are still needed for session correlation.
+
+Implementation branch pushed. Draft creation returned Forbidden; no PR was created. Use the prepared comparison URL and PR_BODY.md.
