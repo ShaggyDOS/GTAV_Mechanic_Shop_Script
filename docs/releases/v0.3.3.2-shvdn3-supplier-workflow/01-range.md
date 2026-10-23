@@ -1,0 +1,7 @@
+# v0.3.3.2 SHVDN3 delivery range — EXPERIMENTAL (#24 QA followup)
+
+Baseline b777c64. Gameplay QA reported offsite receipts and transition working, nearby physical spawn too restrictive, latest session smooth/crash-free; deployment hash/duration not supplied, no crash-fix claim.
+
+StartMuleDelivery formerly required player within 80m of truck parking independently of the 200m-default shop virtual boundary. Now StartMuleDelivery and SupplierPlayerAway use one SupplierPhysicalRange predicate measured from the shop. Physical delivery is eligible throughout the configured nearby range, including its edge; virtual starts strictly outside it. Model requests follow the distance gate. The existing 5m spawn collision exclusion, occupied road check, ten-active-second spawn retry and driver-to-pallet transaction remain. Unsafe/occupied configured spawn may still defer; no player approach to that spawn is required. No save/settings keys change.
+
+Before: distance(player, truckPark)^2 <= 6400. After: distance(player, shop)^2 <= AwayDistanceMeters^2. Cold start, test 80/100/150/199/200/201m around shop with an open manager business, configured route and empty pallet. Verify physical eligibility inside boundary and one virtual receipt outside; test blocked spawn, moving away during drive, pause/reload and heavy-mod play. GTA testing NOT RUN. Current build/test logs and source diff accompany this stage; final Word/PDF guide follows the combined candidate.

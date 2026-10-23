@@ -1,0 +1,39 @@
+range 40/40 PASS; shared physical/virtual boundary, GTA NOT RUN
+PASS supplier away receipt supplier 1
+PASS supplier away receipt supplier 2
+PASS supplier ETA pending
+PASS supplier manager eligibility gate 0
+PASS supplier manager eligibility gate 1
+PASS supplier manager eligibility gate 2
+PASS supplier pause prevents ready receipt and route work
+PASS supplier wholesale remains player only prepaid False
+PASS supplier wholesale remains player only prepaid True
+PASS supplier wholesale missing pickup does not auto-credit
+PASS supplier aggregate capacity blocks then recovers
+PASS supplier full and missing pallets block
+PASS supplier player carrying is never stolen
+PASS supplier near receipt requires actual pallet arrival
+PASS supplier near receipt durable before visual cleanup
+PASS supplier near missing support/entity/layout 0
+PASS supplier near missing support/entity/layout 1
+PASS supplier near missing support/entity/layout 2
+PASS supplier near missing support/entity/layout 3
+PASS supplier save failure restores every accounting field then retries once
+PASS supplier prepaid obeys capacity and never bills twice
+PASS supplier stream out during route becomes single virtual receipt
+PASS supplier manager removed during route retains order
+PASS supplier blocked route defers without teleport or stock
+PASS supplier failed save virtual retries are rate limited
+PASS supplier spawn attempts rate limited
+PASS supplier no manager direct handoff remains
+PASS supplier near incomplete physical configuration retains order
+PASS supplier invalid pallet commit cannot mutate
+PASS supplier special stock receipt
+PASS supplier atomic disk snapshot preserves original on writer failure
+PASS supplier atomic disk snapshot commits receipt and cleared order together
+PASS supplier failure before first snapshot leaves no invented receipt
+PASS supplier manager driver route ends at selected pallet and ignores player chase
+PASS supplier manager route capacity loss retains order
+PASS supplier stale visual order identity cannot settle another order
+PASS supplier virtual receipt grants a fresh finite visual budget
+supplier 37/37 PASS; production receipt/policy/route methods with deterministic world stubs; GTA testing NOT RUN

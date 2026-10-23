@@ -7360,6 +7360,9 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private bool StartMuleDelivery(DateTime now)
     {
+        Ped nearbyPlayer = Game.Player.Character;
+        if (nearbyPlayer == null || !nearbyPlayer.Exists() || !_placed ||
+            !SupplierPhysicalRange(DistanceSquared(nearbyPlayer.Position, _location), _remoteDistanceMeters)) return false;
         if (_muleModel == null || !_muleModel.IsInCdImage || !_muleModel.IsVehicle ||
             _supplierDriverModel == null || !_supplierDriverModel.IsInCdImage || !_supplierDriverModel.IsPed)
         {
@@ -7369,8 +7372,6 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         if (!_muleModel.IsLoaded) { _muleModel.Request(); return false; }
         if (!_supplierDriverModel.IsLoaded) { _supplierDriverModel.Request(); return false; }
-        if (Game.Player.Character == null ||
-            DistanceSquared(Game.Player.Character.Position, _supplierTruckPark.Position) > 6400f) return false;
         if (DistanceSquared(Game.Player.Character.Position, _supplierTruckSpawn.Position) < 25f) return false;
         if (World.GetNearbyVehicles(_supplierTruckSpawn.Position, 7f).Length > 0) return false;
         try
@@ -7588,11 +7589,16 @@ public class GlassHeroesBusinessV3Experimental : Script
             _managerTier >= 0 && _clockedIn && _placed;
     }
 
+    private static bool SupplierPhysicalRange(float distanceSquared, float awayDistance)
+    {
+        return distanceSquared >= 0f && distanceSquared <= awayDistance * awayDistance;
+    }
+
     private bool SupplierPlayerAway()
     {
         Ped player = Game.Player.Character;
         return player != null && player.Exists() &&
-            DistanceSquared(player.Position, _location) > _remoteDistanceMeters * _remoteDistanceMeters;
+            !SupplierPhysicalRange(DistanceSquared(player.Position, _location), _remoteDistanceMeters);
     }
 
     private int AvailableSupplierPallet()

@@ -32,6 +32,7 @@ class Harness {
  /*<source:TryCommitBusinessSave>*/
  /*<source:ManagerSupplierEligible>*/
  /*<source:SupplierPlayerAway>*/
+ /*<source:SupplierPhysicalRange>*/
  /*<source:AvailableSupplierPallet>*/
  /*<source:CommitSupplierDelivery>*/
  /*<source:TryManagerSupplierDeposit>*/
