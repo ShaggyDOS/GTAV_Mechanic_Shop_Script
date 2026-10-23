@@ -1,0 +1,13 @@
+{
+  "package": "GlassHeroesBusiness_v0.3.3.1_SHVDN3_pallet-stacking_EXPERIMENTAL.zip",
+  "sha256": "7a8d62f338cf4b3c1d437e3024f704ae723ea55cd921daf21b3f8c718a1a29f9",
+  "source_sha256": "bd6bce07b309cea5f1117366b0cd5d92e66ddad8b39038ec7f17e91940375b19",
+  "one_installation_source": true,
+  "no_v2_dll_or_live_data": true,
+  "all_file_hashes_verified": true,
+  "extracted_net48_build": "PASS",
+  "behavior_tests": 169,
+  "static_tests": 21,
+  "gta_testing": "NOT RUN",
+  "review_status": "PENDING"
+}

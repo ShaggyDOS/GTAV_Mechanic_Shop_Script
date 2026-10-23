@@ -1,0 +1,7 @@
+Implements the owner's separate parts-pallet placement request, explicitly stacked on feature/shvdn3-25-manual-parts-sales. Up to nine earned package visuals use cached model bounds, centered partial layers, preferred 4–4–1, saved-heading rotation and actual grounded support. Bounded fallback layouts handle different footprints; invalid geometry fails before stock/invoice commit. Missing lower visuals suppress unsupported upper owned boxes until retry/re-entry.
+
+Legacy mask holes compact only visible placement, without changing saved counts/masks, inventory, delivered package ownership, pending cargo, supplier ledger or saved coordinates. Original wholesale receipt code is unchanged. Manager supplier delivery automation is excluded.
+
+Actual Release build against SHVDN3 3.6.0 and the inherited/economy/geometry behavior suites plus 21 static checks pass; detailed counts are in validation.json. The original v2 issue-6 tests remain unchanged; the v3 compatibility template adapts its old guessed-height assertion to actual-bounds support while retaining the same eight inherited invariants. Full diff, logs, clean extracted source build, source ZIP receipt and Word/PDF report accompany the change.
+
+DRAFT / REVIEW PENDING. GTA testing NOT RUN; actual model/collision/MLO geometry and fallback stack realism remain to verify. Enhanced runtime compatibility NOT VERIFIED; stack-overflow cause UNATTRIBUTED. No QA R2/main merge or live GTA/save/settings edits.

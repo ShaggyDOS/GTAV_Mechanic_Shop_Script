@@ -45,6 +45,9 @@ for issue in issues:
         # Adapt only the stub's renamed API property; production is verbatim.
         assert template.count('alive=true,FreezePosition;') == 1
         template = template.replace('alive=true,FreezePosition;', 'alive=true,IsPositionFrozen;')
+    if args.v3_stubs and issue == '6' and 'BuildPalletBoxLayout' in clean:
+        # Same eight inherited invariants, with bounds-based support and no legacy-mask floating.
+        template = (repo/'verification/economy/pallet_compat_tests.cs').read_text()
     generated = re.sub(r'/\*<source:(\w+)>\*/', lambda m: extract(m.group(1)), template)
     with tempfile.TemporaryDirectory(prefix=f'glassheroes-issue{issue}-') as tmp:
         path = Path(tmp)

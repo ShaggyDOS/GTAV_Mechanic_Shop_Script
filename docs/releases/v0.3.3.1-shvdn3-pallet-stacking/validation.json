@@ -1,0 +1,47 @@
+{
+  "label": "pallet-stacking",
+  "profile": "pallets",
+  "created_utc": "2026-10-23T03:25:12.884381+00:00",
+  "reference": "ScriptHookVDotNet3 3.6.0",
+  "target": "net48 / C# 7.3",
+  "sdk": "8.0.426",
+  "build": "PASS",
+  "build_errors": 0,
+  "warnings": [
+    "CS0169",
+    "CS0649"
+  ],
+  "inherited_behavior": {
+    "corrective": 54,
+    "logger": 9,
+    "migration": 22,
+    "total": 85
+  },
+  "feature_suites": {
+    "repair": {
+      "passed": 32,
+      "total": 32
+    },
+    "sales": {
+      "passed": 29,
+      "total": 29
+    },
+    "pallets": {
+      "passed": 23,
+      "total": 23
+    }
+  },
+  "behavior_total": 169,
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "source_sha256": "bd6bce07b309cea5f1117366b0cd5d92e66ddad8b39038ec7f17e91940375b19",
+  "clock_source_unchanged": true,
+  "v2_and_protected_baseline_unchanged": true,
+  "live_installation_or_saves_touched": false,
+  "gta_testing": "NOT RUN",
+  "crash_cause": "UNATTRIBUTED",
+  "enhanced_runtime_compatibility": "NOT VERIFIED",
+  "review_status": "DRAFT / PENDING"
+}
