@@ -47,3 +47,7 @@ FS1 should log source hash -> FinanceV1 read begin/complete -> constructor compl
 For further attribution: matching SHVDN, RPH, Errors.log and Crash Analyzer output; complete copied prelaunch Save.ini/Settings.ini and source; actual runtime file hashes/versions; prior F62E79 dumps/stacks; Windows WinDbg !analyze -v, .ecxr, register dump, native kv and module versions using matching GTA/mod binaries. Managed SOS output may help if the relevant thread/runtime state is captured; this small dump has uncaptured memory and cannot guarantee full managed recovery.
 
 No live installation or saved data was accessed. No protected branch was modified or merged. No raw dump has been uploaded to GitHub.
+
+## Subsequent non-blocking owner QA
+
+See [WP1/EUP QA addendum](QA_ADDENDUM_WP1_EUP.md). A later WP1 session with verified source identity crashed while idle after 17m32s with the recurring CLR stack-overflow signature. EUP behavior after recursive Read-only changes is retained as a separate observed file-access symptom. This supersedes any reading of the earlier successful waypoint launch as continuing stability evidence; original session facts and immutable FS1 release artifacts remain preserved. No causal connection or new gameplay validation is claimed.
