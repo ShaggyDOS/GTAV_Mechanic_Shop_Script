@@ -10,3 +10,5 @@ Draft comparison:
 https://github.com/ShaggyDOS/GTAV_Mechanic_Shop_Script/compare/feature/shvdn3-native-pause-compatibility...investigation/shvdn3-waypoint-editor-diagnostics?expand=1
 
 Use PR_BODY.md; keep Draft. A created PR is claimed only if github-pr-attempt.txt contains a successful URL. Matching session logs, actual deployed source/hash and managed/native stacks remain needed for causal comparison.
+
+Implementation branch pushed. Draft creation returned Forbidden; no PR was created. Use the prepared comparison URL and PR_BODY.md.
