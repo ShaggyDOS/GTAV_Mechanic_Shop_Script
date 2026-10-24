@@ -1,3 +1,5 @@
+> Historical preintegration c77591b snapshot. Current combined source and pending approval: [Issue36 integration review](issue36-integration/REVIEW.md).
+
 # Glass Heroes v0.3.4 — Inventory, Procurement & Stockroom Operations
 
 ## Review status and identities

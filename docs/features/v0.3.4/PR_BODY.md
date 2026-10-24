@@ -1,3 +1,5 @@
+> Historical preintegration c77591b snapshot. Current combined source and pending approval: [Issue36 integration review](issue36-integration/REVIEW.md).
+
 ## Inventory visibility and supplier transaction integrity
 
 Addresses #35; coordinates with #24 and #25. Base: `feature/shvdn3-336-service-recovery-business-polish` (`c8617ae`), not main. Keep this review draft until owner GTA acceptance.

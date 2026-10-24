@@ -1,0 +1,76 @@
+{
+  "preintegration_commit": "c77591b10437564814c873203e073cc4ead1901e",
+  "accepted_maintenance_final_commit": "2f1ebc268fe93d3a1c84a810ad87a01cf9235774",
+  "source_sha256": "70bc95bcf0d16cbf36b61870bff7e21193c05479b79a4d8beeb45a0b734c2120",
+  "maintenance_changed_members": [
+    "CancelSupplierOrderWithConfirmation",
+    "DrawMenu",
+    "EditingPointPurpose",
+    "ExecuteEmployeePathsSelection",
+    "ExecuteManagerManagement",
+    "ExecuteManagerWalkingSelection",
+    "ExecuteMechanicWalkingSelection",
+    "ExecutePlacementSelection",
+    "ExecutePointListSelection",
+    "ExecuteReceptionWalkingSelection",
+    "ExecuteReceptionistManagement",
+    "ExecuteRouteDirectionSelection",
+    "ExecuteRoutePointSelection",
+    "ExecuteSelection",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetPageDescription",
+    "GetSelectedDescription",
+    "OnAborted",
+    "OnTick",
+    "RecoverSupplierShipment",
+    "SetSupplierPickupWaypoint",
+    "ShowSupplierDeliveryStatus",
+    "TryPlaceSupplierOrder",
+    "TrySupplierPackageInteraction",
+    "WrapMenuDescription"
+  ],
+  "accepted_added_members": [
+    "DeleteWholesalePickupBlip",
+    "FittingMenuWords",
+    "LayoutMenuDescription",
+    "MechanicRouteCounts",
+    "MechanicRouteHeading",
+    "MechanicRoutePreview",
+    "NotePickupLocatorFailure",
+    "PickupWaypointChanged",
+    "PickupWaypointSnapshot",
+    "ReadPickupWaypoint",
+    "SyncWholesalePickupBlip",
+    "WholesalePickupLocationValid",
+    "WholesalePickupLocatorEligible"
+  ],
+  "unchanged_v034_members": 396,
+  "reviewed_menu_arm_unions": [
+    [
+      "GetMenuItemValue",
+      "ActiveDeliveries"
+    ],
+    [
+      "GetMenuItems",
+      "ActiveDeliveries"
+    ],
+    [
+      "GetSelectedDescription",
+      "ActiveDeliveries"
+    ]
+  ],
+  "v034_finance_inventory_receipt_and_quote_methods_unchanged": true,
+  "saved_key_expressions_and_defaults_unchanged": true,
+  "active_time_sampling_unchanged": true,
+  "tick_delta": "one accepted locator sync at existing throttled visual cadence",
+  "protected_v2_files": {
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  },
+  "gta_testing": "NOT RUN",
+  "integration_acceptance": "PENDING OWNER YES/NO"
+}

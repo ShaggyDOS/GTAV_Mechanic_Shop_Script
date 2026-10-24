@@ -1,3 +1,5 @@
+> Historical preintegration c77591b snapshot. Current combined source and pending approval: [Issue36 integration review](issue36-integration/REVIEW.md).
+
 # v0.3.4 — ready for PR review
 
 All development phases A–E and final offline verification are complete under the owner's explicit instruction to work through all phases. Earlier YES/NO gate reports are historical; no further phase stop is being inferred. No PR has been opened by this task: the review body and comparison are prepared for owner review.

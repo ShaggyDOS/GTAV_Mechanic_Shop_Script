@@ -42,6 +42,10 @@ class Harness{
  List<string> notices=new List<string>(),logs=new List<string>();void Notify(string s){notices.Add(s);}void Log(string s,Exception e){logs.Add(s);}
  int _selection,status,contents,recover,cancel,back;MenuPage _menuPage=MenuPage.ActiveDeliveries;
  /*<source:ShowSupplierDeliveryStatus>*/
+ /*<source:SupplierLiveState>*/
+ /*<source:SupplierReceiptBlocker>*/
+ int _managerSupplierPallet=-1;bool _physicalMuleDeliveries=true;
+ bool CanStoreShipment(int quantity)=>true;bool MuleRouteConfigured()=>true;
  void ShowSupplierOrderContents(){contents++;}void RecoverSupplierShipment(){recover++;}void CancelSupplierOrderWithConfirmation(){cancel++;}void NavigateBack(){back++;}
  bool _deliveryPrepaid;int _selectedSupplier;long _completedSupplierDeliveries,_deliveryCost;int[] _deliveryLines;
  string SupplierName(int x)=>"Supplier";int SupplierDeliverySeconds(int x)=>30;string DeliveryItemName(int x)=>"parts";

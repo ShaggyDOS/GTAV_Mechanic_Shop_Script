@@ -2,7 +2,7 @@
 """Generate versioned development Word/PDF reports from the reviewed Markdown."""
 from pathlib import Path
 from xml.sax.saxutils import escape
-import json
+import json,argparse
 from docx import Document
 from docx.shared import Pt
 from reportlab.lib import colors
@@ -11,8 +11,11 @@ from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Preformatted,Table,TableStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-ROOT=Path(__file__).resolve().parents[2];OUT=ROOT/'docs/features/v0.3.4'
-inputs=['DEVELOPER_GUIDE.md','CHANGELOG.md','GTA_TEST_CHECKLIST.md','phaseE/V035_INVENTORY_READINESS.md']
+ROOT=Path(__file__).resolve().parents[2]
+p=argparse.ArgumentParser();p.add_argument('--issue36-integration',action='store_true');args=p.parse_args()
+OUT=ROOT/'docs/features/v0.3.4'
+if args.issue36_integration:OUT=OUT/'issue36-integration'
+inputs=['REVIEW.md','CONFLICT_RESOLUTIONS.md','GTA_TEST_CHECKLIST.md','APPROVAL_RECORD.md'] if args.issue36_integration else ['DEVELOPER_GUIDE.md','CHANGELOG.md','GTA_TEST_CHECKLIST.md','phaseE/V035_INVENTORY_READINESS.md']
 fonts=Path('/usr/share/fonts/truetype/dejavu')
 for name,file in [('Report','DejaVuSans.ttf'),('ReportBold','DejaVuSans-Bold.ttf'),('ReportItalic','DejaVuSans-Oblique.ttf'),('ReportMono','DejaVuSansMono.ttf')]:pdfmetrics.registerFont(TTFont(name,str(fonts/file)))
 doc=Document();doc.styles['Normal'].font.name='Calibri';doc.styles['Normal'].font.size=Pt(10)
@@ -51,7 +54,8 @@ for filename in inputs:
    level=len(line)-len(line.lstrip('#'));body=line[level:].strip();doc.add_heading(body,min(level,4));story.append(Paragraph(escape(body),styles['Heading'+str(min(level,3))]));continue
   body=plain(line);doc.add_paragraph(body);story.append(Paragraph(escape(body),styles['ReportBody']))
  flush_table()
-word=OUT/'GlassHeroesBusiness_v0.3.4_Development_Report.docx';pdf=OUT/'GlassHeroesBusiness_v0.3.4_Development_Report.pdf'
+stem='GlassHeroesBusiness_v0.3.4_Issue36_Integration_Report' if args.issue36_integration else 'GlassHeroesBusiness_v0.3.4_Development_Report'
+word=OUT/(stem+'.docx');pdf=OUT/(stem+'.pdf')
 doc.core_properties.title='Glass Heroes v0.3.4 Development Review';doc.core_properties.subject='EXPERIMENTAL — GTA testing not run';doc.save(word)
 def footer(canvas,document):
  canvas.saveState();canvas.setFont('Report',7);canvas.setFillColor(colors.grey);canvas.drawString(36,22,'Glass Heroes v0.3.4 development review — GTA NOT RUN');canvas.drawRightString(A4[0]-36,22,str(document.page));canvas.restoreState()

@@ -1,0 +1,15 @@
+{
+  "inputs": [
+    "REVIEW.md",
+    "CONFLICT_RESOLUTIONS.md",
+    "GTA_TEST_CHECKLIST.md",
+    "APPROVAL_RECORD.md"
+  ],
+  "outputs": [
+    "GlassHeroesBusiness_v0.3.4_Issue36_Integration_Report.docx",
+    "GlassHeroesBusiness_v0.3.4_Issue36_Integration_Report.pdf"
+  ],
+  "mode": "development documentation only",
+  "pdf_fonts": "embedded DejaVu Sans",
+  "gta_testing": "NOT RUN"
+}

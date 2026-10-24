@@ -45,6 +45,7 @@ class Harness {
  int SupplierDeliverySeconds(int s)=>s==0?120:s==1?60:20;
  string SupplierName(int s)=>"supplier";string DeliveryItemName(int k)=>"parts";void Notify(string s){}
  void SetSupplierPickupWaypoint(){}
+ void DeleteWholesalePickupBlip(){}
  void DeleteSupplierVisuals(){cleanups++;}
  string savePath;int fileFault;long _equipmentSpend;
  /*<source:TryCommitBusinessSave>*/

@@ -5,10 +5,12 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timezone
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
-p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);args=p.parse_args();out=args.output.resolve();out.mkdir(parents=True,exist_ok=True)
+p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--issue36-integration',action='store_true');args=p.parse_args();out=args.output.resolve();out.mkdir(parents=True,exist_ok=True)
 source=ROOT/'experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs'
 sha=hashlib.sha256(source.read_bytes()).hexdigest()
 suites='repair sales pallets wages reload supplier range menu cart pause focus finance startup hardening bays workflow335 recovery336 owner336 retail336 status336 demand336 inventory340 procurement340 receipt340 manager340 integration340'.split()
+if args.issue36_integration:suites += ['footer36','routes36','locator36']
+preservation_script='integration36_preservation.py' if args.issue36_integration else 'preservation.py'
 with tempfile.TemporaryDirectory(prefix='gh340-release-') as temp:
  commands={
  'build':['dotnet','build','experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj','-c','Release','--property:BaseIntermediateOutputPath='+temp+'/obj/','--property:OutputPath='+temp+'/bin/','--maxcpucount:2','--verbosity','minimal'],
@@ -19,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix='gh340-release-') as temp:
  'navigation':[sys.executable,'verification/placement_settings/run_navigation.py'],
  'static':[sys.executable,'verification/run_static_checks.py',str(out),'--source',str(source),'--class-name','GlassHeroesBusinessV3Experimental'],
  'inventory-structure':[sys.executable,'verification/inventory340/verify.py'],
- 'preservation':[sys.executable,'verification/inventory340/preservation.py',str(out/'preservation.json')],
+ 'preservation':[sys.executable,'verification/inventory340/'+preservation_script,str(out/'preservation.json')],
  }
  def run(item):
   name,cmd=item
@@ -43,5 +45,5 @@ nav=re.search(r'placement (\d+)/(\d+) PASS;',read('navigation'));assert nav and 
 static=json.loads((out/'StaticVerification.json').read_text());assert static['passed']==static['total']==21 and static['source_sha256']==sha
 assert '13/13 v0.3.4 Phase A STRUCTURAL checks' in read('inventory-structure')
 assert hashlib.sha256(source.read_bytes()).hexdigest()==sha
-result={'created_utc':datetime.now(timezone.utc).isoformat(),'source_sha256':sha,'source_revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'baseline':'c8617aed5cda492214bbbe1907042bcafbfa0dc1','build':{'status':'PASS','target':'net48 / C# 7.3','reference':'ScriptHookVDotNet3 3.6.0','errors':0,'warnings':sorted(set(re.findall(r'warning (CS\d+)',read('build'))))},'behavior':{'corrective':54,'logger':9,'migration':22,'suites':counts,'navigation':int(nav[1]),'total':85+sum(counts.values())+int(nav[1])},'static':{'passed':21,'total':21},'inventory_structural':{'passed':13,'total':13},'preservation':'PASS','gta_testing':'NOT RUN','enhanced_runtime_compatibility':'NOT VERIFIED','rc1_runtime_acceptance':'OWNER TESTING ONGOING','crash_cause':'UNATTRIBUTED','live_installation_or_owner_data_touched':False}
+result={'created_utc':datetime.now(timezone.utc).isoformat(),'source_sha256':sha,'source_revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'baseline':'c8617aed5cda492214bbbe1907042bcafbfa0dc1','build':{'status':'PASS','target':'net48 / C# 7.3','reference':'ScriptHookVDotNet3 3.6.0','errors':0,'warnings':sorted(set(re.findall(r'warning (CS\d+)',read('build'))))},'behavior':{'corrective':54,'logger':9,'migration':22,'suites':counts,'navigation':int(nav[1]),'total':85+sum(counts.values())+int(nav[1])},'static':{'passed':21,'total':21},'inventory_structural':{'passed':13,'total':13},'preservation':'PASS','issue36_integration':args.issue36_integration,'integration_acceptance':'PENDING OWNER YES/NO' if args.issue36_integration else 'NOT APPLICABLE','gta_testing':'NOT RUN','enhanced_runtime_compatibility':'NOT VERIFIED','rc1_runtime_acceptance':'OWNER TESTING ONGOING','crash_cause':'UNATTRIBUTED','live_installation_or_owner_data_touched':False}
 (out/'validation.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))

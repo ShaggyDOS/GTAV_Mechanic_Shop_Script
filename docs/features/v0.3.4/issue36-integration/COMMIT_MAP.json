@@ -1,0 +1,30 @@
+{
+  "owner_handoff_approval": "YES \u2014 current user message explicitly accepts the named candidate for controlled integration",
+  "maintenance_branch": "maintenance/v0.3.3.6-issue36",
+  "approved_final_commit": "2f1ebc268fe93d3a1c84a810ad87a01cf9235774",
+  "preintegration_commit": "c77591b10437564814c873203e073cc4ead1901e",
+  "cherry_picks": [
+    {
+      "fix": "A footer",
+      "original": "4ad2fc4c344bafff0c098ef17ce06ff2145affb8",
+      "receiving": "e2039c59fa480b9969e275b7f2605c0e70a7493e"
+    },
+    {
+      "fix": "B route clarity",
+      "original": "15467753fc4a7d376e10d57e1d9ab649e5e6a7aa",
+      "receiving": "7e034de2e9dc1f8d7e44e93dbba1896ce92dbb4e"
+    },
+    {
+      "fix": "C wholesale locator",
+      "original": "21d865c50493bbc233baed6135ffe18f241bbed1",
+      "receiving": "18a4e53b1d619cd1546d10e4e76f662987eddb36"
+    },
+    {
+      "fix": "D canonical staff routes",
+      "original": "e4860da7accc386ab4b0d36c9c85b0cc4c55f7b7",
+      "receiving": "8eb6cf93d4eef5af25e13b564e0d872dc3799807"
+    }
+  ],
+  "documentation_only_tip_cherry_picked": false,
+  "integration_owner_acceptance": "PENDING NEW YES/NO"
+}
