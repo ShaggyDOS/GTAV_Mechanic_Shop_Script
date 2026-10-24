@@ -23,6 +23,9 @@ static class Game {internal static bool IsPaused;internal static int GameTime=10
 class Model {internal bool IsLoaded=true,IsInCdImage=true,IsPed=true,IsVehicle=true;internal int requests;internal void Request(){requests++;}}
 static class World {internal static bool failVehicle,failPed;internal static int vehicles,peds;internal static Vehicle CreateVehicle(Model m,Vector3 p,float h){vehicles++;return failVehicle?null:new Vehicle{Position=p,Heading=h};}internal static Ped CreatePed(Model m,Vector3 p,float h){peds++;return failPed?null:new Ped{Position=p,Heading=h};}}
 class Harness {
+ // Diagnostics-only sink adapter; existing gameplay assertions stay unchanged.
+ long BeginCustomerVehicleTrace(CustomerOrder order,int operation)=>-1;
+ void EndCustomerVehicleTrace(CustomerOrder order,long sequence){}
  /*<source:MenuPage>*/
  /*<source:OpenServiceBayProfile>*/
  /*<source:CustomerBayAvailable>*/

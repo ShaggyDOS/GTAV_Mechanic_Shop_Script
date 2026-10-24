@@ -12,6 +12,9 @@ class ScriptSettings {
 }
 static class Game {internal static bool IsPaused;internal static int GameTime=100;internal static PlayerState Player=new PlayerState();internal class PlayerState {internal Ped Character=new Ped();}}
 class Harness {
+ // Diagnostics-only sink adapter; existing gameplay assertions stay unchanged.
+ long BeginCustomerVehicleTrace(CustomerOrder order,int operation)=>-1;
+ void EndCustomerVehicleTrace(CustomerOrder order,long sequence){}
     bool TeleportAttemptDue(CustomerOrder o)=>true;
     bool TeleportTargetAvailable(CustomerOrder o,WorkBay b,bool pickup)=>true;
     /*<source:SavedRepairPromise>*/

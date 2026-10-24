@@ -1,0 +1,33 @@
+{
+  "rc1_source_commit": "e312d8c9500f4a990eb993b82e8e76b55711d3de",
+  "rc1_source_sha256": "70bc95bcf0d16cbf36b61870bff7e21193c05479b79a4d8beeb45a0b734c2120",
+  "rc2_source_sha256": "3475f93b67d5feb8d90ef30550b8a474642aeb95c77e76e8f0438ac21f30cdc9",
+  "diagnostic_wrapped_methods": [
+    "UpdateOneCustomerOrder",
+    "AssignCustomerMechanic",
+    "BeginVehicleWalk",
+    "BeginEnterVehicle",
+    "StartValetDeparture",
+    "BeginVehicleDrive",
+    "UpdateVehicleApproach",
+    "UpdateVehicleParking",
+    "FailVehicleTransfer",
+    "ProcessPaidReturnRecovery"
+  ],
+  "diagnostic_added_members": [
+    "AppendCustomerVehicleDiagnosticLine",
+    "BeginCustomerVehicleTrace",
+    "CaptureCustomerVehicleTrace",
+    "CustomerVehicleTrace",
+    "CustomerVehicleTraceState",
+    "EndCustomerVehicleTrace"
+  ],
+  "original_bodies_and_all_other_source_bytes_unchanged": true,
+  "unchanged_original_members": 426,
+  "save_settings_schema_defaults_finances_inventory_ai_route_geometry_and_clocks_unchanged": true,
+  "new_native_calls_world_scans_or_gameplay_tasks": 0,
+  "protected_sources_projects_unchanged": true,
+  "inherited_fixture_assertions_byte_preserved": true,
+  "gta_testing": "NOT RUN",
+  "crash_cause": "UNATTRIBUTED"
+}

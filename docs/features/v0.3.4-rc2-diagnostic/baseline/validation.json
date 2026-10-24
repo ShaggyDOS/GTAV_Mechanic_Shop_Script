@@ -1,0 +1,70 @@
+{
+  "created_utc": "2026-10-24T17:58:46.876000+00:00",
+  "source_sha256": "70bc95bcf0d16cbf36b61870bff7e21193c05479b79a4d8beeb45a0b734c2120",
+  "source_revision": "75e3623f608a05d1a2b59d12c243dbcdfc061358",
+  "baseline": "c8617aed5cda492214bbbe1907042bcafbfa0dc1",
+  "build": {
+    "status": "PASS",
+    "target": "net48 / C# 7.3",
+    "reference": "ScriptHookVDotNet3 3.6.0",
+    "errors": 0,
+    "warnings": [
+      "CS0169",
+      "CS0649"
+    ]
+  },
+  "behavior": {
+    "corrective": 54,
+    "logger": 9,
+    "migration": 22,
+    "suites": {
+      "repair": 32,
+      "sales": 29,
+      "pallets": 25,
+      "wages": 22,
+      "reload": 41,
+      "supplier": 37,
+      "range": 40,
+      "menu": 13,
+      "cart": 32,
+      "pause": 9,
+      "focus": 8,
+      "finance": 33,
+      "startup": 18,
+      "hardening": 9,
+      "bays": 34,
+      "workflow335": 38,
+      "recovery336": 21,
+      "owner336": 13,
+      "retail336": 15,
+      "status336": 15,
+      "demand336": 13,
+      "inventory340": 30,
+      "procurement340": 12,
+      "receipt340": 32,
+      "manager340": 13,
+      "integration340": 9,
+      "footer36": 15,
+      "routes36": 16,
+      "locator36": 33
+    },
+    "navigation": 212,
+    "total": 954
+  },
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "inventory_structural": {
+    "passed": 13,
+    "total": 13
+  },
+  "preservation": "PASS",
+  "issue36_integration": true,
+  "integration_acceptance": "OWNER YES \u2014 integration accepted; GTA NOT RUN",
+  "gta_testing": "NOT RUN",
+  "enhanced_runtime_compatibility": "NOT VERIFIED",
+  "rc1_runtime_acceptance": "OWNER TESTING ONGOING",
+  "crash_cause": "UNATTRIBUTED",
+  "live_installation_or_owner_data_touched": false
+}

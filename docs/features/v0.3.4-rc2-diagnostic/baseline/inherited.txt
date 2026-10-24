@@ -1,0 +1,83 @@
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(10,63): warning CS0649: Field 'Harness.KeyEventArgs.Control' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(300,10): warning CS0649: Field 'Harness._routeConfigReturning' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(4,42): warning CS0649: Field 'Game.IsPaused' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(8,41): warning CS0649: Field 'Harness._serviceBayParent' is never assigned to, and will always have its default value [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(296,80): warning CS0649: Field 'Harness._requireCtrlForMenu' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(299,21): warning CS0649: Field 'Harness._editingStaffSlot' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(299,64): warning CS0649: Field 'Harness._routeConfigSlot' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(8,10): warning CS0649: Field 'Harness._ownerTransferDeposit' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(8,63): warning CS0649: Field 'Harness._serviceBaySlot' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Program.cs(295,10): warning CS0649: Field 'Harness._nativePauseYielded' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue2-2uhy9jjw/Tests.csproj]
+PASS #2 keyboard Enter plus held/repeated frontend Accept performs one action
+PASS #2 controller-first mapped keyboard echo does not execute twice
+PASS #2 held Enter cannot satisfy the next confirmation after ten seconds
+PASS #2 controller-only consecutive physical presses remain accepted
+PASS #2 keyboard Back and frontend Back return only one page
+PASS #2 nested editor returns exact saved page and cursor
+PASS #2 all corrected parent rows match source menu positions
+PASS #2 Back aliases hold until both physical keys are released
+PASS #2 point editor labels distinguish unset saved and marker state
+PASS #2 boot gate prevents both input effects and held-key registration
+#2 10/10 PASS; GTA testing NOT RUN
+/workspace/.cloud-setup/tmp/glassheroes-issue3-klk5947x/Program.cs(91,32): warning CS0649: Field 'Harness._wholesaleCargoUnloaded' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue3-klk5947x/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue3-klk5947x/Program.cs(5,95): warning CS0649: Field 'Prop.Handle' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue3-klk5947x/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue3-klk5947x/Program.cs(12,62): warning CS0649: Field 'Harness.WorkBay.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue3-klk5947x/Tests.csproj]
+PASS #3 ready shipment spawns without any vehicle API or nearby assigned vehicle
+PASS #3 box rests on actual grounded pallet rather than saved Z
+PASS #3 refresh does not duplicate live cargo
+PASS #3 stream out deletes warehouse-owned visuals and re-entry recreates one pair
+PASS #3 carried and loaded cargo are never deleted by warehouse streaming
+PASS #3 failed models recover in place after bounded batch cooldown
+PASS #3 failed requests respect three-second cooldown
+PASS #3 pending ETA prevents spawning and ready marker is vehicle-independent
+PASS #3 non-wholesale shipment crate is not removed
+PASS #3 five-attempt batch admits no retry before thirty-second cooldown expires
+PASS #3 persistent failures remain rate bounded across repeated batches
+PASS #3 box-only model failure recovers while retaining its existing grounded pallet
+PASS #3 ready marker remains available during failed-model cooldown
+PASS #3 successful live pair performs no new attempts after timer expiry
+#3 14/14 PASS; GTA testing NOT RUN
+PASS #4 heading 0 follows actual GTA front axis
+PASS #4 heading 90 follows actual GTA front axis
+PASS #4 heading 180 follows actual GTA front axis
+PASS #4 heading 270 follows actual GTA front axis
+PASS #4 diagonal geometry inverts vendor Vector3.ToHeading
+PASS #4 draw emits exactly four edges and two front-arrow arms without mutating placement
+PASS #4 unset or null placement produces no natives
+#4 7/7 PASS; GTA testing NOT RUN
+/workspace/.cloud-setup/tmp/glassheroes-issue5-lbp0jkok/Program.cs(4,53): warning CS0649: Field 'Ped.IsDead' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue5-lbp0jkok/Tests.csproj]
+PASS #5 player handoff bypasses saved waypoints and fixed handoff
+PASS #5 regular drop-off retains configured stops in order
+PASS #5 moving player repaths no more frequently than three seconds
+PASS #5 driver arrival waits with same crate and can follow player moving away
+PASS #5 90-second timeout preserves pending ledger and backs off visuals
+PASS #5 repath count is bounded
+PASS #5 invalid player or lost cargo defers without credit
+PASS #5 waiting nearby after arrival never consumes retry budget or auto-commits
+#5 8/8 PASS; GTA testing NOT RUN
+/workspace/.cloud-setup/tmp/glassheroes-issue6-ew56rd1h/Program.cs(5,78): warning CS0649: Field 'Prop.Handle' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue6-ew56rd1h/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue6-ew56rd1h/Program.cs(7,98): warning CS0649: Field 'Game.IsPaused' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue6-ew56rd1h/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue6-ew56rd1h/Program.cs(9,87): warning CS0649: Field 'Harness.WorkBay.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue6-ew56rd1h/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue6-ew56rd1h/Program.cs(203,47): warning CS0649: Field 'Harness._financeActiveMs' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue6-ew56rd1h/Tests.csproj]
+PASS #6 legacy BoxCount does not recreate display boxes or erase stock
+PASS #6 only recorded delivered parcels reconstruct on actual grounded support
+PASS #6 obsolete cleanup preserves live delivered cargo and warehouse ownership
+PASS #6 successful deposit records provenance and credits ledger once
+PASS #6 dirty refresh preserves an existing real delivered parcel
+PASS #6 save-mask migration is additive bounded and defaults to hidden legacy
+PASS #6 stream-out and reload keep provenance and stock while respawning only real parcels
+PASS #6 missing models have finite attempts and preserve masks/counters
+#6 8/8 PASS; GTA testing NOT RUN
+/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Program.cs(7,85): warning CS0649: Field 'Harness.WorkBay.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Program.cs(207,40): warning CS0649: Field 'Harness._breakAnimationsEnabled' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Program.cs(5,52): warning CS0649: Field 'Ped.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Program.cs(207,64): warning CS0649: Field 'Harness._safeTeleportOnStall' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Tests.csproj]
+/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Program.cs(5,73): warning CS0649: Field 'Ped.Handle' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/glassheroes-issue7-06iw8laq/Tests.csproj]
+PASS #7 default job paths bypass existing MLO stops and approaches
+PASS #7 advanced opt-in restores sparse outbound and reverse masked routes
+PASS #7 arrival remains custom without duplicating legacy checkpoint at unset gaps
+PASS #7 direct job leg uses navmesh even with custom arrival mode
+PASS #7 mechanic moves break to working and back with finite transitions
+PASS #7 blocked direct route stops after bounded retries without losing job
+PASS #7 advanced job opt-in is independent from arrival mode
+#7 7/7 PASS; GTA testing NOT RUN

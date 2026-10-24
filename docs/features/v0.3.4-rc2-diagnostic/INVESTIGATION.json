@@ -1,0 +1,335 @@
+{
+  "baseline": "e312d8c9500f4a990eb993b82e8e76b55711d3de",
+  "observed_failure": {
+    "date_owner_local": "October 24, 2026",
+    "exception_code": "0xC00000FD",
+    "reported_context": "Mechanic 1 transporting customer car into service bay",
+    "responsible_script": "UNKNOWN"
+  },
+  "crash_dump_or_owner_log_examined": false,
+  "parsed_script_methods": 419,
+  "reachable_script_methods": 86,
+  "roots": [
+    "UpdateOneCustomerOrder",
+    "AssignCustomerMechanic",
+    "BeginVehicleWalk",
+    "BeginEnterVehicle",
+    "StartValetDeparture",
+    "BeginVehicleDrive",
+    "UpdateVehicleApproach",
+    "UpdateVehicleParking",
+    "FailVehicleTransfer",
+    "ProcessPaidReturnRecovery"
+  ],
+  "lexical_call_cycles": [],
+  "reachable_edges": {
+    "AdvanceCustomerWalkingNode": [
+      "CustomerArrived",
+      "HandleCustomerStall",
+      "IssueNextCustomerWalkingNode"
+    ],
+    "AssignCustomerMechanic": [
+      "BeginVehicleWalk",
+      "BuildMechanicPickupExitRoute",
+      "ComputeAutomaticBay",
+      "CustomerBayAvailable",
+      "FreeStockForService",
+      "MechanicLevel",
+      "Notify",
+      "RepairQuoteBreakdown",
+      "RepairQuoteHasStock",
+      "Save",
+      "SpecialistMatches",
+      "TeleportAttemptDue",
+      "TeleportTargetAvailable",
+      "TryCreateRepairQuote"
+    ],
+    "AssignedWorker": [],
+    "BeginCustomerExit": [],
+    "BeginCustomerWalkingRoute": [
+      "IssueNextCustomerWalkingNode"
+    ],
+    "BeginEnterVehicle": [
+      "AssignedWorker",
+      "FailVehicleTransfer"
+    ],
+    "BeginVehicleDrive": [
+      "AssignedWorker",
+      "CancelCustomerOrder",
+      "FailVehicleTransfer",
+      "IsAutoLotParkingBlocked",
+      "Notify",
+      "VehicleDestination"
+    ],
+    "BeginVehicleWalk": [
+      "TaskVehicleWalkNode"
+    ],
+    "BuildMechanicPickupExitRoute": [],
+    "BuildMechanicReturnFromDropoffRoute": [
+      "GetBreakSpot"
+    ],
+    "BuildRoute": [
+      "CountSet",
+      "GetBreakSpot",
+      "WarnEmptyWorkRoute"
+    ],
+    "CalculateRepairQuote": [],
+    "CanReturnCustomerCar": [
+      "DropoffOccupied",
+      "NeedsDropoffSoon"
+    ],
+    "CancelCreatedCustomer": [],
+    "CancelCustomerOrder": [
+      "CancelCreatedCustomer",
+      "DismissWorker",
+      "Log",
+      "MechanicOnVehicleTask",
+      "Notify",
+      "RememberCancelledRepair",
+      "RestoreCurrentOrder",
+      "Save"
+    ],
+    "CaptureFinanceSnapshot": [
+      "MechanicWagesDue"
+    ],
+    "CaptureRepairPromises": [
+      "ValidRepairPromise"
+    ],
+    "ComputeAutomaticBay": [],
+    "CountSet": [],
+    "CustomerArrived": [
+      "DistanceSquared"
+    ],
+    "CustomerBayAvailable": [
+      "ComputeAutomaticBay",
+      "DistanceSquared"
+    ],
+    "DismissWorker": [
+      "Log"
+    ],
+    "DistanceSquared": [],
+    "DropoffOccupied": [
+      "DistanceSquared"
+    ],
+    "EffectiveWorkRouteMask": [],
+    "EstimatedUnitAcquisitionCost": [],
+    "FailVehicleTransfer": [
+      "CancelCustomerOrder",
+      "DistanceSquared",
+      "FormatPosition",
+      "Log",
+      "Notify",
+      "VehicleDestination"
+    ],
+    "FormatPosition": [],
+    "FreeStockForService": [
+      "UnreservedRepairStock"
+    ],
+    "GetBreakSpot": [],
+    "HandleCustomerStall": [
+      "CancelCustomerOrder",
+      "FormatPosition",
+      "Log"
+    ],
+    "IsAutoLotParkingBlocked": [],
+    "IsRoutineTransitNotice": [],
+    "IssueEmployeeWalkTask": [],
+    "IssueNextCustomerWalkingNode": [
+      "WalkCustomer"
+    ],
+    "Log": [],
+    "MechanicInCustomerCar": [
+      "AssignedWorker"
+    ],
+    "MechanicLevel": [],
+    "MechanicOnVehicleTask": [],
+    "MechanicOutOfCar": [
+      "AssignedWorker"
+    ],
+    "MechanicWage": [],
+    "MechanicWagesDue": [],
+    "NeedsDropoffSoon": [],
+    "Notify": [
+      "IsRoutineTransitNotice"
+    ],
+    "PrepareFinanceCommit": [
+      "CaptureFinanceSnapshot"
+    ],
+    "ProcessPaidReturnRecovery": [
+      "AssignedWorker",
+      "CanReturnCustomerCar",
+      "CancelCustomerOrder",
+      "Log",
+      "MechanicInCustomerCar",
+      "ProcessTeleportOrder",
+      "TeleportAttemptDue",
+      "TeleportTargetAvailable"
+    ],
+    "ProcessTeleportOrder": [
+      "CanReturnCustomerCar",
+      "CancelCustomerOrder",
+      "Log",
+      "Notify",
+      "ReleaseCustomerForPickup",
+      "ReleaseRecoveredMechanic",
+      "TeleportAttemptDue",
+      "TeleportTargetAvailable"
+    ],
+    "ProgressVehicleWalk": [
+      "AssignedWorker",
+      "DistanceSquared",
+      "FailVehicleTransfer",
+      "FormatPosition",
+      "Log",
+      "TaskVehicleWalkNode",
+      "TryTeleportVehicleWalker"
+    ],
+    "ReleaseCustomerForPickup": [
+      "BeginCustomerWalkingRoute"
+    ],
+    "ReleaseRecoveredMechanic": [
+      "Log",
+      "StartRouteLeg"
+    ],
+    "RememberCancelledRepair": [],
+    "RepairLedgerStamp": [],
+    "RepairQuoteBreakdown": [],
+    "RepairQuoteHasStock": [
+      "UnreservedRepairStock"
+    ],
+    "ReserveQuotedUnits": [],
+    "ReserveRepairUnits": [],
+    "RestoreCurrentOrder": [],
+    "Save": [
+      "Log",
+      "Notify",
+      "PrepareFinanceCommit",
+      "SavePoint",
+      "TryCommitBusinessSave",
+      "WriteFinanceBook",
+      "WriteRepairPromises",
+      "WriteSupplierOrderLines",
+      "WriteSupplierOutcome"
+    ],
+    "SavePoint": [],
+    "ServiceName": [],
+    "SpecialistMatches": [],
+    "StartCustomerWalkIn": [
+      "BeginCustomerWalkingRoute"
+    ],
+    "StartReturnVehicleWalk": [
+      "BeginVehicleWalk",
+      "Notify"
+    ],
+    "StartRouteLeg": [
+      "BuildRoute",
+      "WalkCurrentNode"
+    ],
+    "StartValetDeparture": [
+      "AssignedWorker",
+      "BeginVehicleDrive",
+      "MechanicInCustomerCar"
+    ],
+    "TaskVehicleWalkNode": [
+      "AssignedWorker",
+      "DistanceSquared"
+    ],
+    "TeleportAttemptDue": [],
+    "TeleportTargetAvailable": [
+      "DistanceSquared",
+      "Log"
+    ],
+    "TryCommitBusinessSave": [],
+    "TryCreateRepairQuote": [
+      "CalculateRepairQuote",
+      "EstimatedUnitAcquisitionCost",
+      "Log",
+      "MechanicWage",
+      "UnreservedRepairStock"
+    ],
+    "TryTeleportVehicleWalker": [
+      "DistanceSquared",
+      "Log",
+      "TaskVehicleWalkNode"
+    ],
+    "UnreservedRepairStock": [
+      "ReserveQuotedUnits",
+      "ReserveRepairUnits"
+    ],
+    "UpdateOneCustomerOrder": [
+      "AdvanceCustomerWalkingNode",
+      "AssignCustomerMechanic",
+      "BeginCustomerExit",
+      "BeginEnterVehicle",
+      "BeginVehicleDrive",
+      "BuildMechanicReturnFromDropoffRoute",
+      "CanReturnCustomerCar",
+      "CancelCustomerOrder",
+      "CustomerArrived",
+      "DistanceSquared",
+      "FailVehicleTransfer",
+      "HandleCustomerStall",
+      "MechanicInCustomerCar",
+      "MechanicOutOfCar",
+      "Notify",
+      "ProcessPaidReturnRecovery",
+      "ProcessTeleportOrder",
+      "ProgressVehicleWalk",
+      "ReleaseCustomerForPickup",
+      "ServiceName",
+      "StartCustomerWalkIn",
+      "StartReturnVehicleWalk",
+      "StartValetDeparture",
+      "UpdateVehicleApproach",
+      "UpdateVehicleParking",
+      "WalkCurrentNode",
+      "WalkCustomer"
+    ],
+    "UpdateVehicleApproach": [
+      "AssignedWorker",
+      "DistanceSquared",
+      "FailVehicleTransfer",
+      "MechanicInCustomerCar",
+      "Notify",
+      "VehicleDestination"
+    ],
+    "UpdateVehicleParking": [
+      "AssignedWorker",
+      "DistanceSquared",
+      "FailVehicleTransfer",
+      "Log",
+      "MechanicInCustomerCar",
+      "VehicleDestination"
+    ],
+    "ValidRepairPromise": [],
+    "VehicleDestination": [],
+    "WalkCurrentNode": [
+      "CountSet",
+      "DistanceSquared",
+      "IssueEmployeeWalkTask"
+    ],
+    "WalkCustomer": [],
+    "WarnEmptyWorkRoute": [
+      "EffectiveWorkRouteMask",
+      "Log",
+      "Notify",
+      "WorkRouteStatus"
+    ],
+    "WorkRouteStatus": [
+      "EffectiveWorkRouteMask"
+    ],
+    "WriteFinanceBook": [
+      "WriteFinanceSnapshot"
+    ],
+    "WriteFinanceSnapshot": [],
+    "WriteRepairPromises": [
+      "CaptureRepairPromises",
+      "RepairLedgerStamp"
+    ],
+    "WriteSupplierOrderLines": [],
+    "WriteSupplierOutcome": []
+  },
+  "limitations": "Lexical audit only; not a C# semantic call graph. Qualified calls, SDK/CLR/native internals, callbacks, other scripts and runtime reentry are not resolved. No crash-cause exclusion or attribution follows.",
+  "crash_cause": "UNATTRIBUTED",
+  "correction_implemented": false
+}
