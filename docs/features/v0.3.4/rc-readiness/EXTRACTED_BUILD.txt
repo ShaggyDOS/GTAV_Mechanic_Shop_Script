@@ -1,0 +1,14 @@
+  Determining projects to restore...
+  Restored /workspace/review-packages/v0.3.4-rc1/clean-extraction/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj (in 207 ms).
+/workspace/review-packages/v0.3.4-rc1/clean-extraction/Install/scripts/GlassHeroesBusiness.3.cs(399,17): warning CS0169: The field 'GlassHeroesBusinessV3Experimental._selectedInvoiceMechanicSlot' is never used [/workspace/review-packages/v0.3.4-rc1/clean-extraction/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+/workspace/review-packages/v0.3.4-rc1/clean-extraction/Install/scripts/GlassHeroesBusiness.3.cs(157,21): warning CS0649: Field 'GlassHeroesBusinessV3Experimental.CustomerOrder.VehicleTaskIssued' is never assigned to, and will always have its default value false [/workspace/review-packages/v0.3.4-rc1/clean-extraction/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+  GlassHeroesBusiness.V3.Experimental -> /tmp/gh340-rc1-extracted/bin/GlassHeroesBusiness.V3.Experimental.dll
+
+Build succeeded.
+
+/workspace/review-packages/v0.3.4-rc1/clean-extraction/Install/scripts/GlassHeroesBusiness.3.cs(399,17): warning CS0169: The field 'GlassHeroesBusinessV3Experimental._selectedInvoiceMechanicSlot' is never used [/workspace/review-packages/v0.3.4-rc1/clean-extraction/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+/workspace/review-packages/v0.3.4-rc1/clean-extraction/Install/scripts/GlassHeroesBusiness.3.cs(157,21): warning CS0649: Field 'GlassHeroesBusinessV3Experimental.CustomerOrder.VehicleTaskIssued' is never assigned to, and will always have its default value false [/workspace/review-packages/v0.3.4-rc1/clean-extraction/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+    2 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.30

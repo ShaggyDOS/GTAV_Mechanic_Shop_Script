@@ -1,0 +1,21 @@
+{
+  "archive": "GlassHeroesBusiness_v0.3.4_RC1_SHVDN3_EXPERIMENTAL.zip",
+  "archive_sha256": "422e5ca8c399cac5b81a190084b218c9c7c41bf0802fe833f321affe75427679",
+  "source_commit": "e312d8c9500f4a990eb993b82e8e76b55711d3de",
+  "source_sha256": "70bc95bcf0d16cbf36b61870bff7e21193c05479b79a4d8beeb45a0b734c2120",
+  "archive_members": 29,
+  "manifest_files_verified": 28,
+  "script_count": 1,
+  "duplicate_scripts_or_runtime_dlls": false,
+  "clean_extracted_net48_release": "PASS",
+  "errors": 0,
+  "warnings": [
+    "CS0169",
+    "CS0649"
+  ],
+  "pdf_pages": 6,
+  "documentation_content_checks": "PASS",
+  "gta_testing": "NOT RUN",
+  "live_installation_or_owner_data_touched": false,
+  "publication_or_tag": "NOT PERFORMED"
+}

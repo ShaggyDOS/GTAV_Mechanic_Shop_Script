@@ -1,0 +1,122 @@
+{
+  "version": "v0.3.4 RC1 EXPERIMENTAL",
+  "source_commit": "e312d8c9500f4a990eb993b82e8e76b55711d3de",
+  "source_sha256": "70bc95bcf0d16cbf36b61870bff7e21193c05479b79a4d8beeb45a0b734c2120",
+  "approval": "owner YES accepted integration; Preapproved authorized package preparation",
+  "gta_testing": "NOT RUN",
+  "manifest_self_excluded": true,
+  "files": {
+    "Docs/COMMIT_MAP.json": {
+      "sha256": "ed59d557b28f5c1aa1b67ffa688bb69de7d410197f629ea1bb8727c9a2e1257f",
+      "bytes": 1141
+    },
+    "Docs/CONFLICT_RESOLUTIONS.md": {
+      "sha256": "a556f83b41e121dd55e0e7bdcfe64f5b8b7b86d511e0fb639d9a5f564b6dacd6",
+      "bytes": 2920
+    },
+    "Docs/DEVELOPER_GUIDE.md": {
+      "sha256": "83680895227f4a32e9acb1f177deb023ee0eeb9b401d7f0aa48c66eae7a06f4d",
+      "bytes": 7828
+    },
+    "Docs/GTA_TEST_CHECKLIST.md": {
+      "sha256": "3a6fdc146b7e2d8b15fc56dccd25eb67e5b0cd876b5231e11c0a7340dce64dcc",
+      "bytes": 5536
+    },
+    "Docs/GlassHeroesBusiness_v0.3.4_RC1_Development_Report.docx": {
+      "sha256": "74ea2f6c2a1a36218ec52325ba032c956ecd2d78fb5ebebb788366cc63f40220",
+      "bytes": 43393
+    },
+    "Docs/GlassHeroesBusiness_v0.3.4_RC1_Development_Report.pdf": {
+      "sha256": "9c436e0eb8e8ec1279f9cb98d6c0c9ec431f1a25d628cffd94f0fde277910fd6",
+      "bytes": 37313
+    },
+    "Docs/Validation/StaticVerification.json": {
+      "sha256": "2234db07894b75b77be505f349b2d70487b70f0caf3845d9965402346d18e77a",
+      "bytes": 1003
+    },
+    "Docs/Validation/build.txt": {
+      "sha256": "70ae72df435198df87d7ff472883acd5af1ba28a9557e82c09c9e2b68f994e42",
+      "bytes": 1709
+    },
+    "Docs/Validation/commands.json": {
+      "sha256": "2e85082e04f6c6905eb4aff6514d533739ff94810627682b2532ecc5f51a87af",
+      "bytes": 3227
+    },
+    "Docs/Validation/features.txt": {
+      "sha256": "b0cdea25f0792517d5ca8583bb89c9fc2647aa9daccf62e502102fa3663d7a3d",
+      "bytes": 43772
+    },
+    "Docs/Validation/inherited.txt": {
+      "sha256": "976e91250f00aee9676df5805a2e13c6b8c09f49da874115020790d0646520a0",
+      "bytes": 9799
+    },
+    "Docs/Validation/inventory-structure.txt": {
+      "sha256": "a81415c7b1324d3db47fdb67fdfd6108847f56b729d3eef37487554f9a8e97b2",
+      "bytes": 704
+    },
+    "Docs/Validation/logger.txt": {
+      "sha256": "c51ea511c0922abd65b2d3b65c247beb0032ef7591e5090f9b8f01fd3fac64ab",
+      "bytes": 669
+    },
+    "Docs/Validation/migration.txt": {
+      "sha256": "889ace154f7204e3f2ab88d5cd37192c07bc0d8efa0ca94e1da4b3cae5334090",
+      "bytes": 4219
+    },
+    "Docs/Validation/navigation.txt": {
+      "sha256": "1107018dc0395d2053269ba255447d3b0e4e6717fd011c20f7e06b7de4b50726",
+      "bytes": 77472
+    },
+    "Docs/Validation/preservation.json": {
+      "sha256": "bc261f97a6d5e83e3fda270522a022371857b4919eb72c767776e5ce423264f8",
+      "bytes": 2608
+    },
+    "Docs/Validation/preservation.txt": {
+      "sha256": "a41ec2581d9398c7b2234a2d4655fcbdb7d24304c93adf516a9cc21dea9954a4",
+      "bytes": 2671
+    },
+    "Docs/Validation/static.txt": {
+      "sha256": "95e403881ef5b7fda5bdd35fdaab22f8b88a65202f99ca49f3ca162a5911cf7c",
+      "bytes": 1086
+    },
+    "Docs/Validation/validation.json": {
+      "sha256": "e7e7447d0b2f05b9f4878db18e7d6f94ca9a0c8d11bec7ce6855eae6bb2836de",
+      "bytes": 1706
+    },
+    "Docs/combined-source.diff": {
+      "sha256": "485254c11197ff23ba80c3c02101143d3d6f56e491cce30c99d75a02acbd317f",
+      "bytes": 113347
+    },
+    "Docs/integration-source.diff": {
+      "sha256": "40150ce650120035c535a2c6f79577856c2aa38e07a8e3ca98229364a553606b",
+      "bytes": 61519
+    },
+    "INSTALL.md": {
+      "sha256": "916c6dbdc746bfa9efc67f7a1c71a99a4af6eabb19bbe4e6e87bb1e8f5bae301",
+      "bytes": 2014
+    },
+    "Install/scripts/GlassHeroesBusiness.3.cs": {
+      "sha256": "70bc95bcf0d16cbf36b61870bff7e21193c05479b79a4d8beeb45a0b734c2120",
+      "bytes": 608936
+    },
+    "RELEASE_NOTES.md": {
+      "sha256": "40fbfde805ada5ee95fe7d4ee4b8c6f82baf795c1016a76fd36b3d078a1d1aff",
+      "bytes": 1693
+    },
+    "ROLLBACK.md": {
+      "sha256": "b0239f9d302974f8aac246db999a6512ec847247159ad135a80fab2ac7d634c8",
+      "bytes": 576
+    },
+    "SOURCE_SHA256.txt": {
+      "sha256": "484e0fb7c7ec62d3155d4f68f2c604ee0f0379d1d67fd2b30c3e951a3cb4dae2",
+      "bytes": 107
+    },
+    "VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj": {
+      "sha256": "f9edbab65dffee88b2fdebcbe7aec1787b2624a086d9ed49877bfea69c6e0a7e",
+      "bytes": 758
+    },
+    "VisualStudio/GlassHeroesBusiness.V3.Experimental.sln": {
+      "sha256": "47aa4939d34d5b4d33ad7cdccef255d20de96acbce48f1dc330af8e281f026d2",
+      "bytes": 925
+    }
+  }
+}
