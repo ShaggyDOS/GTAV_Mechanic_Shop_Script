@@ -1005,6 +1005,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 try { ProcessSupplierDelivery(_supplierGameplayNow); }
                 catch (Exception deliveryError)
                 { Log("Mule delivery visual (order preserved)", deliveryError); DeferSupplierPlayerHandoff(_supplierGameplayNow); }
+                SyncWholesalePickupBlip(_supplierGameplayNow);
                 _diagnosticTickStage = "customer visuals";
                 UpdateCustomerVisuals();
                 _diagnosticTickStage = "office visuals";
@@ -1477,7 +1478,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return new string[] { "Universal Parts", "Service Filters", "Brake Kits", "Diagnostic Supplies", "Supplier: Change", "Cost / Capacity Preview", "Review Purchase Order >", "Fill Low-stock Cart", "Clear Cart", "< Back to Inventory" };
             case MenuPage.SupplierOrderReview: return new string[] { "Review Order Details", "Confirm Purchase Order", "< Back to Supplier Cart" };
             case MenuPage.ActiveDeliveries:
-                return new string[] { "Delivery Status", "Order / Last Receipt", "Recover Original Order", "Cancel Pending Order", "< Back to Inventory" };
+                return new string[] { "Delivery Status", "Order / Last Receipt", "Recover Original Order", "Cancel Pending Order", "Set Warehouse GPS", "< Back to Inventory" };
             case MenuPage.PartsSales:
                 return new string[] { "Universal Parts: Quantity", "Service Filters: Quantity", "Brake Kits: Quantity",
                     "Diagnostic Supplies: Quantity", "Review Sale >", "Clear Sale Draft", "< Back to Inventory" };
@@ -1640,7 +1641,8 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return index < 4 ? _supplierCart[index] + " units" : index == 4 ? SupplierName(_selectedSupplier) : index == 5 ? (SupplierLineTotal(_supplierCart) < 0 ? "OVER LIMIT" : "$" + SupplierCartCost(_supplierCart).ToString("N0")) : index == 6 ? (_deliveryKind == -2 ? "REVIEW" : "PENDING") : ">";
             case MenuPage.SupplierOrderReview: return index == 1 ? "$" + _supplierReviewCost.ToString("N0") : ">";
             case MenuPage.ActiveDeliveries:
-                return index == 0 ? (_deliveryKind == -2 ? "NONE" : _deliveryRemainingGameSeconds > 0 ? ((int)Math.Ceiling(_deliveryRemainingGameSeconds)) + "s" : SupplierLiveState()) : ">";
+                return index == 4 ? (WholesalePickupLocatorEligible() ? "READY" : "UNAVAILABLE") :
+                    index == 0 ? (_deliveryKind == -2 ? "NONE" : _deliveryRemainingGameSeconds > 0 ? ((int)Math.Ceiling(_deliveryRemainingGameSeconds)) + "s" : SupplierLiveState()) : ">";
             case MenuPage.PartsSales:
                 return index < 4 ? "x" + _partsSaleCart[index] + " / " + UnreservedRepairStock(null)[index] + " FREE" : index == 4 ? PartsSaleTotalText(_partsSaleCart) : ">";
             case MenuPage.PartsSaleReview:
@@ -1931,7 +1933,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 if (_selection < 4) return "Set " + label + " quantity with Left/Right or Enter; this edits only the unsent supplier cart.";
                 return FooterRow("", "", "", "", "Choose one supplier for the entire cart; wholesale stays player-only.", "Preview full cost and capacity before placing anything.", "Review this mixed order before a separate explicit confirmation.", "Fill unsent quantities using low-stock advice; does not submit.", "Clear the unsent supplier draft only.", "Return to inventory.");
             case MenuPage.SupplierOrderReview: return FooterRow("Inspect frozen quantities, quote, ETA, capacity and receipt requirements.", "Confirm once; current supplier, quote, capacity and pending state are checked again.", "Return to the unchanged cart without placing an order.");
-            case MenuPage.ActiveDeliveries: return FooterRow("Show current delivery identity/stage as an on-demand snapshot.", "Review current order lines, or the last durable receipt/cancellation if none is pending.", "Recover the original pending order, without a second purchase or receipt.", "Request cancellation using existing confirmation/financial rules.", "Return to inventory.");
+            case MenuPage.ActiveDeliveries: return FooterRow("Show current delivery identity/stage as an on-demand snapshot.", "Review current order lines, or the last durable receipt/cancellation if none is pending.", "Recover the original pending order, without a second purchase or receipt.", "Request cancellation using existing confirmation/financial rules.", "Route to READY warehouse cargo only; your waypoint stays untouched. Choosing another yields this route.", "Return to inventory.");
             case MenuPage.Finances: return FooterRow("Cash bridge and audit status distinguish sales from available cash.", "Compare physical, remote, autonomous and retail sales without overlap.",
                 "Review/pay actual bills and reach equipment; accrued bills are not cash payments.", "Inspect accounting profit on purchase-expense basis.", "Read committed transaction identities and resulting cash.",
                 "Select $1,000/$10,000/$100,000, review and confirm owner capital movement.", "Toggle current/last shift versus lifetime reporting only.", "Return to management.");
@@ -2508,6 +2510,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 else if (_selection == 1) ShowSupplierOrderContents();
                 else if (_selection == 2) RecoverSupplierShipment();
                 else if (_selection == 3) CancelSupplierOrderWithConfirmation();
+                else if (_selection == 4) SetSupplierPickupWaypoint();
                 else NavigateBack(); break;
             case MenuPage.PartsSales:
             case MenuPage.PartsSaleReview: ExecutePartsSalesSelection(); break;
@@ -8560,6 +8563,10 @@ public class GlassHeroesBusinessV3Experimental : Script
                 "New orders are invoiced after arrival/stocking; pay under Expenses.");
             return;
         }
+        if (WholesalePickupLocatorEligible())
+            Notify("READY warehouse cargo: Active Deliveries > Set Warehouse GPS. Collection stays player-operated.");
+        else if (_deliverySupplier == 0 && _deliveryRemainingGameSeconds <= 0 && !WholesalePickupLocationValid())
+            Notify("Warehouse pickup location unavailable. Check Supplier Settings before collecting.");
         double remain = Math.Max(0, _deliveryRemainingGameSeconds);
         ShowStatusNotice("PENDING #" + _deliveryDueUtcTicks,
             _deliveryQuantity + " " + (_deliveryLines == null ? DeliveryItemName(_deliveryKind) : "mixed parts") + " | " + SupplierName(_deliverySupplier),
@@ -9232,6 +9239,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         catch (Exception ex) { Log("Supplier recovery pose cleanup", ex); }
         DeleteSupplierVisuals();
+        DeleteWholesalePickupBlip();
         _wholesaleCargoLoaded = false;
         _wholesaleCargoUnloaded = false;
         _cachedWholesaleVehicle = null;
@@ -9259,6 +9267,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         bool wasCarrying = _supplierPlayerCarrying;
         bool prepaid = _deliveryPrepaid;
         if (!TryCancelSupplierOrder()) return;
+        DeleteWholesalePickupBlip();
         try
         {
             Ped player = Game.Player.Character;
@@ -9549,17 +9558,177 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         DeleteSupplierVisuals();
         _nextSupplierVisualRetryUtc = DateTime.MinValue;
-        SetSupplierPickupWaypoint();
+        DeleteWholesalePickupBlip();
         Notify("Order saved: " + total + " units | " + SupplierName(_deliverySupplier) + " | $" + _deliveryCost.ToString("N0") +
             " invoice after stocking. " + (_deliverySupplier == 0 ? "Player warehouse pickup required." : "One shipment / one ETA."));
         return true;
     }
 
+    private Blip _wholesalePickupBlip;
+    private long _pickupLocatorOrderId;
+    private Vector3 _pickupLocatorPosition;
+    private int _pickupLocatorAttempts;
+    private DateTime _nextPickupLocatorAttempt = DateTime.MinValue;
+    private DateTime _nextPickupLocatorLog = DateTime.MinValue;
+    private bool _pickupGpsActive;
+    private bool _pickupLocatorConfigured;
+    private PickupWaypointSnapshot _pickupWaypointAtGps;
+
+    private sealed class PickupWaypointSnapshot
+    {
+        public bool Present;
+        public int Handle;
+        public Vector3 Position;
+    }
+
+    private bool WholesalePickupLocationValid()
+    {
+        Vector3 p = _wholesaleWarehousePickup.Position;
+        return _wholesaleWarehousePickup.IsSet && !float.IsNaN(p.X) && !float.IsInfinity(p.X) &&
+            !float.IsNaN(p.Y) && !float.IsInfinity(p.Y) && !float.IsNaN(p.Z) && !float.IsInfinity(p.Z);
+    }
+
+    private bool WholesalePickupLocatorEligible()
+    {
+        return _deliveryKind >= -1 && _deliveryKind <= 2 && _deliverySupplier == 0 &&
+            _deliveryQuantity > 0 && _deliveryRemainingGameSeconds <= 0 && _supplierVisualStage == 7 &&
+            !_supplierPlayerCarrying && !_wholesaleCargoLoaded && !_wholesaleCargoUnloaded && WholesalePickupLocationValid();
+    }
+
+    private static PickupWaypointSnapshot ReadPickupWaypoint()
+    {
+        Blip waypoint = World.WaypointBlip;
+        return waypoint != null && waypoint.Exists() ?
+            new PickupWaypointSnapshot { Present = true, Handle = waypoint.Handle, Position = waypoint.Position } :
+            new PickupWaypointSnapshot();
+    }
+
+    private static bool PickupWaypointChanged(PickupWaypointSnapshot previous, PickupWaypointSnapshot current)
+    {
+        return previous == null || current == null || previous.Present != current.Present ||
+            (previous.Present && (previous.Handle != current.Handle || DistanceSquared(previous.Position, current.Position) > 0.0001f));
+    }
+
+    private void NotePickupLocatorFailure(Exception error)
+    {
+        if (_supplierGameplayNow < _nextPickupLocatorLog) return;
+        _nextPickupLocatorLog = _supplierGameplayNow.AddSeconds(30);
+        Log("Wholesale pickup locator", error); // Never include a waypoint/location value.
+    }
+
+    private bool DeleteWholesalePickupBlip()
+    {
+        _pickupGpsActive = false; _pickupWaypointAtGps = null; _pickupLocatorConfigured = false;
+        if (_wholesalePickupBlip == null) return true;
+        // Retain ownership after a failed delete; never spawn a second handle over it.
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            try
+            {
+                if (_wholesalePickupBlip.Exists())
+                {
+                    try { _wholesalePickupBlip.ShowRoute = false; }
+                    catch (Exception error) { NotePickupLocatorFailure(error); }
+                    _wholesalePickupBlip.Delete();
+                    if (_wholesalePickupBlip.Exists()) continue;
+                }
+                _wholesalePickupBlip = null;
+                return true;
+            }
+            catch (Exception error) { NotePickupLocatorFailure(error); }
+        }
+        return false;
+    }
+
+    private void SyncWholesalePickupBlip(DateTime now)
+    {
+        if (!_bootGameplayActivated || Game.IsPaused) return;
+        if (!WholesalePickupLocatorEligible())
+        {
+            if (DeleteWholesalePickupBlip())
+            { _pickupLocatorOrderId = 0; _pickupLocatorAttempts = 0; _nextPickupLocatorAttempt = DateTime.MinValue; }
+            if (_deliveryKind >= -1 && _deliveryKind <= 2 && _deliverySupplier == 0 &&
+                _deliveryQuantity > 0 && _deliveryRemainingGameSeconds <= 0 &&
+                !_supplierPlayerCarrying && !_wholesaleCargoLoaded && !_wholesaleCargoUnloaded &&
+                !WholesalePickupLocationValid() && now >= _nextPickupLocatorLog)
+            {
+                _nextPickupLocatorLog = now.AddSeconds(30);
+                Notify("Wholesale pickup location unavailable. Check Supplier Settings before collecting.");
+            }
+            return;
+        }
+        try
+        {
+            Vector3 position = _wholesaleWarehousePickup.Position;
+            if (_pickupLocatorOrderId != _deliveryDueUtcTicks || DistanceSquared(_pickupLocatorPosition, position) > 0.0001f)
+            {
+                if (!DeleteWholesalePickupBlip()) return;
+                _pickupLocatorOrderId = _deliveryDueUtcTicks; _pickupLocatorPosition = position;
+                _pickupLocatorAttempts = 0; _nextPickupLocatorAttempt = DateTime.MinValue;
+            }
+            if (_wholesalePickupBlip != null)
+            {
+                if (!_pickupLocatorConfigured)
+                { if (!DeleteWholesalePickupBlip()) return; }
+                else if (_wholesalePickupBlip.Exists())
+                {
+                    if (_pickupGpsActive)
+                    {
+                        bool changed = true;
+                        try { changed = PickupWaypointChanged(_pickupWaypointAtGps, ReadPickupWaypoint()); }
+                        catch (Exception error) { NotePickupLocatorFailure(error); }
+                        if (changed)
+                        {
+                            _wholesalePickupBlip.ShowRoute = false;
+                            _pickupGpsActive = false; _pickupWaypointAtGps = null;
+                        }
+                    }
+                    return;
+                }
+                else { _wholesalePickupBlip = null; _pickupGpsActive = false; _pickupWaypointAtGps = null; }
+            }
+            if (now < _nextPickupLocatorAttempt) return;
+            if (_pickupLocatorAttempts >= 3) _pickupLocatorAttempts = 0;
+            _pickupLocatorAttempts++;
+            _nextPickupLocatorAttempt = now.AddSeconds(_pickupLocatorAttempts >= 3 ? 30 : 5);
+            _pickupLocatorConfigured = false;
+            _wholesalePickupBlip = World.CreateBlip(position);
+            if (_wholesalePickupBlip == null || !_wholesalePickupBlip.Exists())
+                throw new InvalidOperationException("Pickup map blip could not be created.");
+            _wholesalePickupBlip.Sprite = BlipSprite.Package;
+            _wholesalePickupBlip.Color = BlipColor.Yellow;
+            _wholesalePickupBlip.Scale = 0.8f;
+            _wholesalePickupBlip.IsShortRange = false;
+            _wholesalePickupBlip.Name = "Glass Heroes — Wholesale Parts Pickup";
+            _pickupLocatorConfigured = true;
+        }
+        catch (Exception error)
+        {
+            NotePickupLocatorFailure(error);
+            if (!_pickupLocatorConfigured) DeleteWholesalePickupBlip();
+        }
+    }
+
     private void SetSupplierPickupWaypoint()
     {
-        if (_deliverySupplier != 0 || !_wholesaleWarehousePickup.IsSet) return;
-        try { GTA.Native.Function.Call(GTA.Native.Hash.SET_NEW_WAYPOINT,
-            _wholesaleWarehousePickup.Position.X, _wholesaleWarehousePickup.Position.Y); } catch { }
+        if (!_bootGameplayActivated || Game.IsPaused) return;
+        if (!WholesalePickupLocatorEligible())
+        {
+            Notify(!WholesalePickupLocationValid() ? "Warehouse pickup location unavailable. Check Supplier Settings." :
+                "Warehouse GPS is available only for READY wholesale cargo awaiting collection.");
+            return;
+        }
+        SyncWholesalePickupBlip(_supplierGameplayNow);
+        if (_wholesalePickupBlip == null || !_pickupLocatorConfigured)
+        { Notify("Pickup map locator is loading. Try GPS again shortly."); return; }
+        try
+        {
+            PickupWaypointSnapshot waypoint = ReadPickupWaypoint();
+            _wholesalePickupBlip.ShowRoute = true;
+            _pickupWaypointAtGps = waypoint; _pickupGpsActive = true;
+            Notify("Warehouse GPS enabled. Your existing waypoint is unchanged; choosing another yields this route.");
+        }
+        catch (Exception error) { NotePickupLocatorFailure(error); DeleteWholesalePickupBlip(); }
     }
 
     private void ApplySupplierInventory(int kind, int quantity, int[] lines, int direction)
@@ -10052,6 +10221,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             if (!TryCommitWholesaleCargo(true))
             { AttachSupplierBoxToPed(player); Notify("Loading not saved; package remains with you. Retry."); return true; }
             _supplierVisualOrderTicks = _deliveryDueUtcTicks;
+            DeleteWholesalePickupBlip();
             GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_SECONDARY_TASK, player.Handle);
             SupplierCheckpoint("package loaded into assigned vehicle");
             Notify("Shipment LOADED into vehicle cargo area. Return to Glass Heroes to unload.");
@@ -10102,6 +10272,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _supplierPlayerCarrying = true;
                 _supplierVisualStage = 6;
                 _supplierStageAt = _supplierGameplayNow;
+                if (atWarehouse) DeleteWholesalePickupBlip();
                 SupplierCheckpoint(atWarehouse ? "warehouse package collected" : "mule handoff collected");
                 Notify(atWarehouse ? "Wholesale box collected. Load it into your assigned vehicle." :
                     "Delivery box collected. Carry it to a placed pallet.");
@@ -10476,6 +10647,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             return;
         }
         ParkRuntimeRepairPromises(); // Preserve fixed accepted data before entity cleanup.
+        DeleteWholesalePickupBlip();
         ReleasePendingVisualModels();
         CancelAllCustomerOrders("Script aborted");
         ClearStagedCustomers();

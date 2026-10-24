@@ -38,6 +38,7 @@ class Harness {
     /*<source:CreateFixedEquipmentProp>*/
     /*<source:UpdateOfficeDeskVisuals>*/
     /*<source:DeleteOfficeDeskProps>*/
+    void SyncWholesalePickupBlip(DateTime now){} // The locator suite exercises its actual production body.
     /*<source:OnTick>*/
     /*<source:AdvanceCustomerDemand>*/
     bool _customerServiceEnabled=true;double _customerDemandElapsed;

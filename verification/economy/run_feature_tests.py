@@ -13,6 +13,13 @@ def member(name):
 for suite in sys.argv[1:] or ['repair']:
  template=(Path(__file__).parent/(suite+'_tests.cs')).read_text()
  text=re.sub(r'/\*<source:(\w+)>\*/',lambda m:member(m[1]),template)
+ def selected_cases(match):
+  body=member(match[1]);plain,_=ns['strip_literals'](body);marks=list(re.finditer(r'^            (?:case MenuPage\.(\w+):|default:)',plain,re.M));wanted=match[2].split(',');out=''
+  for i,mark in enumerate(marks):
+   if mark[1] in wanted:out+=body[mark.start():marks[i+1].start() if i+1<len(marks) else body.rfind('        }')]
+  assert out,(match[1],wanted)
+  return out
+ text=re.sub(r'/\*<cases:(\w+):([\w,]+)>\*/',selected_cases,text)
  with tempfile.TemporaryDirectory(prefix='gh-'+suite+'-') as temp:
   p=Path(temp);(p/'Tests.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><NoWarn>CS0649;CS0169;CS0414</NoWarn></PropertyGroup></Project>');(p/'Program.cs').write_text(text)
   subprocess.run(['dotnet','run','--project',str(p/'Tests.csproj'),'-c','Release'],check=True)

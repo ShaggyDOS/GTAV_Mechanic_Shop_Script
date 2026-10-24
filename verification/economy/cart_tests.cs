@@ -42,6 +42,7 @@ class Harness {
  int SupplierDeliverySeconds(int s)=>s==0?120:s==1?60:20;
  string SupplierName(int s)=>"supplier";string DeliveryItemName(int k)=>"parts";void Notify(string s){}
  void SetSupplierPickupWaypoint(){}
+ bool DeleteWholesalePickupBlip()=>true;
  void DeleteSupplierVisuals(){cleanups++;}
  bool Save(){saves++;if(saveFail)return false;disk=new ScriptSettings();WriteSupplierOrderLines(disk);WriteSupplierOutcome(disk);return true;}
  static int passed;static void Check(bool b,string n){if(!b)throw new Exception(n);}
