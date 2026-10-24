@@ -1,0 +1,15 @@
+Owner GTA QA found frequent collection/workstation/parking stalls and completed-car return cancellations in .5. This .6 candidate separates paid recovery from unpaid failure, adds bounded parking/driver-exit recovery and diagnostic route-mask/status information, then implements the approved business/UI/demand features in separate commits.
+
+Closes #33. Closes #34.
+
+P0: one parking retry; unpaid failure retains existing accepted-quote recovery; paid physical return holds, asks the driver to exit at most twice, then uses the existing safe one-shot pickup only for an empty stopped car with player/NPC/vehicle clearance. Manual retry targets physical handoffs only; normal OFF pickup remains automatic. Direction/order/Paid failure snapshots, explicit selected/effective/unset masks, unchanged five shared physical nodes, queue retry on the same entity/FIFO. No saved point/mask rewrite or unsupported claim that this resolves every MLO navigation problem.
+
+Business: owner $1k/$10k/$100k selector plus review/confirm under Accounting, no Management cash shortcuts; quantity retail draft/review/one atomic batch at unchanged unit estimates; explicit employee snapshots; Settings.ini controller precedence with legacy fallback and no controller menu; row-specific help for all 67 menus/392 rows. New demand weights ONLY new requests using GTA hour and active gameplay seconds, preserving manual scheduling, queue capacity, accepted jobs and paused/offline nonaccrual.
+
+Validation: actual net48/C#7.3 SHVDN3 3.6.0 Release, 0 errors/two inherited warnings CS0169/CS0649. 762/762 behavior checks including navigation180, recovery21, owner13, retail15, status15, demand13 and all inherited applicable regressions. Static21/21; 332 existing methods unchanged; source-pinned Save/FinanceV1/settlement/invoice/stock/manager/supplier/point systems. GTA/native adapters are deterministic tests, NOT GTA execution. Migration/hardening/wage adapter compile dependencies were corrected; failed attempts are not counted passes.
+
+Source SHA256: 7fff30978e2dc4c3235656f6ca6865506d5cea53387b7eb6d83654d71c8a9d6b. Baseline approved .5 22bff0990bdc771215ebcb587e8426059df14336. Save.ini/Settings.ini schema changes: NONE. New recovery/demand/cart fields are session-only. PR32/.5, main/QA/Issue28 and live data protected.
+
+Known limits: actual MLO geometry/AI/animation and Enhanced 3.9.0.6 compatibility need owner GTA validation; unsafe occupied paid returns HOLD until cleared/retried. Paid cars/unaccepted roadside entities remain transient after reload; no completed-car persistence. Status refresh is explicit; long footer rendering may truncate. Prior crash-free .5 report is not .6 stability proof; historical crashes UNATTRIBUTED.
+
+Review docs/features/v0.3.3.6/DEVELOPER_GUIDE.md, versioned DOCX/PDF, source.diff, validation/preservation logs, NAVIGATION_MATRIX.md, MENU_FOOTERS.md and GTA_TEST_CHECKLIST.md. Original private owner log/save was not in this workspace; diagnosis distinguishes issue/handoff evidence from source-confirmed mechanisms. No merge, tag, release, live installation or RC package; owner review first.

@@ -19,7 +19,7 @@ def methods(text):
 before=methods(parent);after=methods(current)
 changed=sorted(n for n in before.keys()&after.keys() if before[n]!=after[n]);added=sorted(after.keys()-before.keys());removed=sorted(before.keys()-after.keys())
 assert changed==profile['changed'],('Out-of-scope method change',changed,profile['changed'])
-assert added==profile['added'] and not removed,('Unexpected helpers/removal',added,removed)
+assert added==profile['added'] and removed==profile.get('removed',[]),('Unexpected helpers/removal',added,removed)
 for name in ['OnTick','ProcessSupplierDelivery','TrySupplierPackageInteraction','CommitSupplierDelivery','UpdateWholesalePalletVisual','RecoverSupplierShipment','CancelSupplierOrderWithConfirmation']:
  if name not in profile['changed']:assert before[name]==after[name],name+' changed'
 if 'Save' in profile['changed'] and 'TryCommitBusinessSave' in profile['added']:
@@ -52,6 +52,13 @@ for pth,sha in profile['protected_v2'].items():assert hashlib.sha256((repo/pth).
 for bad in ['ForensicProbe','ForensicsEnabled','WholesalePackageBlip','GlassHeroesV3Probe']:assert bad not in current,bad
 assert 'private const string SaveFile = @"scripts\\GlassHeroesBusiness\\Save.ini";' in current
 assert 'private const string SettingsFile = @"scripts\\GlassHeroesBusiness\\Settings.ini";' in current
+if args.profile == 'workflow336':
+ assert after['OnTick'].replace('            AdvanceCustomerDemand(activeGameSeconds);\n','') == before['OnTick'], 'Existing active clock gate/order changed'
+ assert after['TeleportTargetAvailable'].replace('false, true, order.PaidReturnRecovery, false, false, order.Vehicle.Handle','false, true, false, false, false, order.Vehicle.Handle') == before['TeleportTargetAvailable'], 'OFF clearance changed'
+ restored = after['GlassHeroesBusinessV3Experimental'].replace('BOOT v0.3.3.6 SHVDN3 SERVICE RECOVERY + BUSINESS POLISH EXPERIMENTAL','BOOT v0.3.3.5 SHVDN3 CUSTOMER WORKFLOW + ROLE ROUTES EXPERIMENTAL').replace('ResolveControllerEnabled(_configuration, data, _controllerEnabled)', 'data.GetValue("Gamepad", "Enabled", _controllerEnabled)')
+ assert restored == before['GlassHeroesBusinessV3Experimental'], 'Startup delta exceeds label and controller precedence'
+ for name in ['Save','LoadFinanceBook','WriteFinanceBook','PrepareFinanceCommit','TryCommitBusinessSave','TrySettleRepair','RecordCustomerInvoice','ProcessOneCustomerRepair','AssignCustomerMechanic','UnreservedRepairStock','OnAborted','LoadPoint','SavePoint','ConfigureWorkBay','ConfigureVehicleParkingBay','ConfigureArrivalPoint','ConfigureRoutePoint','OpenPointEditor','ExecutePointEditorSelection','DrawPlacementMarkers','ProcessRemoteOperations','ProcessEconomy','ProcessSupplierDelivery','CommitSupplierDelivery','CancelCustomerOrder','TeleportAttemptDue']:
+  assert before[name] == after[name], name+' changed outside approved .6 boundary'
 if args.profile == 'workflow335':
  assert after['ProcessEconomy'].replace('Business Management > Finances & Accounting > Expenses & Bills.', 'Business Management > Expenses & Bills.') == before['ProcessEconomy'], 'Economy delta is not notification-only'
  assert after['GlassHeroesBusinessV3Experimental'].replace('BOOT v0.3.3.5 SHVDN3 CUSTOMER WORKFLOW + ROLE ROUTES EXPERIMENTAL', 'BOOT v0.3.3.4 SHVDN3 SERVICE BAY INTEGRATION EXPERIMENTAL') == before['GlassHeroesBusinessV3Experimental'], 'Constructor delta exceeds BOOT label'
@@ -87,7 +94,7 @@ elif args.profile == 'startup':
  assert after['OnTick'].replace('                if (!TryInitializeGameplayModels(DateTime.UtcNow)) return;\n', '') == before['OnTick'], 'Out-of-scope gameplay clock change'
  assert 'new Model(' not in after['GlassHeroesBusinessV3Experimental'], 'Early native hashing returned to constructor'
 else:
- assert before['OnTick']==after['OnTick'],'Active game-time sampling changed'
-result={'profile':args.profile,'parent':profile['parent'],'parent_source_sha256':profile['parent_sha256'],'candidate_source_sha256':hashlib.sha256((repo/'experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs').read_bytes()).hexdigest(),'changed_methods':changed,'new_helpers':added,'unchanged_methods':len(before)-len(changed),'clocks_and_startup_game_gate_unchanged':True,'original_v2_source_project_unchanged':True,'supplier_receipt_accounting_unchanged':args.profile not in {'supplier','workflow','finance'},'out_of_scope_forensics_and_blip_features_absent':True,'gta_testing':'NOT RUN'}
+ if args.profile != 'workflow336':assert before['OnTick']==after['OnTick'],'Active game-time sampling changed'
+result={'profile':args.profile,'parent':profile['parent'],'parent_source_sha256':profile['parent_sha256'],'candidate_source_sha256':hashlib.sha256((repo/'experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs').read_bytes()).hexdigest(),'changed_methods':changed,'new_helpers':added,'removed_methods':removed,'unchanged_methods':len(before)-len(changed),'clocks_and_startup_game_gate_unchanged':True,'original_v2_source_project_unchanged':True,'supplier_receipt_accounting_unchanged':args.profile not in {'supplier','workflow','finance'},'out_of_scope_forensics_and_blip_features_absent':True,'gta_testing':'NOT RUN'}
 if args.output:args.output.write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2));print('PASS scope and preservation checks')

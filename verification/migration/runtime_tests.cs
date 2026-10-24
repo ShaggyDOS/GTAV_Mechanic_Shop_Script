@@ -39,6 +39,8 @@ class Harness {
     /*<source:UpdateOfficeDeskVisuals>*/
     /*<source:DeleteOfficeDeskProps>*/
     /*<source:OnTick>*/
+    /*<source:AdvanceCustomerDemand>*/
+    bool _customerServiceEnabled=true;double _customerDemandElapsed;
     /*<source:TryInitializeGameplayModels>*/
     string _muleModelName="mule2",_supplierDriverModelName="driver",_pedModelName="mechanic",_receptionistModelName="receptionist",_managerPedModelName="manager",_customerPedModelName="customer",_customerVehicleModelName="asea";
     Model _muleModel,_supplierDriverModel,_mechanicModel,_receptionistModel,_managerPedModel,_customerPedModel,_customerVehicleModel;

@@ -16,7 +16,7 @@ class Harness {
     /*<source:TotalOutstandingBills>*/
     /*<source:ManagerDiscountPercent>*/
     /*<source:GiveManagerPayrollRebate>*/
-    class Mechanic {internal long UnpaidWages;internal double WageUnpaidSeconds;}
+    class Mechanic {internal string Name="Test";internal long UnpaidWages;internal double WageUnpaidSeconds;}
     readonly List<Mechanic> _mechanics=new List<Mechanic>{new Mechanic{UnpaidWages=200,WageUnpaidSeconds=400}};
     bool _bootGameplayActivated=true,_clockedIn,_receptionOverdueNotified=true,_financesFromExpenses;
     long _cash=5000,_payrollSpend=10,_overheadSpend=20,_partsSpend=30,_managerSavings=5;

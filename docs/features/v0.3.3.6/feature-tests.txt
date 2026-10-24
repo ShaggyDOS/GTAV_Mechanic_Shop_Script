@@ -373,6 +373,9 @@ PASS reload paid physical pickup wait cannot rerun payment or teleport
 PASS reload on-demand status names assigned worker and bay without saving
 PASS reload unassigned status explains mechanic and bay wait
 workflow335 38/38 PASS; production intake/staging/spawn with deterministic entities and temporary-file quote adapters; GTA NOT RUN
+PASS reload manual physical recovery does not replace normal OFF pickup
+PASS reload NPC at pickup target holds paid recovery
+PASS reload non-finite recovery speed never permits movement
 PASS reload mask eight selecting unset fourth point is explicit and unchanged
 PASS reload valid shared mask selects only saved points in direction order
 PASS reload pickup uses reversed arrival points independently from work mask
@@ -391,4 +394,64 @@ PASS reload manual override resets bounded exits but never an unpaid order
 PASS reload manual override ignores completed departing customers
 PASS reload staged parking one retry retains entity and FIFO until bounded failure
 PASS reload recovery clearance later clears without another payment
-recovery336 18/18 PASS; production intake/staging/spawn with deterministic entities and temporary-file quote adapters; GTA NOT RUN
+recovery336 21/21 PASS; production intake/staging/spawn with deterministic entities and temporary-file quote adapters; GTA NOT RUN
+PASS finance selected owner amount deposit then withdrawal 1000
+PASS finance selected owner amount failure rollback 1000
+PASS finance wallet limit validation at selected amount 1000
+PASS finance selected owner amount deposit then withdrawal 10000
+PASS finance selected owner amount failure rollback 10000
+PASS finance wallet limit validation at selected amount 10000
+PASS finance selected owner amount deposit then withdrawal 100000
+PASS finance selected owner amount failure rollback 100000
+PASS finance wallet limit validation at selected amount 100000
+PASS finance freemode player cannot transfer
+PASS finance owner totals overflow cannot commit
+PASS finance invalid amount cannot transfer
+PASS finance paused amount transfer has no effects
+owner336 13/13 PASS; production selected-amount owner transfers and FinanceV1, GTA NOT RUN
+PASS sales mixed quantities commit all lines once at unchanged estimates
+PASS sales mixed sale failed save rolls back every line and total
+PASS sales one insufficient bucket rejects whole batch
+PASS sales accepted quote reserved stock remains unavailable at confirmation
+PASS sales draft and preview do not sell; confirmation uses snapshot
+PASS sales clear draft and back have no business writes
+PASS sales quantity bounds do not allocate or change stock
+PASS sales invalid/empty retail quantities rejected 0,0,0,0
+PASS sales invalid/empty retail quantities rejected -1,0,0,0
+PASS sales invalid/empty retail quantities rejected 101,0,0,0
+PASS sales invalid/empty retail quantities rejected 1,0
+PASS sales checked batch estimate overflow leaves stock intact
+PASS sales paused confirmation cannot sell
+PASS sales overflowing preview is display-safe
+PASS sales negative unit estimate cannot be hidden in positive mixed proceeds
+retail336 15/15 PASS; production batch retail, review/confirm and rollback, GTA NOT RUN
+PASS reload full staff summary cannot reuse stale receptionist desk flag
+PASS reload Settings.ini controller precedence False/False
+PASS reload Settings.ini controller precedence False/True
+PASS reload Settings.ini controller precedence True/False
+PASS reload Settings.ini controller precedence True/True
+PASS reload missing setting retains legacy controller enable
+PASS reload missing all settings retains supplied default
+PASS reload stale working phase with missing worker is not working
+PASS reload transport stage is shown before repair
+PASS reload worker phase alone cannot claim autonomous job without quote
+PASS reload car outside bay is explained even with worker at workstation
+PASS reload paid recovery is status not unpaid work
+PASS reload employee snapshot refresh is explicit and browsing never saves
+PASS reload reception readiness requires live worker
+PASS reload remote manager and paused mechanics are explicit
+status336 15/15 PASS; production intake/staging/spawn with deterministic entities and temporary-file quote adapters; GTA NOT RUN
+PASS demand 02:00 demand is quieter than day/commute
+PASS demand all hours and config bounds stay positive and bounded
+PASS demand daytime produces more new requests for equal active gameplay
+PASS demand pause adds no progress and performs no GTA clock read
+PASS demand closed/remote/startup demand does not accrue
+PASS demand wall-clock year jump cannot create catch-up request
+PASS demand fresh restarted instance has no previous interval credit
+PASS demand queue remains bounded and existing requests remain
+PASS demand GTA time change alone does not add demand without active progress
+PASS demand manual night request bypasses demand delay but obeys capacity
+PASS demand paused manual scheduling is rejected
+PASS demand large or invalid sample cannot synthesize offline progress
+PASS demand clock read is one per active visual update
+demand336 13/13 PASS; production GTA-hour weighting and active-time scheduling, GTA NOT RUN

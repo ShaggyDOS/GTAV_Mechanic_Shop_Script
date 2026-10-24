@@ -1,0 +1,31 @@
+{
+  "source_sha256": "7fff30978e2dc4c3235656f6ca6865506d5cea53387b7eb6d83654d71c8a9d6b",
+  "files": {
+    "experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs": "7fff30978e2dc4c3235656f6ca6865506d5cea53387b7eb6d83654d71c8a9d6b",
+    "experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj": "f9edbab65dffee88b2fdebcbe7aec1787b2624a086d9ed49877bfea69c6e0a7e",
+    "docs/features/v0.3.3.6/CHANGELOG.md": "355f09b0af33bf67de6505f0039ba3394dc261fa90cd430ce6e94c36ea1713f5",
+    "docs/features/v0.3.3.6/DEVELOPER_GUIDE.md": "676db78bd6bec216a78f3d7713f2b38682a5816ab8d927431584fb2bf62309b0",
+    "docs/features/v0.3.3.6/GTA_TEST_CHECKLIST.md": "361d8e97a68c299b3d7763d42dd225fb286f345caf84752ac47349378cf6337f",
+    "docs/features/v0.3.3.6/GlassHeroesBusiness_v0.3.3.6_Development_Report.docx": "8c90c2025f576b27be35c81c69fa93a08658abbbff732a2c23787610a5600edd",
+    "docs/features/v0.3.3.6/GlassHeroesBusiness_v0.3.3.6_Development_Report.pdf": "d03b5e7365ade231368e7e410650ea242e07e32d7d610a7994684bdf8c76aafe",
+    "docs/features/v0.3.3.6/MENU_FOOTERS.md": "daa4449b6e77468aee0ca48ca3aa1992fffdcbccdc382f1ac8f39378573532eb",
+    "docs/features/v0.3.3.6/NAVIGATION_MATRIX.md": "a5dce6778bac2329832a238eabcbb6867fc9b38bbf838cb347681977f92ee27f",
+    "docs/features/v0.3.3.6/PR_BODY.md": "db4a121300d766d0688a3d1343b1b5e76e6da02d4e2fdf5f46d16c1aa1ddb2d6",
+    "docs/features/v0.3.3.6/REVIEW_HANDOFF.md": "cbde85a59f3eddddea07b062fb8f81dac7506e828bbac72eb4996a83e4216529",
+    "docs/features/v0.3.3.6/SOURCE_SHA256.txt": "ac3e2a8fb9f20b08566dca5858adc33f0b4533b61ec2d2d4a11f13f5c95a3a9a",
+    "docs/features/v0.3.3.6/StaticVerification.json": "f23753df5ec62eaaf55f4d033316b8480b39fd757dc7c9af651ec04f304e4bc0",
+    "docs/features/v0.3.3.6/build.txt": "c10c7ea98d34ceca4aff36fdcd3b11ddb18ed44d16351765ec76b64ac3aa36dd",
+    "docs/features/v0.3.3.6/feature-tests.txt": "d42ff0d17db0e4528fd0ef7d1731d8b6546fe721f2650884003cf92bf161c8c2",
+    "docs/features/v0.3.3.6/inherited-behavior.txt": "e85c9d22697751b97631764ea02f113420c8cb4d1174294cb1af4f9d356c3807",
+    "docs/features/v0.3.3.6/logger-tests.txt": "c51ea511c0922abd65b2d3b65c247beb0032ef7591e5090f9b8f01fd3fac64ab",
+    "docs/features/v0.3.3.6/migration-tests.txt": "524e9a0ae036dd7d30372b4b472d4c5f536f82927c918dcb738f5c5913ccff38",
+    "docs/features/v0.3.3.6/navigation-tests.txt": "7fc2cb362a63417065ce761a2cea5e1bf253f830160d56f9988d0746e797c075",
+    "docs/features/v0.3.3.6/phase1-recovery-tests.txt": "5e35009bf0308dfb8a585e83cf1e870c0d61ab47710f9b1298a0495064af0efa",
+    "docs/features/v0.3.3.6/phase1-validation.json": "0ac8406525fec838b343223d212444fa94bd2d0ed3a112e4b76ac68d34aaa10b",
+    "docs/features/v0.3.3.6/preservation.json": "32f7d2ad0727b3ab6a4dbbfcbaeef342a4397fd78964b5684e4d7cd7a118be91",
+    "docs/features/v0.3.3.6/preservation.txt": "2d9bbb9ac6571671c47151877d3a2fd4badc4b6703846974faebbebb84c8529c",
+    "docs/features/v0.3.3.6/source.diff": "63495dc9e058ea8bcf8d74c79ecc0cf9ee3ad14c99d4d2d54930f6477691cc01",
+    "docs/features/v0.3.3.6/static-tests.txt": "2f58c5b70ecfc3450eaf056c2964ccdb2b67d9c40b47cff9bdc9519c41fdb219",
+    "docs/features/v0.3.3.6/validation.json": "353737cf0d6392775f128b05ab1aee6cb994588f896ed80e34ad6c15307d064e"
+  }
+}

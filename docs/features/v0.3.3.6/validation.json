@@ -1,7 +1,7 @@
 {
-  "label": "v0.3.3.6-p1",
+  "label": "v0.3.3.6-final",
   "profile": "workflow336",
-  "created_utc": "2026-10-24T05:03:19.123875+00:00",
+  "created_utc": "2026-10-24T05:51:16.746801+00:00",
   "reference": "ScriptHookVDotNet3 3.6.0",
   "target": "net48 / C# 7.3",
   "sdk": "8.0.426",
@@ -83,20 +83,36 @@
       "total": 38
     },
     "recovery336": {
-      "passed": 18,
-      "total": 18
+      "passed": 21,
+      "total": 21
+    },
+    "owner336": {
+      "passed": 13,
+      "total": 13
+    },
+    "retail336": {
+      "passed": 15,
+      "total": 15
+    },
+    "status336": {
+      "passed": 15,
+      "total": 15
+    },
+    "demand336": {
+      "passed": 13,
+      "total": 13
     }
   },
   "navigation_tests": {
-    "passed": 178,
-    "total": 178
+    "passed": 180,
+    "total": 180
   },
-  "behavior_total": 701,
+  "behavior_total": 762,
   "static": {
     "passed": 21,
     "total": 21
   },
-  "source_sha256": "0eaf5c9c6bc16880f4ec4a5824dd8bacfcc13758e62dc101ce277136bd1f6a1d",
+  "source_sha256": "7fff30978e2dc4c3235656f6ca6865506d5cea53387b7eb6d83654d71c8a9d6b",
   "clock_source_unchanged": true,
   "v2_and_protected_baseline_unchanged": true,
   "live_installation_or_saves_touched": false,
