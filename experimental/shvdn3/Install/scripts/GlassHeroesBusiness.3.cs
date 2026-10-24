@@ -6336,7 +6336,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (!order.Paid || !TeleportAttemptDue(order)) return;
         if (order.Vehicle == null || !order.Vehicle.Exists() || order.Vehicle.IsDead)
         { CancelCustomerOrder("Paid recovery vehicle unavailable; payment remains recorded", true); return; }
-        if (order.Vehicle.Speed >= 1.5f) return; // Never reposition a moving car.
+        float speed = order.Vehicle.Speed;
+        if (float.IsNaN(speed) || float.IsInfinity(speed) || speed < 0 || speed >= 1.5f) return;
         Ped worker = AssignedWorker(order);
         if (worker != null && MechanicInCustomerCar(order))
         {
@@ -6956,7 +6957,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     other.ResolvedParkingBay.IsSet && DistanceSquared(other.ResolvedParkingBay.Position, p) < 16f) return false;
             }
             return !GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_POSITION_OCCUPIED,
-                p.X, p.Y, p.Z + 0.5f, 2f, false, true, false, false, false, order.Vehicle.Handle, false);
+                p.X, p.Y, p.Z + 0.5f, 2f, false, true, order.PaidReturnRecovery, false, false, order.Vehicle.Handle, false);
         }
         catch (Exception ex) { Log("Customer transfer clearance #" + order.Id, ex); return false; }
     }
@@ -6974,7 +6975,11 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return true;
             if (!pickup && order.TeleportedToBay) { order.Stage = CustomerStage.Repairing; return true; }
             if (pickup && order.TeleportedToPickup) { ReleaseRecoveredMechanic(order); ReleaseCustomerForPickup(order); return true; }
-            if (pickup && order.PaidReturnRecovery && order.Vehicle.Speed >= 1.5f) return true;
+            if (pickup && order.PaidReturnRecovery)
+            {
+                float speed = order.Vehicle.Speed;
+                if (float.IsNaN(speed) || float.IsInfinity(speed) || speed < 0 || speed >= 1.5f) return true;
+            }
             WorkBay target = pickup ? _customerDropoff : order.ResolvedParkingBay;
             // Existing return ownership prevents intake/another return claiming drop-off.
             if ((pickup && !CanReturnCustomerCar(order)) || !TeleportTargetAvailable(order, target, pickup))
