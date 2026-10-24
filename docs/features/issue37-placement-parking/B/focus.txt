@@ -1,0 +1,10 @@
+PASS each physical spawn-break coordinate resolves by identity
+PASS each shared bay coordinate resolves from editor and per-mechanic selection
+PASS point editor preserves the exact selected reference
+PASS role and customer driver lists select their own coordinates
+PASS Back rows and negative selections never highlight another point
+PASS closing menu removes physical focus
+PASS saved status and mechanic use are independent
+PASS preview and value lookup do not mutate geometry or either mask
+PASS all/none commands are not physical coordinate references
+focus37 9/9 PASS; actual physical-focus and independent use/saved menu arms; GTA NOT RUN

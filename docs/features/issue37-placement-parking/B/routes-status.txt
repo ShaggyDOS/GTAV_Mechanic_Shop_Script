@@ -1,0 +1,33 @@
+PASS routes36 all 32 selections x 32 physical masks for mechanic/direction 0/False
+PASS routes36 all 32 selections x 32 physical masks for mechanic/direction 0/True
+PASS routes36 all 32 selections x 32 physical masks for mechanic/direction 1/False
+PASS routes36 all 32 selections x 32 physical masks for mechanic/direction 1/True
+PASS routes36 all 32 selections x 32 physical masks for mechanic/direction 2/False
+PASS routes36 all 32 selections x 32 physical masks for mechanic/direction 2/True
+PASS routes36 outbound summary follows saved selections then bay approach and workstation
+PASS routes36 return summary puts approach first and reverses selected shared stops
+PASS routes36 DIRECT mode reports selections inactive without changing them
+PASS routes36 zero effective mask keeps target and configured approach only
+PASS routes36 missing approach never invents a physical point
+PASS routes36 summary is read-only across all mechanic masks and saved locations
+PASS routes36 invalid mechanic uses safe display without indexing
+PASS routes36 header identifies mechanic and both workstation directions
+PASS routes36 long header name is fitted while direction remains readable
+PASS routes36 outbound and return masks remain independent
+routes36 16/16 PASS; production read-only route summaries, 6144 sparse-mask/direction/worker combinations; GTA NOT RUN
+PASS reload full staff summary cannot reuse stale receptionist desk flag
+PASS reload Settings.ini controller precedence False/False
+PASS reload Settings.ini controller precedence False/True
+PASS reload Settings.ini controller precedence True/False
+PASS reload Settings.ini controller precedence True/True
+PASS reload missing setting retains legacy controller enable
+PASS reload missing all settings retains supplied default
+PASS reload stale working phase with missing worker is not working
+PASS reload transport stage is shown before repair
+PASS reload worker phase alone cannot claim autonomous job without quote
+PASS reload car outside bay is explained even with worker at workstation
+PASS reload paid recovery is status not unpaid work
+PASS reload employee snapshot refresh is explicit and browsing never saves
+PASS reload reception readiness requires live worker
+PASS reload remote manager and paused mechanics are explicit
+status336 15/15 PASS; production intake/staging/spawn with deterministic entities and temporary-file quote adapters; GTA NOT RUN
