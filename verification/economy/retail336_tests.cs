@@ -17,6 +17,7 @@ class Harness {
     /*<source:TrySellPart>*/
     /*<source:TrySellParts>*/
     /*<source:PartsSaleTotal>*/
+    /*<source:PartsSaleTotalText>*/
     /*<source:PartsSalePreview>*/
     /*<source:TryCommitBusinessSave>*/
     /*<source:SavedRepairPromise>*/
@@ -111,6 +112,7 @@ Test("quantity bounds do not allocate or change stock",()=>{var h=Fresh();h._sel
 foreach(var qty in new[]{new[]{0,0,0,0},new[]{-1,0,0,0},new[]{101,0,0,0},new[]{1,0}}){var invalid=qty;Test("invalid/empty retail quantities rejected "+string.Join(",",invalid),()=>{var h=Fresh();Check(!h.TrySellParts(invalid)&&h.saves==0&&h._parts==10,"invalid");});}
 Test("checked batch estimate overflow leaves stock intact",()=>{var h=Fresh();h._unitCostEstimates[0]=long.MaxValue;Check(!h.TrySellParts(new[]{3,0,0,0})&&h.saves==0&&h._parts==10&&h._cash==0,"overflow");});
 Test("paused confirmation cannot sell",()=>{var h=Fresh();Game.IsPaused=true;Check(!h.TrySellParts(new[]{2,0,0,0})&&h.saves==0,"paused");Game.IsPaused=false;});
+Test("overflowing preview is display-safe",()=>{var h=Fresh();h._unitCostEstimates[0]=long.MaxValue;Check(h.PartsSaleTotalText(new[]{3,0,0,0}).StartsWith("OVERFLOW")&&h.saves==0,"UI preview overflow");});
 Console.WriteLine($"retail336 {passed}/{passed} PASS; production batch retail, review/confirm and rollback, GTA NOT RUN");
 }finally{Directory.Delete(DataDirectory,true);}}
 }

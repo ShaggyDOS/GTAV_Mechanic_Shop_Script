@@ -34,11 +34,11 @@ public class GlassHeroesBusinessV3Experimental : Script
         StaffRoster, StaffProfile, VehicleDriveOptions, CustomerPlacements, EmployeePlacements,
         MechanicWalkingPaths, ReceptionWalkingPaths, ReceptionWaypoints, CustomerQueueSettings,
         PartsSales, VehicleAutoLotOptions, BusinessExpenses, MechanicInvoices, CustomerWalkingRoutes,
-        InventoryManagement, InventoryOverview, BuildSupplierOrder, ActiveDeliveries, EquipmentManagement, ControllerSettings, MechanicRouteRoster,
+        InventoryManagement, InventoryOverview, BuildSupplierOrder, ActiveDeliveries, EquipmentManagement, MechanicRouteRoster,
         MechanicRouteDirection, MechanicRoutePoints, SupplierDeliverySetup, SupplierDriverWaypoints,
         HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints,
         PlacementSettings, DeliveryPlacements, PlacementWalkingRoutes,
-        MechanicPlacementRoutes, ReceptionPlacementRoutes, ManagerPlacementRoutes, CustomerPlacementRoutes, SupplierPlacementRoutes, OwnerTransferReview, PartsSaleReview
+        MechanicPlacementRoutes, ReceptionPlacementRoutes, ManagerPlacementRoutes, CustomerPlacementRoutes, SupplierPlacementRoutes, OwnerTransferReview, PartsSaleReview, EmployeeStatus
     }
     private const int VisibleMenuRows = 10;
     // Compact F2 menu (75% of the previous layout), anchored to upper-left.
@@ -738,7 +738,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             if (!_toolSetPurchased || !_toolSetLocation.IsSet) _toolSetPlaced = false;
             if (!_diagnosticScannerPurchased || !_scannerLocation.IsSet) _scannerPlaced = false;
             _equipmentSpend = Math.Max(0L, data.GetValue("Business", "EquipmentSpent", 0L));
-            _controllerEnabled = data.GetValue("Gamepad", "Enabled", _controllerEnabled);
+            _controllerEnabled = ResolveControllerEnabled(_configuration, data, _controllerEnabled);
             LoadPoint(data, "OfficeDesk", _officeDeskLocation);
             if (!_officeDeskPurchased || !_officeDeskLocation.IsSet) _officeDeskPlaced = false;
             _receptionWagesDue = Math.Max(0L, data.GetValue("BusinessBills", "ReceptionistWagesDue", 0L));
@@ -1156,6 +1156,11 @@ public class GlassHeroesBusinessV3Experimental : Script
         return (_requireCtrlForMenu ? "CTRL+" : "") + _menuKey.ToString().ToUpperInvariant();
     }
 
+    private static bool ResolveControllerEnabled(ScriptSettings settings, ScriptSettings legacy, bool fallback)
+    {
+        return settings.GetValue("Gamepad", "Enabled", legacy.GetValue("Gamepad", "Enabled", fallback));
+    }
+
     private void NavigateBack()
     {
         KeyValuePair<MenuPage, int> placementReturn;
@@ -1170,6 +1175,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.Business: _showMenu = false; break;
             case MenuPage.BusinessManagement: _menuPage = MenuPage.Business; _selection = 3; break;
             case MenuPage.Employees: _menuPage = MenuPage.BusinessManagement; _selection = 0; break;
+            case MenuPage.EmployeeStatus: _menuPage = MenuPage.Employees; _selection = 0; break;
             case MenuPage.HireMechanicRoster: _menuPage = MenuPage.MechanicManagement; _selection = 1; break;
             case MenuPage.HireReceptionistRoster: _menuPage = MenuPage.ReceptionistManagement; _selection = 1; break;
             case MenuPage.SupplierDeliverySetup: _menuPage = MenuPage.InventoryManagement; _selection = 5; break;
@@ -1235,7 +1241,6 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ActiveDeliveries: _menuPage = MenuPage.InventoryManagement; _selection = 2; break;
             case MenuPage.InventoryManagement: _menuPage = MenuPage.BusinessManagement; _selection = 2; break;
             case MenuPage.EquipmentManagement: _menuPage = MenuPage.BusinessExpenses; _selection = 7; break;
-            case MenuPage.ControllerSettings: _menuPage = MenuPage.BusinessManagement; _selection = 5; break;
             case MenuPage.MechanicRouteRoster:
                 _menuPage = _mechanicRosterFromManagement ? MenuPage.MechanicManagement : MenuPage.MechanicWalkingPaths;
                 _selection = _mechanicRosterFromManagement ? 2 : 6;
@@ -1360,9 +1365,11 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return new string[] { "Supplier Driver Stops >", "Driver Box Handoff >", "< Back to Roles" };
             case MenuPage.BusinessManagement:
                 return new string[] { "Employees >", "Customers >", "Inventory & Suppliers >",
-                    "Finances & Accounting >", "Placement Settings >", "Controller Controls >",
+                    "Finances & Accounting >", "Placement Settings >",
                     "Set Shop Location",
                     "< Back to Main" };
+            case MenuPage.EmployeeStatus:
+                return new string[] { _mechanics.Count > 0 ? _mechanics[0].Name : "Mechanic 1 (vacant)", _mechanics.Count > 1 ? _mechanics[1].Name : "Mechanic 2 (vacant)", _mechanics.Count > 2 ? _mechanics[2].Name : "Mechanic 3 (vacant)", "Receptionist", "Manager", "Refresh / Full Status", "< Back to Employees" };
             case MenuPage.Employees:
                 return new string[] { "Employee Status", "Mechanics >", "Receptionist >",
                     "Business Manager >", "Employee Settings >", "< Back to Business Management" };
@@ -1475,8 +1482,6 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Buy Desk + Laptop", "Place Tool Chest", "Remove Tool Chest",
                     "Place Diagnostic Trolley", "Remove Diagnostic Trolley",
                     "Place Desk in Front", "Remove Placed Desk", "Office PC Status", "< Back" };
-            case MenuPage.ControllerSettings:
-                return new string[] { "Controller Menu Controls (ENTER)", "View Controller Key Map", "Controller Input Diagnostics", "< Back to Business Management" };
             case MenuPage.MechanicRouteRoster:
                 return new string[] { "Mechanic 1 Job Route >", "Mechanic 2 Job Route >",
                     "Mechanic 3 Job Route >", "< Back to Mechanic Paths" };
@@ -1580,6 +1585,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return index < OptionalPathPointCount ? Status(_managerRoute[index]) : ">";
             case MenuPage.HireManagerRoster:
                 return index < 3 ? "$" + ManagerCandidateCost(index).ToString("N0") : ">";
+            case MenuPage.EmployeeStatus: return index < 5 ? _employeeStatusRows[index] : index == 5 ? "REFRESH" : "BACK";
             case MenuPage.Employees:
                 if (index == 0) return _mechanics.Count + " M / " + (_receptionistHired ? "1 R" : "0 R");
                 if (index == 1) return _mechanics.Count + "/" + _maxMechanics;
@@ -1630,9 +1636,9 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ActiveDeliveries:
                 return index == 0 ? (_deliveryKind == -2 ? "NONE" : ((int)Math.Ceiling(_deliveryRemainingGameSeconds)) + "s") : ">";
             case MenuPage.PartsSales:
-                return index < 4 ? "x" + _partsSaleCart[index] + " / " + UnreservedRepairStock(null)[index] + " FREE" : index == 4 ? "$" + PartsSaleTotal(_partsSaleCart).ToString("N0") : ">";
+                return index < 4 ? "x" + _partsSaleCart[index] + " / " + UnreservedRepairStock(null)[index] + " FREE" : index == 4 ? PartsSaleTotalText(_partsSaleCart) : ">";
             case MenuPage.PartsSaleReview:
-                return index == 0 ? "$" + PartsSaleTotal(_partsSaleReview).ToString("N0") : index == 1 ? "SELL" : "BACK";
+                return index == 0 ? PartsSaleTotalText(_partsSaleReview) : index == 1 ? "SELL" : "BACK";
             case MenuPage.EquipmentManagement:
                 if (index == 1) return _toolSetPurchased ? "OWNED" : "$1,800";
                 if (index == 2) return _diagnosticScannerPurchased ? "OWNED" : "$1,600";
@@ -1641,8 +1647,6 @@ public class GlassHeroesBusinessV3Experimental : Script
                 if (index == 6) return _scannerPlaced ? "REPOSITION" : "PLACE";
                 if (index == 8) return _officeDeskPlaced ? "REPOSITION" : "PLACE";
                 return ">";
-            case MenuPage.ControllerSettings:
-                return index == 0 ? (_controllerEnabled ? "ON" : "OFF") : ">";
             case MenuPage.SupplierDeliverySetup:
                 if (index == 0) return _physicalMuleDeliveries ? "ON" : "OFF";
                 if (index == 1) return Status(_supplierTruckSpawn);
@@ -1690,7 +1694,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.OwnerTransferReview:
                 return index == 0 ? "$" + _ownerTransferAmount.ToString("N0") + " / $" + _cash.ToString("N0") : index == 1 ? "CONFIRM" : "BACK";
             case MenuPage.BusinessManagement:
-                return index == 7 ? "BACK" : index == 6 ? "SET" : "OPEN";
+                return index == 6 ? "BACK" : index == 5 ? "SET" : "OPEN";
             case MenuPage.Business:
                 if (index == 0) return _clockedIn ? "OPEN" : "CLOSED";
                 if (index == 1) return "SAVE";
@@ -1890,7 +1894,84 @@ public class GlassHeroesBusinessV3Experimental : Script
         return "Stand at the destination and face its direction; save.";
     }
 
+    private string FooterRow(params string[] rows)
+    { return rows[Math.Max(0, Math.Min(_selection, rows.Length - 1))]; }
+
     private string GetSelectedDescription()
+    {
+        string[] items = GetMenuItems();
+        string label = items[Math.Max(0, Math.Min(_selection, items.Length - 1))];
+        if (label.StartsWith("< Back", StringComparison.Ordinal)) return "Return to the previous menu and restore its selected row; no transaction or placement change.";
+        switch (_menuPage)
+        {
+            case MenuPage.BusinessManagement: return FooterRow(
+                "Staff status, hiring, profiles, wages and operating settings.", "Customer queue, arrivals, vehicle workflow and recovery controls.",
+                "Stock overview, mixed supplier orders, delivery status and confirmed retail sales.", "Income, expenses, profit, ledger and owner capital transfers.",
+                "Edit existing saved positions and role routes; marker visibility does not delete points.", "Set the permanent shop anchor while closed; review location before applying.", "Return to main menu.");
+            case MenuPage.Employees: return FooterRow("Open an explicit staff snapshot; select a row to refresh job, bay and route details.",
+                "Mechanic roster, hiring, specialization and route operating controls.", "Receptionist profile, hiring, queue skill and walking mode.",
+                "Manager profile, hiring, wages, remote operations and walking mode.", "Shared staff settings and placement-hub shortcut.", "Return to management.");
+            case MenuPage.EmployeeStatus:
+                return _selection < 5 ? "Snapshot: " + _employeeStatusRows[_selection] + ". Select to refresh live details; no continuous entity scans." : "Refresh all staff snapshots and show detailed job/route/wage status; does not pay wages.";
+            case MenuPage.Customers: return FooterRow("Show current order stages, assigned workers, bay and wait reasons on demand.",
+                "Inspect or schedule bounded requests; active/paid orders are separate from roadside waiting cars.", "Open central Placement Settings without changing saved coordinates.",
+                "Configure driving/transfer modes, inspect diagnostics or retry a held paid return safely.", "Enable/disable automatic customer arrivals; active orders follow existing cancellation rules.",
+                "Manually request one customer within configured queue capacity; bypass automatic demand wait.", "Show/hide script-owned customer blips.", "Show/hide placement preview only; saved points remain intact.", "Return to management.");
+            case MenuPage.InventoryManagement: return FooterRow("View available inventory and capacity; pending cargo is not stock on hand.",
+                "Build a mixed-category order with one supplier, ETA and invoice after stocking.", "Inspect saved pending order identity and its current delivery stage.",
+                "Choose retail quantities, review unchanged cost-estimate prices, then confirm an atomic sale.", "Inspect owned pallet capacity, explicitly buy or place pallets.", "Supplier physical setup, wholesale vehicle registration and recovery controls.", "Return to management.");
+            case MenuPage.InventoryOverview: return FooterRow("Universal stock on hand; promised repair stock remains reserved.", "Service-filter stock on hand.", "Brake-kit stock on hand.", "Diagnostic supplies on hand.", "Inspect total storage capacity; delivery must fit before receipt.", "Read low-stock advice without ordering.", "Change reorder advice threshold; no automatic purchase.", "Return to inventory.");
+            case MenuPage.BuildSupplierOrder:
+                if (_selection < 4) return "Set " + label + " quantity with Left/Right or Enter; this edits only the unsent supplier cart.";
+                return FooterRow("", "", "", "", "Choose one supplier for the entire cart; wholesale stays player-only.", "Preview full cost and capacity before placing anything.", "Submit this whole purchase order after funds/capacity checks.", "Fill unsent quantities using low-stock advice; does not submit.", "Clear the unsent supplier draft only.", "Return to inventory.");
+            case MenuPage.ActiveDeliveries: return FooterRow("Show current delivery identity/stage as an on-demand snapshot.", "Review every saved line and consolidated order price.", "Recover the original pending order, without a second purchase or receipt.", "Request cancellation using existing confirmation/financial rules.", "Return to inventory.");
+            case MenuPage.Finances: return FooterRow("Cash bridge and audit status distinguish sales from available cash.", "Compare physical, remote, autonomous and retail sales without overlap.",
+                "Review/pay actual bills and reach equipment; accrued bills are not cash payments.", "Inspect accounting profit on purchase-expense basis.", "Read committed transaction identities and resulting cash.",
+                "Select $1,000/$10,000/$100,000, review and confirm owner capital movement.", "Toggle current/last shift versus lifetime reporting only.", "Return to management.");
+            case MenuPage.OwnerTransfers: return FooterRow("Cycle the session transfer amount: $1,000, $10,000 or $100,000; no payment yet.",
+                "Review moving the selected amount from the eligible Story Mode wallet to business cash.", "Review moving selected business cash to the eligible Story Mode wallet.",
+                "Recorded owner deposits are capital, never sales.", "Recorded owner withdrawals are capital, never expenses.", "Toggle report period; no funds move.", "Return to accounting.");
+            case MenuPage.OwnerTransferReview:
+                return _selection == 0 ? (_ownerTransferDeposit ? "Deposit $" : "Withdraw $") + _ownerTransferAmount.ToString("N0") + "; inspect business cash. Wallet, ped and limits are validated on Confirm." : "Confirm this capital transfer; save failure restores business and wallet state. Never counted as revenue or expense.";
+            case MenuPage.PlacementSettings: return FooterRow("Customer car, reception and waiting-lane positions and approaches.", "Mechanic Break Area, staff entry, receptionist/manager work points and approaches.",
+                "Each logical bay keeps distinct saved car and mechanic animation points.", "Supplier spawn/unload/handoff, owned pallets and equipment placement links.",
+                "Choose Mechanics, Receptionist, Manager, Customers or Supplier Driver route editors.", "Toggle visual previews or inspect marker colors; no coordinate changes.", "Return to caller.");
+            case MenuPage.PlacementWalkingRoutes: return FooterRow("Mechanic pickup arrival route, workstation access and individual shared-stop masks.",
+                "Receptionist-only stops and final desk approach.", "Manager-only stops and final workstation approach.", "Customer-only stops and reception approach, reversed on pickup.", "Supplier driver stops and handoff point.", "Return to placement settings.");
+            case MenuPage.MechanicPlacementRoutes: return FooterRow("Edit Arrival stops: forward for arrival/return to break, reversed when walking from break to a customer car.",
+                "Edit FIVE shared work-access walking points; these do not drive the car or control pickup walking.", "Edit the final walking approach to each separate mechanic work position.",
+                "Choose each mechanic's independent outbound/return masks over the same five shared physical stops; USE/UNSET is invalid geometry.",
+                "Edit the legacy arrival checkpoint; not silently inserted into car pickup.", "Open existing walking-mode/recovery toggles without duplicating saved settings.", "Return to role list.");
+            case MenuPage.ReceptionPlacementRoutes: return FooterRow("Edit five optional receptionist-only spawn-to-desk stops.", "Edit the final receptionist desk approach.", "Choose existing receptionist walking mode.", "Return to roles.");
+            case MenuPage.ManagerPlacementRoutes: return FooterRow("Edit five optional manager-only spawn-to-workstation stops.", "Edit the final manager workstation approach.", "Choose existing manager walking mode.", "Return to roles.");
+            case MenuPage.CustomerPlacementRoutes: return _selection == 0 ? "Edit customer-only walking stops; reverse traversal is reused at pickup." : "Edit the existing customer reception approach; does not change car parking.";
+            case MenuPage.SupplierPlacementRoutes: return _selection == 0 ? "Edit up to three existing driver walking stops, independent from the Mule's driving route." : "Edit the saved driver box-handoff point; existing pallet receipt remains required.";
+            case MenuPage.EmployeePlacements: return FooterRow("Edit Mechanic Break Area; existing EmployeeBreakArea key/heading stays compatible.", "Open logical service bays; car and worker positions stay separate.",
+                "Edit receptionist desk/work location.", "Edit receptionist final desk approach.", "Edit manager workstation.", "Edit manager final workstation approach.", "Edit shared staff spawn/entry location.", "Return to caller.");
+            case MenuPage.CustomerPlacements: return FooterRow("Edit shared customer drop-off/pickup parking and facing.", "Edit drive-in customer road entry point and facing.", "Edit pedestrian reception approach.",
+                "Edit check-in/queue position near reception.", "Edit Car 2 roadside waiting position and heading.", "Edit Car 3 optional distinct waiting position and heading.",
+                "Open logical car/work bay profiles without changing mode.", "Edit customer walking stops only.", "Return to caller.");
+            case MenuPage.PlacementMarkers: return _selection == 0 ? "Toggle existing visual placement previews. Saved coordinates/headings are not cleared." : "Show the existing marker color legend; no saved changes.";
+            case MenuPage.ServiceBayProfile: return FooterRow("Edit saved CUSTOM car position and heading; AUTO LOT remains computed until mode changes.",
+                "Edit the separate mechanic animation/work position; keep clear of the car center.", "Inspect existing fixed roster-slot assignment; no staff reassignment.", "Show both existing points, headings and active parking mode without saving.", "Return to bay list.");
+            case MenuPage.MechanicRoutePoints:
+                if (_selection < 5) return "Toggle shared work stop " + (_selection + 1) + " for this mechanic/direction. " + (_serviceRoute[_selection].IsSet ? "Physical point is saved." : "UNSET: save this point or deselect it; it cannot supply a route node.");
+                return _selection == 5 ? "Enable all five shared stops for this mechanic/direction; unsaved stops still cannot be traversed." : "Disable optional shared stops for this mechanic/direction; final approach/target remain.";
+            case MenuPage.MechanicRouteDirection: return FooterRow("Select this mechanic's outbound walking-stop mask.", "Select this mechanic's independent return walking-stop mask.", "Show masks without changing any route or coordinate.", "Return to roster.");
+            case MenuPage.ArrivalWaypoints: case MenuPage.ServiceWaypoints: case MenuPage.BayApproaches:
+            case MenuPage.ReceptionWaypoints: case MenuPage.ManagerWaypoints: case MenuPage.CustomerWalkingRoutes: case MenuPage.SupplierDriverWaypoints:
+                return "Edit " + label.TrimEnd(' ', '>') + ": " + GetMenuItemValue(_selection) + ". Walk to the point, face the intended direction, then Save Position + Facing.";
+            case MenuPage.VehicleDriveOptions:
+                if (_selection == 6) return "Inspect pickup walking, valet drive/parking, workstation and return stages on demand.";
+                if (_selection == 7) return "Explicitly retry held PAID returns: exit driver first, then only an empty stopped car to a clear pickup. Never pays again.";
+                break;
+        }
+        string context = GetPageDescription();
+        if (label.EndsWith(">", StringComparison.Ordinal)) return "Open " + label.TrimEnd(' ', '>') + ". " + context;
+        return label + ": " + context;
+    }
+
+    private string GetPageDescription()
     {
         if (_menuPage == MenuPage.PlacementSettings) return "Existing saved points and separate vehicle/work positions. Walk to the point, face the heading, then Save Position + Facing.";
         if (_menuPage == MenuPage.DeliveryPlacements) return "Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.";
@@ -1952,8 +2033,6 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return "Set outbound and return waypoint use independently.";
             case MenuPage.MechanicRoutePoints:
                 return "USE / SKIP saved points; unset points are always skipped.";
-            case MenuPage.ControllerSettings:
-                return "Press ENTER to change ON/OFF. Menu does not support mouse clicks.";
             case MenuPage.ReceptionWalkingPaths:
                 return _selection == 0 ? "DIRECT goes straight to desk; CUSTOM follows saved route." :
                     "Receptionist-only 0/5 route and desk approach.";
@@ -1975,9 +2054,8 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Order parts, select suppliers and configure Mule deliveries.",
                     "Review sales, wage liabilities, supplier costs and shift profit.",
                     "Set existing locations, service bays, routes and visual marker display.",
-                    "Change controller support and inspect the active button map.",
                     "Set the shop's permanent location while it is closed.",
-                    "Return to the four-item main menu." }[Math.Min(_selection, 7)];
+                    "Return to the four-item main menu." }[Math.Min(_selection, 6)];
             case MenuPage.BusinessExpenses: return _selection == 9 ?
                 "Pay only the outstanding manager wage invoice; no manager rebate on their own wages." :
                 "Settle wages, rent and delivered supplier invoices; restock and equipment are separate.";
@@ -2104,6 +2182,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.CustomerPlacementRoutes: return "CUSTOMER WALKING ROUTES";
             case MenuPage.SupplierPlacementRoutes: return "SUPPLIER DRIVER WALKING ROUTES";
             case MenuPage.Employees: return "EMPLOYEES";
+            case MenuPage.EmployeeStatus: return "EMPLOYEE STATUS SNAPSHOT";
             case MenuPage.ManagerManagement: return "BUSINESS MANAGER";
             case MenuPage.ManagerProfile: return "MANAGER PROFILE";
             case MenuPage.ManagerWalkingPaths: return "MANAGER WALKING";
@@ -2155,7 +2234,6 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.HireMechanicRoster: return "HIRE A MECHANIC";
             case MenuPage.HireReceptionistRoster: return "HIRE RECEPTIONIST";
             case MenuPage.EquipmentManagement: return "SHOP EQUIPMENT";
-            case MenuPage.ControllerSettings: return "CONTROLLER INPUT";
             case MenuPage.MechanicRouteRoster: return "MECHANIC JOB ROUTES";
             case MenuPage.MechanicRouteDirection: return "SELECT WALK DIRECTION";
             case MenuPage.MechanicRoutePoints: return _routeConfigReturning ? "RETURN WALK WAYPOINTS" : "JOB WALK WAYPOINTS";
@@ -2262,6 +2340,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.CustomerPlacementRoutes:
             case MenuPage.SupplierPlacementRoutes: ExecutePlacementSelection(); break;
             case MenuPage.Employees: ExecuteEmployeeSelection(); break;
+            case MenuPage.EmployeeStatus: ExecuteEmployeeStatusSelection(); break;
             case MenuPage.ManagerManagement: ExecuteManagerManagement(); break;
             case MenuPage.ManagerProfile: ExecuteManagerProfile(); break;
             case MenuPage.ManagerWalkingPaths: ExecuteManagerWalkingSelection(); break;
@@ -2322,7 +2401,6 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.PartsSales:
             case MenuPage.PartsSaleReview: ExecutePartsSalesSelection(); break;
             case MenuPage.EquipmentManagement: ExecuteEquipmentSelection(); break;
-            case MenuPage.ControllerSettings: ExecuteControllerSelection(); break;
             case MenuPage.MechanicRouteRoster: ExecuteRouteRosterSelection(); break;
             case MenuPage.MechanicRouteDirection: ExecuteRouteDirectionSelection(); break;
             case MenuPage.MechanicRoutePoints: ExecuteRoutePointSelection(); break;
@@ -2426,8 +2504,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case 2: _menuPage = MenuPage.InventoryManagement; _selection = 0; break;
             case 3: _financesFromExpenses = false; _menuPage = MenuPage.Finances; _selection = 0; break;
             case 4: OpenPlacementMenu(MenuPage.PlacementSettings); break;
-            case 5: _menuPage = MenuPage.ControllerSettings; _selection = 0; break;
-            case 6: SetShopLocationFromPlayer(); break;
+            case 5: SetShopLocationFromPlayer(); break;
             default: NavigateBack(); break;
         }
     }
@@ -3105,7 +3182,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         switch (_selection)
         {
-            case 0: ShowEmployeeStatus(); break;
+            case 0: RefreshEmployeeStatus(); _menuPage = MenuPage.EmployeeStatus; _selection = 0; break;
             case 1: _menuPage = MenuPage.MechanicManagement; _selection = 0; break;
             case 2: _menuPage = MenuPage.ReceptionistManagement; _selection = 0; break;
             case 3: _menuPage = MenuPage.ManagerManagement; _selection = 0; break;
@@ -3668,6 +3745,35 @@ public class GlassHeroesBusinessV3Experimental : Script
                 (DropoffOccupied(null) ? "OCCUPIED" : "CLEAR"));
     }
 
+    private readonly string[] _employeeStatusRows = { "REFRESH", "REFRESH", "REFRESH", "REFRESH", "REFRESH" };
+
+    private void RefreshEmployeeStatus()
+    {
+        for (int i = 0; i < 3; i++) _employeeStatusRows[i] = MechanicServiceStatus(i);
+        _employeeStatusRows[3] = !_receptionistHired ? "NOT HIRED" : _receptionist.Worker == null || !_receptionist.Worker.Exists() || _receptionist.Worker.IsDead ?
+            "NOT STREAMED" : _receptionist.AtDesk ? "QUEUE READY" : "EN ROUTE";
+        _employeeStatusRows[4] = _managerTier < 0 ? "NOT HIRED" : _remoteMode ? "REMOTE SIMULATION" :
+            _managerWorker == null || !_managerWorker.Exists() || _managerWorker.IsDead ? "NOT STREAMED" : _managerAtPost ? "AT WORKSTATION" : "EN ROUTE";
+    }
+
+    private void ExecuteEmployeeStatusSelection()
+    {
+        if (_selection == 6) { NavigateBack(); return; }
+        RefreshEmployeeStatus();
+        if (_selection < 3)
+        {
+            if (_selection >= _mechanics.Count) { Notify("This mechanic slot is vacant."); return; }
+            Mechanic m = _mechanics[_selection];
+            ShowStatusNotice(m.Name + " / BAY " + (_selection + 1), _employeeStatusRows[_selection],
+                SpecialtyName(m.Specialty) + " | Wage due $" + m.UnpaidWages.ToString("N0"),
+                "OUT " + WorkRouteStatus(_selection, false), "BACK " + WorkRouteStatus(_selection, true));
+        }
+        else if (_selection == 3) ShowStatusNotice("RECEPTIONIST", _employeeStatusRows[3],
+            "Queue " + _waitingCustomerRequests + "/" + EffectiveQueueCapacity(), "Wage due $" + _receptionWagesDue.ToString("N0"));
+        else if (_selection == 4) ShowStatusNotice("MANAGER", _employeeStatusRows[4], "Wage due $" + _managerWagesDue.ToString("N0"), "Remote jobs completed " + _remoteJobsCompleted);
+        else ShowEmployeeStatus();
+    }
+
     private string MechanicServiceStatus(int slot)
     {
         if (slot < 0 || slot >= _mechanics.Count) return "VACANT";
@@ -3681,6 +3787,10 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (job != null)
         {
             if (job.Paid) return "PAID #" + job.Id + " | " + job.Stage;
+            if (job.Stage == CustomerStage.Repairing && (job.Vehicle == null || !job.Vehicle.Exists() || job.Vehicle.IsDead)) return "VEHICLE UNAVAILABLE #" + job.Id;
+            if (job.Stage == CustomerStage.Repairing && (job.VehicleHandoff || job.VehicleTeleport) &&
+                (job.ResolvedParkingBay == null || (job.VehicleTeleport && !job.TeleportedToBay) ||
+                DistanceSquared(job.Vehicle.Position, job.ResolvedParkingBay.Position) > 25f)) return "WAIT CAR AT BAY #" + job.Id;
             if (job.Stage == CustomerStage.Repairing)
                 return employee.HasJob && employee.ArrivalPhase == PhaseWorking && job.Vehicle != null &&
                     job.Vehicle.Exists() && !job.Vehicle.IsDead ? "REPAIRING #" + job.Id : "WAIT WORKSTATION #" + job.Id;
@@ -3688,7 +3798,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         if (employee.ArrivalPhase == PhaseRouteBlocked) return "WALK ROUTE BLOCKED";
         if (!employee.HasJob) return employee.ArrivalPhase == PhaseAtBreak ? "AVAILABLE AT BREAK" : "WALKING / RETURNING TO BREAK";
-        return employee.ArrivalPhase == PhaseWorking ? "AUTONOMOUS JOB" : "WAIT WORKSTATION";
+        return employee.Pricing != null && employee.ArrivalPhase == PhaseWorking ? "AUTONOMOUS JOB" : "WAIT ASSIGNMENT / WORKSTATION";
     }
 
     private void ShowEmployeeStatus()
@@ -7672,6 +7782,12 @@ public class GlassHeroesBusinessV3Experimental : Script
         return total;
     }
 
+    private string PartsSaleTotalText(int[] quantities)
+    {
+        try { return "$" + PartsSaleTotal(quantities).ToString("N0"); }
+        catch (OverflowException) { return "OVERFLOW - REDUCE QTY"; }
+    }
+
     private bool TrySellParts(int[] quantities)
     {
         if (!_bootGameplayActivated || Game.IsPaused || quantities == null || quantities.Length != 4) return false;
@@ -7734,7 +7850,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             if (_selection == 0)
             {
-                ShowStatusNotice("PARTS SALE REVIEW", "Total proceeds $" + PartsSaleTotal(_partsSaleReview).ToString("N0"),
+                ShowStatusNotice("PARTS SALE REVIEW", "Total proceeds " + PartsSaleTotalText(_partsSaleReview),
                     "Prices remain acquisition-cost estimates; no added retail markup.");
                 int[] free = UnreservedRepairStock(null);
                 for (int i = 0; i < 4; i++) if (_partsSaleReview[i] > 0)
@@ -9320,36 +9436,6 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
     }
 
-    private void ExecuteControllerSelection()
-    {
-        switch (_selection)
-        {
-            case 0:
-                // Both GTA frontend input and WinForms KeyDown may report one Enter/A press;
-                // plus WinForms repeats held keys. Suppress cross-device/repeat toggles.
-                DateTime toggleNow = DateTime.UtcNow;
-                if ((toggleNow - _lastControllerToggle).TotalMilliseconds < 900) break;
-                _lastControllerToggle = toggleNow;
-                _lastControllerAction = toggleNow;
-                _controllerEnabled = !_controllerEnabled;
-                Save();
-                GTA.UI.Screen.ShowSubtitle("Glass Heroes Controller: " + (_controllerEnabled ? "~g~ON" : "~r~OFF") +
-                    "~s~ | Release ENTER/A before selecting again", 3600);
-                break;
-            case 1: ShowStatusNotice("CONTROLLER KEY MAP",
-                "Menu: hold " + _controllerOpenModifier + " + tap " + _controllerOpenButton,
-                "Move: " + _controllerUp + " / " + _controllerDown,
-                "Select " + _controllerAccept + " | Back " + _controllerBack,
-                "Office: D-pad RIGHT on foot near desk, even if menu controls OFF",
-                "Alternate office input: E | Customize [Gamepad] in Settings.ini"); break;
-            case 2: ShowStatusNotice("CONTROLLER DIAGNOSTICS",
-                "Enabled: " + (_controllerEnabled ? "YES" : "NO") + " | Last detected: " + _lastPadDetected,
-                "Modifier held: " + (PadPressed(_controllerOpenModifier) ? "YES" : "NO"),
-                "Open button held: " + (PadPressed(_controllerOpenButton) ? "YES" : "NO"),
-                "One press = one toggle; release ENTER/A before pressing again."); break;
-            default: NavigateBack(); break;
-        }
-    }
 
     private bool IsPlayerAtOfficeDesk()
     {

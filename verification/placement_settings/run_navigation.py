@@ -17,6 +17,8 @@ def cases(name,pages):
  return out
 text=(Path(__file__).parent/'navigation_tests.cs').read_text()
 text=re.sub(r'/\*<source:(\w+)>\*/',lambda m:member(m[1]),text)
+owner=member('ExecuteFinancePage');start=owner.index('        if (_menuPage == MenuPage.OwnerTransfers)');end=owner.index('\n        if (_selection == 0)',start)
+text=text.replace('/*<owner-navigation>*/',owner[start:end])
 text=re.sub(r'/\*<cases:(\w+):([\w,]+)>\*/',lambda m:cases(m[1],m[2].split(',')),text)
 with tempfile.TemporaryDirectory(prefix='gh-issue30-nav-') as t:
  p=Path(t);(p/'Tests.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><NoWarn>CS0169;CS0649;CS0414</NoWarn></PropertyGroup></Project>');(p/'Program.cs').write_text(text)
