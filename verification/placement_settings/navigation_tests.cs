@@ -63,6 +63,7 @@ class Harness {
 /*<source:OpenPlacementMenu>*/
 /*<source:ExecutePlacementSelection>*/
 /*<source:ExecuteCustomerSelection>*/
+ double _customerDemandElapsed;
 /*<source:ExecuteEmployeeSettingsSelection>*/
 bool _breakAnimationsEnabled,_customerServiceEnabled,_customerBlipsEnabled,_waitingForDropoff;int _waitingCustomerRequests;DateTime _nextCustomerAt;
 class CustomerOrder{}List<CustomerOrder> _activeCustomerOrders=new List<CustomerOrder>();CustomerOrder _stagedCustomerOrder,_stagedThirdCustomerOrder;

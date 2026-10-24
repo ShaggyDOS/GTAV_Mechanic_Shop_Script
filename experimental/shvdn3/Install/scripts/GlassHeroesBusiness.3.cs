@@ -1,4 +1,4 @@
-// Glass Heroes Business Manager - v0.3.3.5 SHVDN3 CUSTOMER WORKFLOW + ROLE ROUTES / EXPERIMENTAL
+// Glass Heroes Business Manager - v0.3.3.6 SHVDN3 SERVICE RECOVERY + BUSINESS POLISH / EXPERIMENTAL
 // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
 // Original project. Does not reference or modify Auto Work or its data.
 // GTA V Story Mode only | ScriptHookVDotNet3 3.6.0 / .NET Framework 4.8
@@ -254,7 +254,8 @@ public class GlassHeroesBusinessV3Experimental : Script
     private long _customerRevenue;
     private long _partsSalesRevenue, _partsSalesUnitsSold;
     private int _lastPartsSaleGameTime = int.MinValue;
-    private DateTime _nextCustomerAt = DateTime.MinValue;
+    private double _customerDemandElapsed;
+    private int _customerDemandIntervalSeconds = 150;
     private readonly Random _customerRandom = new Random();
     private const string InvoiceFile = @"scripts\GlassHeroesBusiness\CustomerOrders.csv";
     private bool _receptionistHired;
@@ -544,7 +545,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             RequireExclusiveBusinessInstallation(File.Exists);
             Directory.CreateDirectory(DataDirectory);
-            Log("BOOT v0.3.3.5 SHVDN3 CUSTOMER WORKFLOW + ROLE ROUTES EXPERIMENTAL / constructor entered", null);
+            Log("BOOT v0.3.3.6 SHVDN3 SERVICE RECOVERY + BUSINESS POLISH EXPERIMENTAL / constructor entered", null);
             _configuration = ScriptSettings.Load(SettingsFile);
             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
@@ -969,6 +970,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             else if (_remoteMode) LeaveRemoteOperations();
             _diagnosticTickStage = "economy";
             if (_clockedIn && activeGameSeconds > 0) ProcessEconomy(activeGameSeconds);
+            AdvanceCustomerDemand(activeGameSeconds);
             // Advance supplier ETA only while GTA is actively running and unpaused.
             // Persist every 15 seconds of gameplay to avoid per-frame disk writes.
             _diagnosticTickStage = "supplier timer";
@@ -2540,7 +2542,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             CancelAllCustomerOrders("Shop closed");
             CleanupVisualMechanics();
         }
-        else _nextCustomerAt = DateTime.UtcNow.AddSeconds(12);
+        _customerDemandElapsed = 0;
         _warnedMissingEntrance = false;
         _warnedMissingBreakArea = false;
         if (_clockedIn)
@@ -3062,6 +3064,7 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void ScheduleCustomerRequest()
     {
+        if (!_bootGameplayActivated || Game.IsPaused) return;
         if (!_customerServiceEnabled || !_clockedIn)
             Notify("Open shop and enable customer arrivals first.");
         else if (_waitingCustomerRequests >= EffectiveQueueCapacity())
@@ -3092,7 +3095,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _waitingForDropoff = false;
                 foreach (Mechanic mechanic in _mechanics)
                 { mechanic.HasJob = false; mechanic.WorkSeconds = 0; mechanic.IdleSeconds = 0; }
-                _nextCustomerAt = DateTime.UtcNow.AddSeconds(5);
+                _customerDemandElapsed = 0;
                 Save();
                 Notify("Customer arrivals " + (_customerServiceEnabled ? "ON" : "OFF") + ".");
                 break;
@@ -5664,15 +5667,29 @@ public class GlassHeroesBusinessV3Experimental : Script
         Notify(mechanic.Name + " returning serviced car to the drop-off.");
     }
 
+    private static int CustomerDemandInterval(int hour, int baselineSeconds)
+    {
+        hour = ((hour % 24) + 24) % 24;
+        double weight = hour < 6 ? 4.0 : hour < 9 ? 0.85 : hour < 18 ? 0.70 : hour < 21 ? 0.90 : 2.0;
+        return Math.Max(20, Math.Min(3600, (int)Math.Ceiling(Math.Max(30, Math.Min(900, baselineSeconds)) * weight)));
+    }
+
+    private void AdvanceCustomerDemand(double activeSeconds)
+    {
+        if (!_bootGameplayActivated || Game.IsPaused || !_clockedIn || !_customerServiceEnabled || _remoteMode ||
+            activeSeconds <= 0 || double.IsNaN(activeSeconds) || double.IsInfinity(activeSeconds)) return;
+        _customerDemandElapsed = Math.Min(3600, _customerDemandElapsed + Math.Min(2, activeSeconds));
+    }
+
     private void QueueDueCustomer(DateTime now)
     {
-        if (_nextCustomerAt == DateTime.MinValue)
-            _nextCustomerAt = now.AddSeconds(5);
-        if (now < _nextCustomerAt) return;
-        // Bounded backlog: do not create physical cars or accumulate indefinitely.
-        if (_waitingCustomerRequests < EffectiveQueueCapacity())
-            _waitingCustomerRequests++;
-        _nextCustomerAt = now.AddSeconds(_customerIntervalSeconds);
+        if (!_bootGameplayActivated || Game.IsPaused || !_clockedIn || !_customerServiceEnabled || _remoteMode) return;
+        // Exactly one clock read on the existing ~1s visual cadence, never during construction.
+        int hour = GTA.Native.Function.Call<int>(GTA.Native.Hash.GET_CLOCK_HOURS);
+        _customerDemandIntervalSeconds = CustomerDemandInterval(hour, _customerIntervalSeconds);
+        if (_customerDemandElapsed < _customerDemandIntervalSeconds) return;
+        _customerDemandElapsed = 0; // No backlog/catch-up loop, even if the queue is already full.
+        if (_waitingCustomerRequests < EffectiveQueueCapacity()) _waitingCustomerRequests++;
     }
 
     private void UpdateCustomerVisuals()
@@ -6698,8 +6715,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         if (_waitingCustomerRequests == 0)
         {
-            int seconds = _nextCustomerAt == DateTime.MinValue ? 0 :
-                (int)Math.Max(0, (_nextCustomerAt - DateTime.UtcNow).TotalSeconds);
+            int seconds = (int)Math.Max(0, _customerDemandIntervalSeconds - _customerDemandElapsed);
             return "No pending customers. Next scheduled request ~" + seconds + "s; use Schedule One for testing.";
         }
         if (!_driveInEnabled) return "Drive-in OFF: pending customers are virtual.";
@@ -6786,7 +6802,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             Log("CustomerService: invalid ped/vehicle model", null);
             DeferCustomerSpawn(120000);
-            _nextCustomerAt = now.AddMinutes(2);
+
             return;
         }
         if (!_customerPedModel.IsLoaded) { _customerPedModel.Request(); return; }
@@ -6816,7 +6832,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             {
                 CancelCreatedCustomer(order);
                 DeferCustomerSpawn();
-                _nextCustomerAt = now.AddSeconds(30);
+
                 return;
             }
             order.Vehicle.IsPersistent = true;
@@ -6829,7 +6845,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             {
                 CancelCreatedCustomer(order);
                 DeferCustomerSpawn();
-                _nextCustomerAt = now.AddSeconds(30);
+
                 return;
             }
             order.Customer.IsPersistent = true;
@@ -6866,7 +6882,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             _activeCustomerOrders.Remove(order);
             RestoreCurrentOrder();
             DeferCustomerSpawn();
-            _nextCustomerAt = now.AddSeconds(30);
+
         }
     }
 
@@ -7482,7 +7498,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         foreach (RemoteJob job in _remoteJobs)
             if (job.MechanicSlot >= 0 && job.MechanicSlot < _mechanics.Count)
                 _mechanics[job.MechanicSlot].HasJob = true;
-        _nextCustomerAt = DateTime.UtcNow.AddSeconds(_customerIntervalSeconds);
+        _customerDemandElapsed = 0;
         Save(); Notify("Manager took over: remote operations enabled. Only in-game play advances jobs.");
     }
     private void LeaveRemoteOperations()

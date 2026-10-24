@@ -111,6 +111,7 @@ class Harness {
     /*<source:TryCommitBusinessSave>*/
     /*<source:RepairLedgerStamp>*/
     /*<source:ToggleBusinessShift>*/
+    double _customerDemandElapsed;
     /*<source:ValidRepairPromise>*/
     /*<source:LoadRepairPromises>*/
     /*<source:CaptureRepairPromises>*/
