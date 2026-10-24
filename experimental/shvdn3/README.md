@@ -1,3 +1,7 @@
+# v0.3.4 RC2 Diagnostic Experimental — owner review
+
+Dedicated branch `diagnostic/v0.3.4-rc2-mechanic-transitions` recovers the owner-verified RC1 source and adds only bounded mechanic/customer-vehicle trace scopes. [Developer guide](../../docs/features/v0.3.4-rc2-diagnostic/DEVELOPER_GUIDE.md), [capture instructions](../../docs/features/v0.3.4-rc2-diagnostic/DIAGNOSTIC_INSTRUCTIONS.md), [actual test evidence](../../docs/features/v0.3.4-rc2-diagnostic/final-validation/validation.json), versioned Word/PDF and full source diff accompany the review ZIP. Actual Release: 0 errors/two inherited warnings; 985/985 behavior/navigation, 21/21 static, 13/13 inventory structural and exact-RC1 restoration PASS. DIAGNOSTIC-ONLY; no verified crash fix, GTA testing NOT RUN, cause UNATTRIBUTED. No live installation, saved-data change, protected-branch merge or v0.3.5 work. Earlier RC1 context follows.
+
 # v0.3.3.6 — service recovery and business polish — EXPERIMENTAL REVIEW
 
 Issues #33/#34 on dedicated feature branch; [developer guide](../../docs/features/v0.3.3.6/DEVELOPER_GUIDE.md), [GTA checklist](../../docs/features/v0.3.3.6/GTA_TEST_CHECKLIST.md), [menu matrix](../../docs/features/v0.3.3.6/NAVIGATION_MATRIX.md), [all row footers](../../docs/features/v0.3.3.6/MENU_FOOTERS.md). Actual Release/tests, source diff/hash and Word/PDF included. No release/install; GTA/Enhanced validation pending. Preserve .5 backup and draft PR32. Earlier milestone context follows.

@@ -1,0 +1,1178 @@
+diff --git a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+index faee04f..84f3b90 100644
+--- a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
++++ b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -5884,220 +5884,225 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void UpdateOneCustomerOrder(CustomerOrder order)
+     {
+-        if (order.Customer == null || !order.Customer.Exists() || order.Customer.IsDead ||
+-            order.Vehicle == null || !order.Vehicle.Exists() || order.Vehicle.IsDead)
+-        {
+-            CancelCustomerOrder("Missing customer entity", true);
+-            return;
+-        }
+-        if (order.Stage == CustomerStage.PaidReturnRecovery) { ProcessPaidReturnRecovery(order); return; }
+-        if (order.VehicleTeleport && ProcessTeleportOrder(order)) return;
+-        order.SecondsInStage += 1.0;
+-        // Customer walk nodes are optional, independent of mechanic/receptionist routes.
+-        switch (order.Stage)
++        long trace = BeginCustomerVehicleTrace(order, 0);
++        try
+         {
+-            case CustomerStage.DrivingToDropoff:
+-                // The original code told customers to exit within 7m even while rolling.
+-                // Approach a wider radius first, then let GTA perform a parking maneuver.
+-                if (_fineParkingEnabled &&
+-                    DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 196f)
+-                {
+-                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK,
+-                        order.Customer.Handle, order.Vehicle.Handle,
+-                        _customerDropoff.Position.X, _customerDropoff.Position.Y,
+-                        _customerDropoff.Position.Z, _customerDropoff.Heading,
+-                        1, _parkingRadius, false);
+-                    order.ParkingTaskIssued = true;
+-                    order.Stage = CustomerStage.ParkingAtDropoff;
+-                    order.SecondsInStage = 0;
+-                }
+-                else if (!_fineParkingEnabled &&
+-                    DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 49f)
+-                    BeginCustomerExit(order);
+-                else if (order.SecondsInStage >= _driveArrivalTimeout)
+-                    CancelCustomerOrder("Road navigation failed; adjust road-side spawn/drop-off", true);
+-                break;
+-            case CustomerStage.ParkingAtDropoff:
+-                // Require proximity AND low speed for a natural parked exit.
+-                if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 16f &&
+-                    order.Vehicle.Speed < 1.5f)
+-                    BeginCustomerExit(order);
+-                else if (order.SecondsInStage >= _parkingTimeoutSeconds)
+-                {
+-                    // Conservative fallback: the original 7m arrival window.
+-                    // Never warp a vehicle through props or MLO walls.
+-                    if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 49f)
++            if (order.Customer == null || !order.Customer.Exists() || order.Customer.IsDead ||
++                order.Vehicle == null || !order.Vehicle.Exists() || order.Vehicle.IsDead)
++            {
++                CancelCustomerOrder("Missing customer entity", true);
++                return;
++            }
++            if (order.Stage == CustomerStage.PaidReturnRecovery) { ProcessPaidReturnRecovery(order); return; }
++            if (order.VehicleTeleport && ProcessTeleportOrder(order)) return;
++            order.SecondsInStage += 1.0;
++            // Customer walk nodes are optional, independent of mechanic/receptionist routes.
++            switch (order.Stage)
++            {
++                case CustomerStage.DrivingToDropoff:
++                    // The original code told customers to exit within 7m even while rolling.
++                    // Approach a wider radius first, then let GTA perform a parking maneuver.
++                    if (_fineParkingEnabled &&
++                        DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 196f)
+                     {
+-                        Notify("Customer parking imperfect; continuing check-in from nearby.");
++                        GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK,
++                            order.Customer.Handle, order.Vehicle.Handle,
++                            _customerDropoff.Position.X, _customerDropoff.Position.Y,
++                            _customerDropoff.Position.Z, _customerDropoff.Heading,
++                            1, _parkingRadius, false);
++                        order.ParkingTaskIssued = true;
++                        order.Stage = CustomerStage.ParkingAtDropoff;
++                        order.SecondsInStage = 0;
++                    }
++                    else if (!_fineParkingEnabled &&
++                        DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 49f)
++                        BeginCustomerExit(order);
++                    else if (order.SecondsInStage >= _driveArrivalTimeout)
++                        CancelCustomerOrder("Road navigation failed; adjust road-side spawn/drop-off", true);
++                    break;
++                case CustomerStage.ParkingAtDropoff:
++                    // Require proximity AND low speed for a natural parked exit.
++                    if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 16f &&
++                        order.Vehicle.Speed < 1.5f)
+                         BeginCustomerExit(order);
++                    else if (order.SecondsInStage >= _parkingTimeoutSeconds)
++                    {
++                        // Conservative fallback: the original 7m arrival window.
++                        // Never warp a vehicle through props or MLO walls.
++                        if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 49f)
++                        {
++                            Notify("Customer parking imperfect; continuing check-in from nearby.");
++                            BeginCustomerExit(order);
++                        }
++                        else CancelCustomerOrder("Parking timed out; adjust drop-off heading/position", true);
+                     }
+-                    else CancelCustomerOrder("Parking timed out; adjust drop-off heading/position", true);
+-                }
+-                break;
+-            case CustomerStage.ExitingVehicle:
+-                if (!GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_ANY_VEHICLE,
+-                        order.Customer.Handle, false))
+-                {
+-                    StartCustomerWalkIn(order);
+-                }
+-                else if (order.SecondsInStage >= 20)
+-                    CancelCustomerOrder("Driver unable to exit vehicle", true);
+-                break;
+-            case CustomerStage.ToWalkWaypoint:
+-            case CustomerStage.ToPickupWaypoint:
+-                AdvanceCustomerWalkingNode(order);
+-                break;
+-            case CustomerStage.ToApproach:
+-                if (CustomerArrived(order, _customerApproach.Position))
+-                    WalkCustomer(order, _customerQueue.Position, CustomerStage.ToCounter);
+-                else if (order.SecondsInStage > 40) HandleCustomerStall(order, _customerApproach.Position);
+-                break;
+-            case CustomerStage.ToCounter:
+-                if (CustomerArrived(order, _customerQueue.Position))
+-                {
+-                    order.Stage = CustomerStage.CheckingIn;
+-                    order.SecondsInStage = 0;
+-                    GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, order.Customer.Handle);
+-                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_START_SCENARIO_IN_PLACE,
+-                        order.Customer.Handle, "WORLD_HUMAN_CLIPBOARD", 0, true);
+-                    Notify("Reception: customer #" + order.Id + " checking in for " + ServiceName(order.ServiceKind) + ".");
+-                }
+-                else if (order.SecondsInStage > 40) HandleCustomerStall(order, _customerQueue.Position);
+-                break;
+-            case CustomerStage.CheckingIn:
+-                if (order.SecondsInStage >= 7)
+-                {
+-                    order.Stage = CustomerStage.WaitingForMechanic;
+-                    order.SecondsInStage = 0;
+-                    // v0.3.1.8 behavior: stay at reception in the check-in scenario
+-                    // throughout the repair. An early exit-to-exterior task added
+-                    // in v0.3.1.9 caused customers to wait beside their cars.
+-                    // Only ReleaseCustomerForPickup() sends them outside.
+-                }
+-                break;
+-            case CustomerStage.WaitingForMechanic:
+-                AssignCustomerMechanic(order);
+-                break;
+-            case CustomerStage.MechanicWalkingToPickup:
+-                if (ProgressVehicleWalk(order)) BeginEnterVehicle(order, false);
+-                break;
+-            case CustomerStage.MechanicEnteringVehicle:
+-                if (MechanicInCustomerCar(order)) StartValetDeparture(order, true);
+-                else if (order.SecondsInStage > 22) CancelCustomerOrder("Mechanic could not enter customer vehicle", true);
+-                break;
+-            case CustomerStage.MechanicReversingFromDropoff:
+-                if (order.SecondsInStage >= 2) BeginVehicleDrive(order, true);
+-                break;
+-            case CustomerStage.MechanicReversingFromBay:
+-                if (order.SecondsInStage >= 2) BeginVehicleDrive(order, false);
+-                break;
+-            case CustomerStage.MechanicDrivingToBay:
+-                UpdateVehicleApproach(order, true);
+-                break;
+-            case CustomerStage.MechanicParkingAtBay:
+-                UpdateVehicleParking(order, true);
+-                break;
+-            case CustomerStage.MechanicExitingAtBay:
+-                if (MechanicOutOfCar(order))
+-                {
+-                    Mechanic mechanic = _mechanics[order.MechanicSlot];
+-                    mechanic.ArrivalPhase = PhaseToBay;
+-                    mechanic.PathNodes = new List<Vector3>();
+-                    // Outdoor lot: walk from parked car to the work spot without an MLO detour.
+-                    if (_customEmployeeWalkingPaths && _bayApproaches[order.MechanicSlot].IsSet)
+-                        mechanic.PathNodes.Add(_bayApproaches[order.MechanicSlot].Position);
+-                    mechanic.PathNodes.Add(_bays[order.MechanicSlot].Position);
+-                    mechanic.PathNodeIndex = 0;
+-                    mechanic.RouteTeleports = 0;
+-                    WalkCurrentNode(mechanic, order.MechanicSlot, DateTime.UtcNow);
+-                    order.Stage = CustomerStage.Repairing;
+-                    order.SecondsInStage = 0;
+-                    Notify(mechanic.Name + " parked in Bay " + (order.MechanicSlot + 1) + ". Repair started.");
+-                }
+-                else if (order.SecondsInStage > 20)
+-                    CancelCustomerOrder("Mechanic could not leave car at bay", true);
+-                break;
+-            case CustomerStage.MechanicWalkingToReturnCar:
+-                if (ProgressVehicleWalk(order)) BeginEnterVehicle(order, true);
+-                break;
+-            case CustomerStage.MechanicEnteringForReturn:
+-                if (MechanicInCustomerCar(order))
+-                {
+-                    if (CanReturnCustomerCar(order)) StartValetDeparture(order, false);
+-                    else { order.Stage = CustomerStage.MechanicWaitingToReturn; order.ReturnDriverInCar = true; order.SecondsInStage = 0; }
+-                }
+-                else if (order.SecondsInStage > 22) FailVehicleTransfer(order, false, "Mechanic could not re-enter serviced car");
+-                break;
+-            case CustomerStage.MechanicWaitingToReturn:
+-                if (CanReturnCustomerCar(order))
+-                {
+-                    if (order.ReturnDriverInCar) StartValetDeparture(order, false);
+-                    else StartReturnVehicleWalk(order);
+-                }
+-                else if (order.SecondsInStage >= 20 && ((int)order.SecondsInStage) % 30 == 20)
+-                    Notify("Mechanic waiting: customer drop-off occupied; return will resume automatically.");
+-                break;
+-            case CustomerStage.MechanicDrivingToDropoff:
+-                UpdateVehicleApproach(order, false);
+-                break;
+-            case CustomerStage.MechanicParkingAtDropoff:
+-                UpdateVehicleParking(order, false);
+-                break;
+-            case CustomerStage.MechanicExitingAtDropoff:
+-                if (MechanicOutOfCar(order))
+-                {
+-                    Mechanic mechanic = _mechanics[order.MechanicSlot];
+-                    mechanic.HasJob = false;
+-                    // The worker is now at DROP-OFF. Do not cut straight through
+-                    // the MLO: follow the saved arrival route in forward order.
+-                    // Pickup used arrival points in reverse; return uses them in forward order.
+-                    mechanic.ArrivalPhase = PhaseReturningToBreak;
+-                    mechanic.ReturningFromCustomerCar = true;
+-                    mechanic.PathNodes = BuildMechanicReturnFromDropoffRoute(order.MechanicSlot);
+-                    mechanic.PathNodeIndex = 0;
+-                    mechanic.RouteTeleports = 0;
+-                    WalkCurrentNode(mechanic, order.MechanicSlot, DateTime.UtcNow);
+-                    Notify("Serviced car returned to customer parking.");
+-                    ReleaseCustomerForPickup(order);
+-                }
+-                else if (order.SecondsInStage > 20)
+-                    FailVehicleTransfer(order, false, "Mechanic could not exit after returning car");
+-                break;
+-            case CustomerStage.Repairing:
+-                // Repair clock and financial settlement run in ProcessEconomy.
+-                break;
+-            case CustomerStage.ToExitApproach:
+-                if (CustomerArrived(order, _customerApproach.Position))
+-                    WalkCustomer(order, _customerDropoff.Position, CustomerStage.ReturningToVehicle);
+-                else if (order.SecondsInStage > 40) HandleCustomerStall(order, _customerApproach.Position);
+-                break;
+-            case CustomerStage.ReturningToVehicle:
+-                if (CustomerArrived(order, _customerDropoff.Position) || order.SecondsInStage > 45)
+-                {
+-                    if (order.DroveIn)
++                    break;
++                case CustomerStage.ExitingVehicle:
++                    if (!GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_ANY_VEHICLE,
++                            order.Customer.Handle, false))
+                     {
+-                        GTA.Native.Function.Call(GTA.Native.Hash.TASK_ENTER_VEHICLE,
+-                            order.Customer.Handle, order.Vehicle.Handle, 12000, -1, 1.0f, 1, 0);
+-                        order.Stage = CustomerStage.DrivingAway;
++                        StartCustomerWalkIn(order);
++                    }
++                    else if (order.SecondsInStage >= 20)
++                        CancelCustomerOrder("Driver unable to exit vehicle", true);
++                    break;
++                case CustomerStage.ToWalkWaypoint:
++                case CustomerStage.ToPickupWaypoint:
++                    AdvanceCustomerWalkingNode(order);
++                    break;
++                case CustomerStage.ToApproach:
++                    if (CustomerArrived(order, _customerApproach.Position))
++                        WalkCustomer(order, _customerQueue.Position, CustomerStage.ToCounter);
++                    else if (order.SecondsInStage > 40) HandleCustomerStall(order, _customerApproach.Position);
++                    break;
++                case CustomerStage.ToCounter:
++                    if (CustomerArrived(order, _customerQueue.Position))
++                    {
++                        order.Stage = CustomerStage.CheckingIn;
+                         order.SecondsInStage = 0;
++                        GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, order.Customer.Handle);
++                        GTA.Native.Function.Call(GTA.Native.Hash.TASK_START_SCENARIO_IN_PLACE,
++                            order.Customer.Handle, "WORLD_HUMAN_CLIPBOARD", 0, true);
++                        Notify("Reception: customer #" + order.Id + " checking in for " + ServiceName(order.ServiceKind) + ".");
+                     }
+-                    else CancelCustomerOrder("Customer collected vehicle", false);
+-                }
+-                break;
+-            case CustomerStage.DrivingAway:
+-                if (!order.DepartureIssued &&
+-                    GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_VEHICLE,
+-                        order.Customer.Handle, order.Vehicle.Handle, false))
+-                {
+-                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_DRIVE_WANDER,
+-                        order.Customer.Handle, order.Vehicle.Handle, _driveSpeed, 786603);
+-                    order.DepartureIssued = true;
+-                }
+-                if (order.SecondsInStage > 25 || (order.DepartureIssued &&
+-                    DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) > 1600f))
+-                    CancelCustomerOrder("Customer departed", false);
+-                break;
++                    else if (order.SecondsInStage > 40) HandleCustomerStall(order, _customerQueue.Position);
++                    break;
++                case CustomerStage.CheckingIn:
++                    if (order.SecondsInStage >= 7)
++                    {
++                        order.Stage = CustomerStage.WaitingForMechanic;
++                        order.SecondsInStage = 0;
++                        // v0.3.1.8 behavior: stay at reception in the check-in scenario
++                        // throughout the repair. An early exit-to-exterior task added
++                        // in v0.3.1.9 caused customers to wait beside their cars.
++                        // Only ReleaseCustomerForPickup() sends them outside.
++                    }
++                    break;
++                case CustomerStage.WaitingForMechanic:
++                    AssignCustomerMechanic(order);
++                    break;
++                case CustomerStage.MechanicWalkingToPickup:
++                    if (ProgressVehicleWalk(order)) BeginEnterVehicle(order, false);
++                    break;
++                case CustomerStage.MechanicEnteringVehicle:
++                    if (MechanicInCustomerCar(order)) StartValetDeparture(order, true);
++                    else if (order.SecondsInStage > 22) CancelCustomerOrder("Mechanic could not enter customer vehicle", true);
++                    break;
++                case CustomerStage.MechanicReversingFromDropoff:
++                    if (order.SecondsInStage >= 2) BeginVehicleDrive(order, true);
++                    break;
++                case CustomerStage.MechanicReversingFromBay:
++                    if (order.SecondsInStage >= 2) BeginVehicleDrive(order, false);
++                    break;
++                case CustomerStage.MechanicDrivingToBay:
++                    UpdateVehicleApproach(order, true);
++                    break;
++                case CustomerStage.MechanicParkingAtBay:
++                    UpdateVehicleParking(order, true);
++                    break;
++                case CustomerStage.MechanicExitingAtBay:
++                    if (MechanicOutOfCar(order))
++                    {
++                        Mechanic mechanic = _mechanics[order.MechanicSlot];
++                        mechanic.ArrivalPhase = PhaseToBay;
++                        mechanic.PathNodes = new List<Vector3>();
++                        // Outdoor lot: walk from parked car to the work spot without an MLO detour.
++                        if (_customEmployeeWalkingPaths && _bayApproaches[order.MechanicSlot].IsSet)
++                            mechanic.PathNodes.Add(_bayApproaches[order.MechanicSlot].Position);
++                        mechanic.PathNodes.Add(_bays[order.MechanicSlot].Position);
++                        mechanic.PathNodeIndex = 0;
++                        mechanic.RouteTeleports = 0;
++                        WalkCurrentNode(mechanic, order.MechanicSlot, DateTime.UtcNow);
++                        order.Stage = CustomerStage.Repairing;
++                        order.SecondsInStage = 0;
++                        Notify(mechanic.Name + " parked in Bay " + (order.MechanicSlot + 1) + ". Repair started.");
++                    }
++                    else if (order.SecondsInStage > 20)
++                        CancelCustomerOrder("Mechanic could not leave car at bay", true);
++                    break;
++                case CustomerStage.MechanicWalkingToReturnCar:
++                    if (ProgressVehicleWalk(order)) BeginEnterVehicle(order, true);
++                    break;
++                case CustomerStage.MechanicEnteringForReturn:
++                    if (MechanicInCustomerCar(order))
++                    {
++                        if (CanReturnCustomerCar(order)) StartValetDeparture(order, false);
++                        else { order.Stage = CustomerStage.MechanicWaitingToReturn; order.ReturnDriverInCar = true; order.SecondsInStage = 0; }
++                    }
++                    else if (order.SecondsInStage > 22) FailVehicleTransfer(order, false, "Mechanic could not re-enter serviced car");
++                    break;
++                case CustomerStage.MechanicWaitingToReturn:
++                    if (CanReturnCustomerCar(order))
++                    {
++                        if (order.ReturnDriverInCar) StartValetDeparture(order, false);
++                        else StartReturnVehicleWalk(order);
++                    }
++                    else if (order.SecondsInStage >= 20 && ((int)order.SecondsInStage) % 30 == 20)
++                        Notify("Mechanic waiting: customer drop-off occupied; return will resume automatically.");
++                    break;
++                case CustomerStage.MechanicDrivingToDropoff:
++                    UpdateVehicleApproach(order, false);
++                    break;
++                case CustomerStage.MechanicParkingAtDropoff:
++                    UpdateVehicleParking(order, false);
++                    break;
++                case CustomerStage.MechanicExitingAtDropoff:
++                    if (MechanicOutOfCar(order))
++                    {
++                        Mechanic mechanic = _mechanics[order.MechanicSlot];
++                        mechanic.HasJob = false;
++                        // The worker is now at DROP-OFF. Do not cut straight through
++                        // the MLO: follow the saved arrival route in forward order.
++                        // Pickup used arrival points in reverse; return uses them in forward order.
++                        mechanic.ArrivalPhase = PhaseReturningToBreak;
++                        mechanic.ReturningFromCustomerCar = true;
++                        mechanic.PathNodes = BuildMechanicReturnFromDropoffRoute(order.MechanicSlot);
++                        mechanic.PathNodeIndex = 0;
++                        mechanic.RouteTeleports = 0;
++                        WalkCurrentNode(mechanic, order.MechanicSlot, DateTime.UtcNow);
++                        Notify("Serviced car returned to customer parking.");
++                        ReleaseCustomerForPickup(order);
++                    }
++                    else if (order.SecondsInStage > 20)
++                        FailVehicleTransfer(order, false, "Mechanic could not exit after returning car");
++                    break;
++                case CustomerStage.Repairing:
++                    // Repair clock and financial settlement run in ProcessEconomy.
++                    break;
++                case CustomerStage.ToExitApproach:
++                    if (CustomerArrived(order, _customerApproach.Position))
++                        WalkCustomer(order, _customerDropoff.Position, CustomerStage.ReturningToVehicle);
++                    else if (order.SecondsInStage > 40) HandleCustomerStall(order, _customerApproach.Position);
++                    break;
++                case CustomerStage.ReturningToVehicle:
++                    if (CustomerArrived(order, _customerDropoff.Position) || order.SecondsInStage > 45)
++                    {
++                        if (order.DroveIn)
++                        {
++                            GTA.Native.Function.Call(GTA.Native.Hash.TASK_ENTER_VEHICLE,
++                                order.Customer.Handle, order.Vehicle.Handle, 12000, -1, 1.0f, 1, 0);
++                            order.Stage = CustomerStage.DrivingAway;
++                            order.SecondsInStage = 0;
++                        }
++                        else CancelCustomerOrder("Customer collected vehicle", false);
++                    }
++                    break;
++                case CustomerStage.DrivingAway:
++                    if (!order.DepartureIssued &&
++                        GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_VEHICLE,
++                            order.Customer.Handle, order.Vehicle.Handle, false))
++                    {
++                        GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_DRIVE_WANDER,
++                            order.Customer.Handle, order.Vehicle.Handle, _driveSpeed, 786603);
++                        order.DepartureIssued = true;
++                    }
++                    if (order.SecondsInStage > 25 || (order.DepartureIssued &&
++                        DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) > 1600f))
++                        CancelCustomerOrder("Customer departed", false);
++                    break;
++            }
+         }
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     // A mechanic only interacts with customer cars during these discrete transport states.
+@@ -6171,13 +6176,18 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void BeginVehicleWalk(CustomerOrder order, Mechanic mechanic, List<Vector3> route)
+     {
+-        order.VehicleWalkPath = route;
+-        order.VehicleWalkIndex = 0;
+-        order.VehicleWalkRecoveries = 0;
+-        order.VehicleWalkNodeSeconds = 0;
+-        order.SecondsInStage = 0;
+-        mechanic.WorkMode = -1;
+-        TaskVehicleWalkNode(order);
++        long trace = BeginCustomerVehicleTrace(order, 2);
++        try
++        {
++            order.VehicleWalkPath = route;
++            order.VehicleWalkIndex = 0;
++            order.VehicleWalkRecoveries = 0;
++            order.VehicleWalkNodeSeconds = 0;
++            order.SecondsInStage = 0;
++            mechanic.WorkMode = -1;
++            TaskVehicleWalkNode(order);
++        }
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     private void TaskVehicleWalkNode(CustomerOrder order, bool forceStraight = false)
+@@ -6304,14 +6314,19 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void BeginEnterVehicle(CustomerOrder order, bool returning)
+     {
+-        Ped worker = AssignedWorker(order);
+-        if (worker == null || order.Vehicle == null || !order.Vehicle.Exists())
+-        { FailVehicleTransfer(order, !returning, "Mechanic or customer vehicle missing"); return; }
+-        GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, worker.Handle);
+-        GTA.Native.Function.Call(GTA.Native.Hash.TASK_ENTER_VEHICLE,
+-            worker.Handle, order.Vehicle.Handle, 18000, -1, 1.0f, 1, 0);
+-        order.Stage = returning ? CustomerStage.MechanicEnteringForReturn : CustomerStage.MechanicEnteringVehicle;
+-        order.SecondsInStage = 0;
++        long trace = BeginCustomerVehicleTrace(order, 3);
++        try
++        {
++            Ped worker = AssignedWorker(order);
++            if (worker == null || order.Vehicle == null || !order.Vehicle.Exists())
++            { FailVehicleTransfer(order, !returning, "Mechanic or customer vehicle missing"); return; }
++            GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, worker.Handle);
++            GTA.Native.Function.Call(GTA.Native.Hash.TASK_ENTER_VEHICLE,
++                worker.Handle, order.Vehicle.Handle, 18000, -1, 1.0f, 1, 0);
++            order.Stage = returning ? CustomerStage.MechanicEnteringForReturn : CustomerStage.MechanicEnteringVehicle;
++            order.SecondsInStage = 0;
++        }
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     private bool MechanicInCustomerCar(CustomerOrder order)
+@@ -6367,115 +6382,135 @@ public class GlassHeroesBusinessV3Experimental : Script
+     // It runs only once after entry; the long-range drive task starts on a later tick.
+     private void StartValetDeparture(CustomerOrder order, bool toBay)
+     {
+-        if (order == null || order.Vehicle == null || !order.Vehicle.Exists()) return;
+-        Ped worker = AssignedWorker(order);
+-        if (worker == null || !MechanicInCustomerCar(order)) return;
+-        if (_valetReverseOut && order.Vehicle.Speed < 1.5f)
+-        {
+-            Vector3 rear = order.Vehicle.Position - order.Vehicle.ForwardVector * 4.0f;
+-            bool occupied = GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_POSITION_OCCUPIED,
+-                rear.X, rear.Y, rear.Z + 0.4f, 1.3f,
+-                false, true, true, false, false, order.Vehicle.Handle, false);
+-            if (!occupied)
+-            {
+-                GTA.Native.Function.Call(GTA.Native.Hash.SET_DRIVER_ABILITY, worker.Handle, 1.0f);
+-                GTA.Native.Function.Call(GTA.Native.Hash.SET_DRIVER_AGGRESSIVENESS, worker.Handle, 0.0f);
+-                // eTempAction.TA_GO_IN_REVERSE = 22; 1100 milliseconds, not per-tick.
+-                GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_TEMP_ACTION,
+-                    worker.Handle, order.Vehicle.Handle, 22, 1100);
+-                order.Stage = toBay ? CustomerStage.MechanicReversingFromDropoff :
+-                    CustomerStage.MechanicReversingFromBay;
+-                order.SecondsInStage = 0;
+-                return;
++        long trace = BeginCustomerVehicleTrace(order, 4);
++        try
++        {
++            if (order == null || order.Vehicle == null || !order.Vehicle.Exists()) return;
++            Ped worker = AssignedWorker(order);
++            if (worker == null || !MechanicInCustomerCar(order)) return;
++            if (_valetReverseOut && order.Vehicle.Speed < 1.5f)
++            {
++                Vector3 rear = order.Vehicle.Position - order.Vehicle.ForwardVector * 4.0f;
++                bool occupied = GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_POSITION_OCCUPIED,
++                    rear.X, rear.Y, rear.Z + 0.4f, 1.3f,
++                    false, true, true, false, false, order.Vehicle.Handle, false);
++                if (!occupied)
++                {
++                    GTA.Native.Function.Call(GTA.Native.Hash.SET_DRIVER_ABILITY, worker.Handle, 1.0f);
++                    GTA.Native.Function.Call(GTA.Native.Hash.SET_DRIVER_AGGRESSIVENESS, worker.Handle, 0.0f);
++                    // eTempAction.TA_GO_IN_REVERSE = 22; 1100 milliseconds, not per-tick.
++                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_TEMP_ACTION,
++                        worker.Handle, order.Vehicle.Handle, 22, 1100);
++                    order.Stage = toBay ? CustomerStage.MechanicReversingFromDropoff :
++                        CustomerStage.MechanicReversingFromBay;
++                    order.SecondsInStage = 0;
++                    return;
++                }
+             }
++            // No safe rear clearance, or feature OFF: original drive task.
++            BeginVehicleDrive(order, toBay);
+         }
+-        // No safe rear clearance, or feature OFF: original drive task.
+-        BeginVehicleDrive(order, toBay);
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     private void BeginVehicleDrive(CustomerOrder order, bool toBay)
+     {
+-        Ped worker = AssignedWorker(order);
+-        if (worker == null) { FailVehicleTransfer(order, toBay, "Mechanic disappeared while driving"); return; }
+-        WorkBay destination = VehicleDestination(order, toBay);
+-        order.ParkingRetries = 0;
+-        float speed = order.AutomaticLot ? 3.0f : _vehicleTransferSpeed;
+-        float stopRange = order.AutomaticLot ? 3.0f : 6.0f;
+-        // Best available native driver skill is set in BOTH parking modes;
+-        // it does not add navmesh or guarantee collisions are avoided.
+-        GTA.Native.Function.Call(GTA.Native.Hash.SET_DRIVER_ABILITY, worker.Handle, 1.0f);
+-        GTA.Native.Function.Call(GTA.Native.Hash.SET_DRIVER_AGGRESSIVENESS, worker.Handle, 0.0f);
+-        if (order.AutomaticLot)
+-        {
+-            if (toBay && IsAutoLotParkingBlocked(order))
+-            {
+-                // Do not start a task into an already occupied car space.
+-                CancelCustomerOrder("Auto bay occupied; change side/offset or use MLO mode", true);
+-                return;
++        long trace = BeginCustomerVehicleTrace(order, 5);
++        try
++        {
++            Ped worker = AssignedWorker(order);
++            if (worker == null) { FailVehicleTransfer(order, toBay, "Mechanic disappeared while driving"); return; }
++            WorkBay destination = VehicleDestination(order, toBay);
++            order.ParkingRetries = 0;
++            float speed = order.AutomaticLot ? 3.0f : _vehicleTransferSpeed;
++            float stopRange = order.AutomaticLot ? 3.0f : 6.0f;
++            // Best available native driver skill is set in BOTH parking modes;
++            // it does not add navmesh or guarantee collisions are avoided.
++            GTA.Native.Function.Call(GTA.Native.Hash.SET_DRIVER_ABILITY, worker.Handle, 1.0f);
++            GTA.Native.Function.Call(GTA.Native.Hash.SET_DRIVER_AGGRESSIVENESS, worker.Handle, 0.0f);
++            if (order.AutomaticLot)
++            {
++                if (toBay && IsAutoLotParkingBlocked(order))
++                {
++                    // Do not start a task into an already occupied car space.
++                    CancelCustomerOrder("Auto bay occupied; change side/offset or use MLO mode", true);
++                    return;
++                }
+             }
++            GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,
++                worker.Handle, order.Vehicle.Handle, destination.Position.X, destination.Position.Y,
++                destination.Position.Z, speed, CarefulDrivingStyle, stopRange);
++            order.Stage = toBay ? CustomerStage.MechanicDrivingToBay : CustomerStage.MechanicDrivingToDropoff;
++            order.SecondsInStage = 0;
++            order.LastDrivePosition = order.Vehicle.Position;
++            order.DriveNoProgressSeconds = 0;
++            order.DriveRetryCount = 0;
++            Notify(_mechanics[order.MechanicSlot].Name + (toBay ? " driving car into service." : " returning car to drop-off."));
+         }
+-        GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,
+-            worker.Handle, order.Vehicle.Handle, destination.Position.X, destination.Position.Y,
+-            destination.Position.Z, speed, CarefulDrivingStyle, stopRange);
+-        order.Stage = toBay ? CustomerStage.MechanicDrivingToBay : CustomerStage.MechanicDrivingToDropoff;
+-        order.SecondsInStage = 0;
+-        order.LastDrivePosition = order.Vehicle.Position;
+-        order.DriveNoProgressSeconds = 0;
+-        order.DriveRetryCount = 0;
+-        Notify(_mechanics[order.MechanicSlot].Name + (toBay ? " driving car into service." : " returning car to drop-off."));
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     private void FailVehicleTransfer(CustomerOrder order, bool toBay, string reason)
+     {
+-        string context = "";
++        long trace = BeginCustomerVehicleTrace(order, 8);
+         try
+         {
+-            WorkBay target = VehicleDestination(order, toBay);
+-            context = " target=" + (target == null ? "UNSET" : FormatPosition(target.Position));
+-            if (target != null && order.Vehicle != null && order.Vehicle.Exists())
+-                context += " actual=" + FormatPosition(order.Vehicle.Position) + " distanceSq=" +
+-                    DistanceSquared(order.Vehicle.Position, target.Position).ToString("0.0") + " speed=" + order.Vehicle.Speed.ToString("0.0");
+-        }
+-        catch { context += " entity diagnostics unavailable"; }
+-        Log("Transfer failure #" + order.Id + " direction=" + (toBay ? "BAY" : "PICKUP") +
+-            " paid=" + order.Paid + " stage=" + order.Stage + " slot=" + order.MechanicSlot +
+-            " elapsed=" + order.SecondsInStage.ToString("0") + context + " : " + reason, null);
+-        if (order.Paid && !toBay)
+-        {
+-            order.PaidReturnRecovery = true;
+-            order.Stage = CustomerStage.PaidReturnRecovery;
+-            order.SecondsInStage = 0; order.RecoveryExitAttempts = 0;
+-            order.TeleportAttempted = false;
+-            Notify("Paid order #" + order.Id + " held for safe empty-car pickup recovery. No new charge.");
++            string context = "";
++            try
++            {
++                WorkBay target = VehicleDestination(order, toBay);
++                context = " target=" + (target == null ? "UNSET" : FormatPosition(target.Position));
++                if (target != null && order.Vehicle != null && order.Vehicle.Exists())
++                    context += " actual=" + FormatPosition(order.Vehicle.Position) + " distanceSq=" +
++                        DistanceSquared(order.Vehicle.Position, target.Position).ToString("0.0") + " speed=" + order.Vehicle.Speed.ToString("0.0");
++            }
++            catch { context += " entity diagnostics unavailable"; }
++            Log("Transfer failure #" + order.Id + " direction=" + (toBay ? "BAY" : "PICKUP") +
++                " paid=" + order.Paid + " stage=" + order.Stage + " slot=" + order.MechanicSlot +
++                " elapsed=" + order.SecondsInStage.ToString("0") + context + " : " + reason, null);
++            if (order.Paid && !toBay)
++            {
++                order.PaidReturnRecovery = true;
++                order.Stage = CustomerStage.PaidReturnRecovery;
++                order.SecondsInStage = 0; order.RecoveryExitAttempts = 0;
++                order.TeleportAttempted = false;
++                Notify("Paid order #" + order.Id + " held for safe empty-car pickup recovery. No new charge.");
++            }
++            else CancelCustomerOrder(reason, true);
+         }
+-        else CancelCustomerOrder(reason, true);
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     private void ProcessPaidReturnRecovery(CustomerOrder order)
+     {
+-        if (!order.Paid || !TeleportAttemptDue(order)) return;
+-        if (order.Vehicle == null || !order.Vehicle.Exists() || order.Vehicle.IsDead)
+-        { CancelCustomerOrder("Paid recovery vehicle unavailable; payment remains recorded", true); return; }
+-        float speed = order.Vehicle.Speed;
+-        if (float.IsNaN(speed) || float.IsInfinity(speed) || speed < 0 || speed >= 1.5f) return;
+-        Ped worker = AssignedWorker(order);
+-        if (worker != null && MechanicInCustomerCar(order))
++        long trace = BeginCustomerVehicleTrace(order, 9);
++        try
+         {
+-            if (order.RecoveryExitAttempts < 2)
++            if (!order.Paid || !TeleportAttemptDue(order)) return;
++            if (order.Vehicle == null || !order.Vehicle.Exists() || order.Vehicle.IsDead)
++            { CancelCustomerOrder("Paid recovery vehicle unavailable; payment remains recorded", true); return; }
++            float speed = order.Vehicle.Speed;
++            if (float.IsNaN(speed) || float.IsInfinity(speed) || speed < 0 || speed >= 1.5f) return;
++            Ped worker = AssignedWorker(order);
++            if (worker != null && MechanicInCustomerCar(order))
+             {
+-                order.RecoveryExitAttempts++;
+-                GTA.Native.Function.Call(GTA.Native.Hash.TASK_LEAVE_VEHICLE, worker.Handle, order.Vehicle.Handle, 0);
+-                Log("Paid recovery exit #" + order.Id + " attempt=" + order.RecoveryExitAttempts, null);
++                if (order.RecoveryExitAttempts < 2)
++                {
++                    order.RecoveryExitAttempts++;
++                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_LEAVE_VEHICLE, worker.Handle, order.Vehicle.Handle, 0);
++                    Log("Paid recovery exit #" + order.Id + " attempt=" + order.RecoveryExitAttempts, null);
++                }
++                return; // Subsequent update must prove the driver has exited.
+             }
+-            return; // Subsequent update must prove the driver has exited.
++            if (worker != null && GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_ANY_VEHICLE, worker.Handle, false)) return;
++            if (!CanReturnCustomerCar(order) || !TeleportTargetAvailable(order, _customerDropoff, true)) return;
++            order.VehicleTeleport = true; // Paid recovery only; physical intake/repair is unchanged.
++            order.Stage = CustomerStage.TeleportWaitingPickup;
++            order.TeleportPositionApplied = false;
++            order.TeleportAttempted = false;
++            ProcessTeleportOrder(order); // Revalidates all player/occupant/destination checks.
+         }
+-        if (worker != null && GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_ANY_VEHICLE, worker.Handle, false)) return;
+-        if (!CanReturnCustomerCar(order) || !TeleportTargetAvailable(order, _customerDropoff, true)) return;
+-        order.VehicleTeleport = true; // Paid recovery only; physical intake/repair is unchanged.
+-        order.Stage = CustomerStage.TeleportWaitingPickup;
+-        order.TeleportPositionApplied = false;
+-        order.TeleportAttempted = false;
+-        ProcessTeleportOrder(order); // Revalidates all player/occupant/destination checks.
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     private void ReleaseRecoveredMechanic(CustomerOrder order)
+@@ -6501,71 +6536,81 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void UpdateVehicleApproach(CustomerOrder order, bool toBay)
+     {
+-        Ped worker = AssignedWorker(order);
+-        if (worker == null || !MechanicInCustomerCar(order))
+-        { FailVehicleTransfer(order, toBay, "Mechanic lost vehicle during transfer"); return; }
+-        WorkBay dest = VehicleDestination(order, toBay);
+-        float parkingDistanceSquared = order.AutomaticLot ? 81f : 196f;
+-        if (DistanceSquared(order.Vehicle.Position, dest.Position) < parkingDistanceSquared)
+-        {
+-            GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK,
+-                worker.Handle, order.Vehicle.Handle,
+-                dest.Position.X, dest.Position.Y, dest.Position.Z, dest.Heading,
+-                1, order.AutomaticLot ? 2.4f : 2.8f, false);
+-            order.Stage = toBay ? CustomerStage.MechanicParkingAtBay : CustomerStage.MechanicParkingAtDropoff;
+-            order.SecondsInStage = 0;
+-        }
+-        else if (order.AutomaticLot)
++        long trace = BeginCustomerVehicleTrace(order, 6);
++        try
+         {
+-            // Throttled progress check. One alternate avoid-traffic task; never
+-            // repeatedly spam natives, force acceleration, or warp an occupied car.
+-            if (DistanceSquared(order.Vehicle.Position, order.LastDrivePosition) >= 2.25f)
++            Ped worker = AssignedWorker(order);
++            if (worker == null || !MechanicInCustomerCar(order))
++            { FailVehicleTransfer(order, toBay, "Mechanic lost vehicle during transfer"); return; }
++            WorkBay dest = VehicleDestination(order, toBay);
++            float parkingDistanceSquared = order.AutomaticLot ? 81f : 196f;
++            if (DistanceSquared(order.Vehicle.Position, dest.Position) < parkingDistanceSquared)
+             {
+-                order.LastDrivePosition = order.Vehicle.Position;
+-                order.DriveNoProgressSeconds = 0;
++                GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK,
++                    worker.Handle, order.Vehicle.Handle,
++                    dest.Position.X, dest.Position.Y, dest.Position.Z, dest.Heading,
++                    1, order.AutomaticLot ? 2.4f : 2.8f, false);
++                order.Stage = toBay ? CustomerStage.MechanicParkingAtBay : CustomerStage.MechanicParkingAtDropoff;
++                order.SecondsInStage = 0;
+             }
+-            else order.DriveNoProgressSeconds += 1.0;
+-            if (order.DriveNoProgressSeconds >= 14 && order.DriveRetryCount == 0)
++            else if (order.AutomaticLot)
+             {
+-                order.DriveRetryCount++;
+-                order.DriveNoProgressSeconds = 0;
+-                order.LastDrivePosition = order.Vehicle.Position;
+-                GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,
+-                    worker.Handle, order.Vehicle.Handle, dest.Position.X, dest.Position.Y,
+-                    dest.Position.Z, 2.4f, RecoveryDrivingStyle, 3.0f);
+-                Notify("Valet rerouting around parking-lot obstruction (one retry).");
++                // Throttled progress check. One alternate avoid-traffic task; never
++                // repeatedly spam natives, force acceleration, or warp an occupied car.
++                if (DistanceSquared(order.Vehicle.Position, order.LastDrivePosition) >= 2.25f)
++                {
++                    order.LastDrivePosition = order.Vehicle.Position;
++                    order.DriveNoProgressSeconds = 0;
++                }
++                else order.DriveNoProgressSeconds += 1.0;
++                if (order.DriveNoProgressSeconds >= 14 && order.DriveRetryCount == 0)
++                {
++                    order.DriveRetryCount++;
++                    order.DriveNoProgressSeconds = 0;
++                    order.LastDrivePosition = order.Vehicle.Position;
++                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,
++                        worker.Handle, order.Vehicle.Handle, dest.Position.X, dest.Position.Y,
++                        dest.Position.Z, 2.4f, RecoveryDrivingStyle, 3.0f);
++                    Notify("Valet rerouting around parking-lot obstruction (one retry).");
++                }
++                else if (order.DriveNoProgressSeconds >= 14 && order.DriveRetryCount > 0)
++                    FailVehicleTransfer(order, toBay, "Valet stuck; review saved drive route/parking mode");
+             }
+-            else if (order.DriveNoProgressSeconds >= 14 && order.DriveRetryCount > 0)
+-                FailVehicleTransfer(order, toBay, "Valet stuck; review saved drive route/parking mode");
++            if (_activeCustomerOrders.Contains(order) && order.SecondsInStage > _vehicleTransferTimeout)
++                FailVehicleTransfer(order, toBay, "Vehicle could not reach saved destination; review driveable route");
+         }
+-        if (_activeCustomerOrders.Contains(order) && order.SecondsInStage > _vehicleTransferTimeout)
+-            FailVehicleTransfer(order, toBay, "Vehicle could not reach saved destination; review driveable route");
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     private void UpdateVehicleParking(CustomerOrder order, bool atBay)
+     {
+-        WorkBay dest = VehicleDestination(order, atBay);
+-        if (DistanceSquared(order.Vehicle.Position, dest.Position) < 16f && order.Vehicle.Speed < 1.5f)
+-        {
+-            Ped worker = AssignedWorker(order);
+-            if (worker == null) { FailVehicleTransfer(order, atBay, "Mechanic missing at parking"); return; }
+-            GTA.Native.Function.Call(GTA.Native.Hash.TASK_LEAVE_VEHICLE,
+-                worker.Handle, order.Vehicle.Handle, 0);
+-            order.Stage = atBay ? CustomerStage.MechanicExitingAtBay : CustomerStage.MechanicExitingAtDropoff;
+-            order.SecondsInStage = 0;
+-        }
+-        else if (order.SecondsInStage > _parkingTimeoutSeconds + 15)
++        long trace = BeginCustomerVehicleTrace(order, 7);
++        try
+         {
+-            Ped worker = AssignedWorker(order);
+-            if (order.ParkingRetries == 0 && worker != null && MechanicInCustomerCar(order))
++            WorkBay dest = VehicleDestination(order, atBay);
++            if (DistanceSquared(order.Vehicle.Position, dest.Position) < 16f && order.Vehicle.Speed < 1.5f)
+             {
+-                order.ParkingRetries++; order.SecondsInStage = 0;
+-                GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK, worker.Handle, order.Vehicle.Handle,
+-                    dest.Position.X, dest.Position.Y, dest.Position.Z, dest.Heading, 1, 2.8f, false);
+-                Log("Parking retry #" + order.Id + " direction=" + (atBay ? "BAY" : "PICKUP") + " paid=" + order.Paid, null);
++                Ped worker = AssignedWorker(order);
++                if (worker == null) { FailVehicleTransfer(order, atBay, "Mechanic missing at parking"); return; }
++                GTA.Native.Function.Call(GTA.Native.Hash.TASK_LEAVE_VEHICLE,
++                    worker.Handle, order.Vehicle.Handle, 0);
++                order.Stage = atBay ? CustomerStage.MechanicExitingAtBay : CustomerStage.MechanicExitingAtDropoff;
++                order.SecondsInStage = 0;
++            }
++            else if (order.SecondsInStage > _parkingTimeoutSeconds + 15)
++            {
++                Ped worker = AssignedWorker(order);
++                if (order.ParkingRetries == 0 && worker != null && MechanicInCustomerCar(order))
++                {
++                    order.ParkingRetries++; order.SecondsInStage = 0;
++                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK, worker.Handle, order.Vehicle.Handle,
++                        dest.Position.X, dest.Position.Y, dest.Position.Z, dest.Heading, 1, 2.8f, false);
++                    Log("Parking retry #" + order.Id + " direction=" + (atBay ? "BAY" : "PICKUP") + " paid=" + order.Paid, null);
++                }
++                else FailVehicleTransfer(order, atBay, "Parking failed at saved point; review heading/clearance");
+             }
+-            else FailVehicleTransfer(order, atBay, "Parking failed at saved point; review heading/clearance");
+         }
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     private void ReleaseCustomerForPickup(CustomerOrder order)
+@@ -7171,87 +7216,92 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void AssignCustomerMechanic(CustomerOrder order)
+     {
+-        if (!_bootGameplayActivated || Game.IsPaused || order == null || order.Paid || order.MechanicSlot >= 0) return;
+-        if (order.Pricing != null ? !RepairQuoteHasStock(order.Pricing) :
+-            FreeStockForService(order.ServiceKind) < order.PartsNeeded) return; // No hidden stock creation.
+-        // Prefer a free specialist for the type of service, then any free generalist.
+-        // AUTO LOT accepts any configured mechanic station; CUSTOM MLO still
+-        // requires individual vehicle parking points where the user placed them.
+-        if (!_vehicleTransfersEnabled && !TeleportAttemptDue(order)) return;
+-        int chosen = -1;
+-        for (int i = 0; i < _mechanics.Count && i < VisualBayCount; i++)
+-        {
+-            Mechanic mechanic = _mechanics[i];
+-            if (!CustomerBayAvailable(i, order) || mechanic.HasJob ||
+-                mechanic.Worker == null || !mechanic.Worker.Exists() ||
+-                mechanic.ArrivalPhase != PhaseAtBreak) continue;
+-            if (!_vehicleTransfersEnabled && !TeleportTargetAvailable(order,
+-                _automaticLotMode ? ComputeAutomaticBay(i) : _vehicleParkingBays[i], false)) continue;
+-            if (chosen < 0) chosen = i;
+-            if (SpecialistMatches(mechanic, order.ServiceKind)) { chosen = i; break; }
+-        }
+-        if (chosen < 0)
+-        {
+-            if (!_vehicleTransfersEnabled && !order.TeleportWaitNotified)
+-            { order.TeleportWaitNotified = true; Notify("Order #" + order.Id + " waiting for an available mechanic and clear configured service bay. Order retained."); }
+-            return;
+-        }
+-        Mechanic assigned = _mechanics[chosen];
+-        // Freeze the exact parts allocation and current billable duration BEFORE
+-        // reserving the worker. Existing service + expertise is a total floor.
+-        double multiplier = Math.Max(0.55, 1.0 - (MechanicLevel(assigned) - 1) * 0.035 -
+-            (SpecialistMatches(assigned, order.ServiceKind) ? 0.15 : 0));
+-        if (_toolSetPurchased) multiplier *= 0.93;
+-        if (_diagnosticScannerPurchased && order.ServiceKind == 2) multiplier *= 0.90;
+-        long premium = (MechanicLevel(assigned) - 1) * 20L +
+-            (SpecialistMatches(assigned, order.ServiceKind) ? 75L : 0L);
+-        RepairQuote quote = order.Pricing;
+-        if (quote == null && !TryCreateRepairQuote(order.ServiceKind, order.PartsNeeded, assigned,
+-            order.RepairSeconds * multiplier, order.Price, premium, out quote)) return;
+-        quote.OrderId = order.Id;
+-        long previousPrice = order.Price; double previousSeconds = order.RepairSeconds;
+-        RepairQuote previousQuote = order.Pricing; CustomerStage previousStage = order.Stage;
+-        double previousWork = assigned.WorkSeconds, previousIdle = assigned.IdleSeconds;
+-        bool previousHandoff = order.VehicleHandoff, previousAutomatic = order.AutomaticLot;
+-        WorkBay previousBay = order.ResolvedParkingBay; double previousStageSeconds = order.SecondsInStage;
+-        order.Pricing = quote; order.Price = quote.Total; order.RepairSeconds = quote.BillableSeconds;
+-        assigned.HasJob = true;
+-        assigned.WorkSeconds = order.RestoredPromise ? Math.Min(order.RepairSeconds, order.ResumeWorkSeconds) : 0;
+-        assigned.IdleSeconds = 0;
+-        order.MechanicSlot = chosen;
+-        order.AutomaticLot = _automaticLotMode;
+-        order.ResolvedParkingBay = order.AutomaticLot ? ComputeAutomaticBay(chosen) :
+-            _vehicleParkingBays[chosen];
+-        order.VehicleTeleport = !_vehicleTransfersEnabled;
+-        if (order.VehicleTeleport) order.ResolvedParkingBay = new WorkBay { IsSet = order.ResolvedParkingBay.IsSet,
+-            Position = order.ResolvedParkingBay.Position, Heading = order.ResolvedParkingBay.Heading };
+-        order.VehicleHandoff = _vehicleTransfersEnabled && order.ResolvedParkingBay.IsSet;
+-        order.Stage = order.VehicleTeleport ? CustomerStage.TeleportWaitingBay : order.VehicleHandoff ? CustomerStage.MechanicWalkingToPickup : CustomerStage.Repairing;
+-        order.SecondsInStage = 0;
+-        if (!Save())
+-        {
+-            assigned.HasJob = false; assigned.WorkSeconds = previousWork; assigned.IdleSeconds = previousIdle;
+-            order.MechanicSlot = -1; order.Price = previousPrice; order.RepairSeconds = previousSeconds;
+-            order.Pricing = previousQuote; order.Stage = previousStage; order.SecondsInStage = previousStageSeconds;
+-            order.VehicleTeleport = false;
+-            order.VehicleHandoff = previousHandoff; order.AutomaticLot = previousAutomatic; order.ResolvedParkingBay = previousBay;
+-            return; // No accepted promise or vehicle task before a durable snapshot.
+-        }
+-        order.TeleportWaitNotified = false;
+-        if (order.VehicleHandoff)
++        long trace = BeginCustomerVehicleTrace(order, 1);
++        try
+         {
+-            // Backtrack the SAME configurable Spawn -> Break route used on arrival.
+-            // Important for MLO doorways: direct current-position -> car cuts walls.
+-            // Default with 0/5 points is still a single direct target.
+-            List<Vector3> walkingRoute = BuildMechanicPickupExitRoute(order.Vehicle.Position);
+-            BeginVehicleWalk(order, assigned, walkingRoute);
+-            Notify(assigned.Name + " is collecting customer vehicle for Bay " + (chosen + 1) + ".");
++            if (!_bootGameplayActivated || Game.IsPaused || order == null || order.Paid || order.MechanicSlot >= 0) return;
++            if (order.Pricing != null ? !RepairQuoteHasStock(order.Pricing) :
++                FreeStockForService(order.ServiceKind) < order.PartsNeeded) return; // No hidden stock creation.
++            // Prefer a free specialist for the type of service, then any free generalist.
++            // AUTO LOT accepts any configured mechanic station; CUSTOM MLO still
++            // requires individual vehicle parking points where the user placed them.
++            if (!_vehicleTransfersEnabled && !TeleportAttemptDue(order)) return;
++            int chosen = -1;
++            for (int i = 0; i < _mechanics.Count && i < VisualBayCount; i++)
++            {
++                Mechanic mechanic = _mechanics[i];
++                if (!CustomerBayAvailable(i, order) || mechanic.HasJob ||
++                    mechanic.Worker == null || !mechanic.Worker.Exists() ||
++                    mechanic.ArrivalPhase != PhaseAtBreak) continue;
++                if (!_vehicleTransfersEnabled && !TeleportTargetAvailable(order,
++                    _automaticLotMode ? ComputeAutomaticBay(i) : _vehicleParkingBays[i], false)) continue;
++                if (chosen < 0) chosen = i;
++                if (SpecialistMatches(mechanic, order.ServiceKind)) { chosen = i; break; }
++            }
++            if (chosen < 0)
++            {
++                if (!_vehicleTransfersEnabled && !order.TeleportWaitNotified)
++                { order.TeleportWaitNotified = true; Notify("Order #" + order.Id + " waiting for an available mechanic and clear configured service bay. Order retained."); }
++                return;
++            }
++            Mechanic assigned = _mechanics[chosen];
++            // Freeze the exact parts allocation and current billable duration BEFORE
++            // reserving the worker. Existing service + expertise is a total floor.
++            double multiplier = Math.Max(0.55, 1.0 - (MechanicLevel(assigned) - 1) * 0.035 -
++                (SpecialistMatches(assigned, order.ServiceKind) ? 0.15 : 0));
++            if (_toolSetPurchased) multiplier *= 0.93;
++            if (_diagnosticScannerPurchased && order.ServiceKind == 2) multiplier *= 0.90;
++            long premium = (MechanicLevel(assigned) - 1) * 20L +
++                (SpecialistMatches(assigned, order.ServiceKind) ? 75L : 0L);
++            RepairQuote quote = order.Pricing;
++            if (quote == null && !TryCreateRepairQuote(order.ServiceKind, order.PartsNeeded, assigned,
++                order.RepairSeconds * multiplier, order.Price, premium, out quote)) return;
++            quote.OrderId = order.Id;
++            long previousPrice = order.Price; double previousSeconds = order.RepairSeconds;
++            RepairQuote previousQuote = order.Pricing; CustomerStage previousStage = order.Stage;
++            double previousWork = assigned.WorkSeconds, previousIdle = assigned.IdleSeconds;
++            bool previousHandoff = order.VehicleHandoff, previousAutomatic = order.AutomaticLot;
++            WorkBay previousBay = order.ResolvedParkingBay; double previousStageSeconds = order.SecondsInStage;
++            order.Pricing = quote; order.Price = quote.Total; order.RepairSeconds = quote.BillableSeconds;
++            assigned.HasJob = true;
++            assigned.WorkSeconds = order.RestoredPromise ? Math.Min(order.RepairSeconds, order.ResumeWorkSeconds) : 0;
++            assigned.IdleSeconds = 0;
++            order.MechanicSlot = chosen;
++            order.AutomaticLot = _automaticLotMode;
++            order.ResolvedParkingBay = order.AutomaticLot ? ComputeAutomaticBay(chosen) :
++                _vehicleParkingBays[chosen];
++            order.VehicleTeleport = !_vehicleTransfersEnabled;
++            if (order.VehicleTeleport) order.ResolvedParkingBay = new WorkBay { IsSet = order.ResolvedParkingBay.IsSet,
++                Position = order.ResolvedParkingBay.Position, Heading = order.ResolvedParkingBay.Heading };
++            order.VehicleHandoff = _vehicleTransfersEnabled && order.ResolvedParkingBay.IsSet;
++            order.Stage = order.VehicleTeleport ? CustomerStage.TeleportWaitingBay : order.VehicleHandoff ? CustomerStage.MechanicWalkingToPickup : CustomerStage.Repairing;
++            order.SecondsInStage = 0;
++            if (!Save())
++            {
++                assigned.HasJob = false; assigned.WorkSeconds = previousWork; assigned.IdleSeconds = previousIdle;
++                order.MechanicSlot = -1; order.Price = previousPrice; order.RepairSeconds = previousSeconds;
++                order.Pricing = previousQuote; order.Stage = previousStage; order.SecondsInStage = previousStageSeconds;
++                order.VehicleTeleport = false;
++                order.VehicleHandoff = previousHandoff; order.AutomaticLot = previousAutomatic; order.ResolvedParkingBay = previousBay;
++                return; // No accepted promise or vehicle task before a durable snapshot.
++            }
++            order.TeleportWaitNotified = false;
++            if (order.VehicleHandoff)
++            {
++                // Backtrack the SAME configurable Spawn -> Break route used on arrival.
++                // Important for MLO doorways: direct current-position -> car cuts walls.
++                // Default with 0/5 points is still a single direct target.
++                List<Vector3> walkingRoute = BuildMechanicPickupExitRoute(order.Vehicle.Position);
++                BeginVehicleWalk(order, assigned, walkingRoute);
++                Notify(assigned.Name + " is collecting customer vehicle for Bay " + (chosen + 1) + ".");
++            }
++            else if (_vehicleTransfersEnabled)
++                Notify("Custom MLO car bay " + (chosen + 1) + " not set; using legacy repair flow.");
++            Notify(RepairQuoteBreakdown(order.Pricing));
++            Notify("Order #" + order.Id + " -> " + assigned.Name + " (Lvl " + MechanicLevel(assigned) +
++                ") | quote $" + order.Price + " | " + order.PartsNeeded + " parts.");
+         }
+-        else if (_vehicleTransfersEnabled)
+-            Notify("Custom MLO car bay " + (chosen + 1) + " not set; using legacy repair flow.");
+-        Notify(RepairQuoteBreakdown(order.Pricing));
+-        Notify("Order #" + order.Id + " -> " + assigned.Name + " (Lvl " + MechanicLevel(assigned) +
+-            ") | quote $" + order.Price + " | " + order.PartsNeeded + " parts.");
++        finally { EndCustomerVehicleTrace(order, trace); }
+     }
+ 
+     private void ProcessCustomerRepair(double seconds)
+@@ -10673,6 +10723,160 @@ public class GlassHeroesBusinessV3Experimental : Script
+         Log("LIFECYCLE abort cleanup completed", null);
+     }
+ 
++    // RC2 DIAGNOSTIC ONLY: managed snapshots; never issue/query GTA tasks here.
++    private struct CustomerVehicleTraceState
++    {
++        public int Order, Slot, Vehicle, Worker, Mode, WalkNode, WalkCount, DriveRetries, ParkingRetries, Phase;
++        public CustomerStage Stage;
++
++        internal bool Same(CustomerVehicleTraceState other)
++        {
++            return Order == other.Order && Slot == other.Slot && Stage == other.Stage &&
++                Vehicle == other.Vehicle && Worker == other.Worker && Mode == other.Mode &&
++                WalkNode == other.WalkNode && WalkCount == other.WalkCount &&
++                DriveRetries == other.DriveRetries && ParkingRetries == other.ParkingRetries && Phase == other.Phase;
++        }
++
++        internal string Summary()
++        {
++            return "order=" + Order + " mechanic=" + (Slot + 1) + " stage=" + Stage +
++                " vehicle=" + Vehicle + " worker=" + Worker + " mode=" + Mode +
++                " walk=" + WalkNode + "/" + WalkCount + " driveRetries=" + DriveRetries +
++                " parkingRetries=" + ParkingRetries + " phase=" + Phase;
++        }
++    }
++
++    private sealed class CustomerVehicleTrace
++    {
++        private struct Entry
++        {
++            public bool Used;
++            public int Operation, Depth;
++            public CustomerVehicleTraceState State;
++        }
++
++        private static readonly string[] Names = { "UpdateOneCustomerOrder", "AssignCustomerMechanic",
++            "BeginVehicleWalk", "BeginEnterVehicle", "StartValetDeparture", "BeginVehicleDrive",
++            "UpdateVehicleApproach", "UpdateVehicleParking", "FailVehicleTransfer", "ProcessPaidReturnRecovery" };
++        private readonly Entry[] _recent = new Entry[64];
++        private readonly Func<DateTime> _utcNow;
++        private readonly Func<string, bool> _write;
++        private readonly string _session = Guid.NewGuid().ToString("N");
++        private DateTime _windowStart = DateTime.MinValue;
++        private int _windowEntries, _replace, _depth, _suppressed;
++        private long _sequence;
++        private bool _busy;
++
++        internal CustomerVehicleTrace(Func<DateTime> utcNow, Func<string, bool> write)
++        { _utcNow = utcNow; _write = write; }
++
++        internal long Begin(int operation, CustomerVehicleTraceState state)
++        {
++            // Negative token means no scope was entered (including writer reentry).
++            if (_busy) return -1;
++            if (_depth < int.MaxValue) _depth++;
++            _busy = true;
++            try
++            {
++                if (operation < 0 || operation >= Names.Length) return 0;
++                int slot = -1;
++                for (int i = 0; i < _recent.Length; i++)
++                    if (_recent[i].Used && _recent[i].Operation == operation && _recent[i].State.Order == state.Order)
++                    { slot = i; break; }
++                // Stable outer updates cause no clock read, formatting or I/O.
++                if (slot >= 0 && _recent[slot].State.Same(state) && _depth <= _recent[slot].Depth) return 0;
++                DateTime now = _utcNow();
++                if (now < _windowStart || (now - _windowStart).TotalSeconds >= 10)
++                { _windowStart = now; _windowEntries = 0; }
++                if (_windowEntries >= 12)
++                { if (_suppressed < int.MaxValue) _suppressed++; return 0; }
++                _windowEntries++; // Failed writes also spend the bounded budget.
++                if (_sequence == long.MaxValue) _sequence = 0;
++                long sequence = ++_sequence;
++                if (!_write("RC2 VEHICLE session=" + _session + " ENTER seq=" + sequence +
++                    " op=" + Names[operation] + " depth=" + _depth + " " + state.Summary() + " suppressed=" + _suppressed)) return 0;
++                _suppressed = 0;
++                if (slot < 0) { slot = _replace; _replace = (_replace + 1) % _recent.Length; }
++                _recent[slot] = new Entry { Used = true, Operation = operation, Depth = _depth, State = state };
++                return sequence;
++            }
++            catch { return 0; } // Diagnostics never change gameplay exception behavior.
++            finally { _busy = false; }
++        }
++
++        internal void End(long sequence, CustomerVehicleTraceState state)
++        {
++            if (sequence < 0) return;
++            try
++            {
++                if (sequence == 0 || _busy) return;
++                _busy = true;
++                try
++                {
++                    _write("RC2 VEHICLE session=" + _session + " EXIT seq=" + sequence +
++                        " depth=" + _depth + " " + state.Summary());
++                }
++                finally { _busy = false; }
++            }
++            catch { }
++            finally { if (_depth > 0) _depth--; }
++        }
++    }
++
++    private readonly CustomerVehicleTrace _customerVehicleTrace = new CustomerVehicleTrace(
++        () => DateTime.UtcNow, line => _customerVehicleDiagnosticLog.Write(line, null));
++    private static readonly DiagnosticLog _customerVehicleDiagnosticLog = new DiagnosticLog(
++        () => DateTime.UtcNow, AppendCustomerVehicleDiagnosticLine);
++
++    private CustomerVehicleTraceState CaptureCustomerVehicleTrace(CustomerOrder order)
++    {
++        if (order == null) return new CustomerVehicleTraceState { Order = -1, Slot = -1 };
++        Mechanic mechanic = order.MechanicSlot >= 0 && order.MechanicSlot < _mechanics.Count ? _mechanics[order.MechanicSlot] : null;
++        return new CustomerVehicleTraceState { Order = order.Id, Slot = order.MechanicSlot, Stage = order.Stage,
++            Vehicle = order.Vehicle == null ? 0 : order.Vehicle.Handle,
++            Worker = mechanic == null || mechanic.Worker == null ? 0 : mechanic.Worker.Handle,
++            Mode = (order.Paid ? 1 : 0) | (order.VehicleHandoff ? 2 : 0) | (order.AutomaticLot ? 4 : 0) |
++                (order.VehicleTeleport ? 8 : 0) | (_vehicleTransfersEnabled ? 16 : 0) | (_valetReverseOut ? 32 : 0),
++            WalkNode = order.VehicleWalkIndex, WalkCount = order.VehicleWalkPath == null ? 0 : order.VehicleWalkPath.Count,
++            DriveRetries = order.DriveRetryCount, ParkingRetries = order.ParkingRetries,
++            Phase = mechanic == null ? -1 : mechanic.ArrivalPhase };
++    }
++
++    private long BeginCustomerVehicleTrace(CustomerOrder order, int operation)
++    {
++        try
++        {
++            if (!_bootGameplayActivated) return -1;
++            return _customerVehicleTrace.Begin(operation, CaptureCustomerVehicleTrace(order));
++        }
++        catch { return -1; }
++    }
++
++    private void EndCustomerVehicleTrace(CustomerOrder order, long sequence)
++    {
++        if (sequence < 0) return;
++        CustomerVehicleTraceState state = new CustomerVehicleTraceState { Order = -1, Slot = -1 };
++        try { state = CaptureCustomerVehicleTrace(order); } catch { }
++        _customerVehicleTrace.End(sequence, state);
++    }
++
++    private static void AppendCustomerVehicleDiagnosticLine(string line)
++    {
++        // Only these two diagnostic files rotate; no Save.ini/Settings.ini access.
++        const int limit = 128 * 1024;
++        if (line.Length > 2048) line = line.Substring(0, 2046) + Environment.NewLine;
++        Directory.CreateDirectory(DataDirectory);
++        string path = Path.Combine(DataDirectory, "CustomerVehicle.RC2.log");
++        if (File.Exists(path) && new FileInfo(path).Length + System.Text.Encoding.UTF8.GetByteCount(line) > limit)
++        {
++            string previous = path + ".previous";
++            if (File.Exists(previous)) File.Delete(previous);
++            File.Move(path, previous);
++        }
++        File.AppendAllText(path, line);
++    }
++
++
+     private static void Notify(string message)
+     {
+         // A concurrent three-order shift can generate dozens of ticker posts.

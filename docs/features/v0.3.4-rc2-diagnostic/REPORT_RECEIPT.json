@@ -1,0 +1,12 @@
+{
+  "instrumentation_commit": "3b2ef09a96dda9f6d0325f08d29bc986167abe68",
+  "rc1_source_commit": "e312d8c9500f4a990eb993b82e8e76b55711d3de",
+  "rc2_source_sha256": "3475f93b67d5feb8d90ef30550b8a474642aeb95c77e76e8f0438ac21f30cdc9",
+  "source_diff_reproduced": true,
+  "word_pdf_text_checked": true,
+  "pdf_pages": 9,
+  "gta_testing": "NOT RUN",
+  "crash_cause": "UNATTRIBUTED",
+  "crash_fix_claimed": false,
+  "owner_review": "PENDING"
+}
