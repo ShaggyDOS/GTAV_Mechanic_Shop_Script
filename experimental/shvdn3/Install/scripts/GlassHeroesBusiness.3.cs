@@ -120,6 +120,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         ToExitApproach, ReturningToVehicle, DrivingAway, WaitingAtRoadside, DrivingToQueueSpace, ParkingAtQueueSpace, ToWalkWaypoint, ToPickupWaypoint, TeleportWaitingBay, TeleportWaitingPickup, PaidReturnRecovery }
     private sealed class CustomerOrder
     {
+        public HandoffProgress Handoff; // Session-only direction-free handoff tracking.
         public bool RestoredPromise;
         public int ResumeMechanicSlot = -1;
         public double ResumeWorkSeconds;
@@ -4122,7 +4123,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             MarkPoint(_receptionDesk, pink);
             MarkPoint(_managerWorkstation, Color.FromArgb(195, 129, 195, 255));
             MarkPoint(_customerDriveSpawn, Color.FromArgb(220, 115, 208, 255));
-            MarkParkingSquare(_customerDropoff, Color.FromArgb(215, 87, 210, 245));
+            MarkCustomerHandoffZone(_customerDropoff, Color.FromArgb(215, 87, 210, 245));
             foreach (WorkBay point in _vehicleParkingBays)
                 MarkParkingSquare(point, Color.FromArgb(210, 26, 225, 191));
             MarkPoint(_customerApproach, Color.FromArgb(200, 196, 156, 255));
@@ -5897,42 +5898,13 @@ public class GlassHeroesBusinessV3Experimental : Script
         switch (order.Stage)
         {
             case CustomerStage.DrivingToDropoff:
-                // The original code told customers to exit within 7m even while rolling.
-                // Approach a wider radius first, then let GTA perform a parking maneuver.
-                if (_fineParkingEnabled &&
-                    DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 196f)
-                {
-                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK,
-                        order.Customer.Handle, order.Vehicle.Handle,
-                        _customerDropoff.Position.X, _customerDropoff.Position.Y,
-                        _customerDropoff.Position.Z, _customerDropoff.Heading,
-                        1, _parkingRadius, false);
-                    order.ParkingTaskIssued = true;
-                    order.Stage = CustomerStage.ParkingAtDropoff;
-                    order.SecondsInStage = 0;
-                }
-                else if (!_fineParkingEnabled &&
-                    DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 49f)
-                    BeginCustomerExit(order);
+                if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < (_fineParkingEnabled ? 196f : 49f))
+                    BeginDirectionFreeHandoff(order, order.Customer, false);
                 else if (order.SecondsInStage >= _driveArrivalTimeout)
                     CancelCustomerOrder("Road navigation failed; adjust road-side spawn/drop-off", true);
                 break;
             case CustomerStage.ParkingAtDropoff:
-                // Require proximity AND low speed for a natural parked exit.
-                if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 16f &&
-                    order.Vehicle.Speed < 1.5f)
-                    BeginCustomerExit(order);
-                else if (order.SecondsInStage >= _parkingTimeoutSeconds)
-                {
-                    // Conservative fallback: the original 7m arrival window.
-                    // Never warp a vehicle through props or MLO walls.
-                    if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 49f)
-                    {
-                        Notify("Customer parking imperfect; continuing check-in from nearby.");
-                        BeginCustomerExit(order);
-                    }
-                    else CancelCustomerOrder("Parking timed out; adjust drop-off heading/position", true);
-                }
+                UpdateDirectionFreeHandoff(order, false);
                 break;
             case CustomerStage.ExitingVehicle:
                 if (!GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_ANY_VEHICLE,
@@ -6499,6 +6471,98 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (count == 0) Notify("No paid physical return to recover. OFF-mode pickup retries automatically when safe.");
     }
 
+    private sealed class HandoffProgress
+    {
+        public bool Issued;
+        public int Retries, StableSamples;
+        public double NoProgress;
+        public Vector3 LastPosition;
+    }
+
+    private bool HandoffZoneAvailable(CustomerOrder order)
+    {
+        Vector3 p = _customerDropoff.Position;
+        return _customerDropoff.IsSet && !float.IsNaN(p.X) && !float.IsNaN(p.Y) && !float.IsNaN(p.Z) &&
+            !float.IsInfinity(p.X) && !float.IsInfinity(p.Y) && !float.IsInfinity(p.Z) &&
+            !DropoffOccupied(order.Vehicle);
+    }
+
+    private void IssueDirectionFreeHandoff(CustomerOrder order, Ped driver)
+    {
+        Vector3 p = _customerDropoff.Position;
+        // Position-only, slow, traffic-aware task. No saved-facing parameter.
+        GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,
+            driver.Handle, order.Vehicle.Handle, p.X, p.Y, p.Z, 2.4f, CarefulDrivingStyle, 1.75f);
+        order.Handoff.Issued = true;
+        order.ParkingTaskIssued = true;
+        order.Handoff.LastPosition = order.Vehicle.Position;
+        order.Handoff.NoProgress = 0;
+    }
+
+    private void BeginDirectionFreeHandoff(CustomerOrder order, Ped driver, bool returning)
+    {
+        order.Handoff = new HandoffProgress { LastPosition = order.Vehicle.Position };
+        order.Stage = returning ? CustomerStage.MechanicParkingAtDropoff : CustomerStage.ParkingAtDropoff;
+        order.SecondsInStage = 0;
+        if (HandoffZoneAvailable(order)) IssueDirectionFreeHandoff(order, driver);
+    }
+
+    private void UpdateDirectionFreeHandoff(CustomerOrder order, bool returning)
+    {
+        Ped driver = returning ? AssignedWorker(order) : order.Customer;
+        if (driver == null)
+        {
+            if (returning) FailVehicleTransfer(order, false, "Mechanic missing at customer handoff");
+            else CancelCustomerOrder("Customer missing at handoff", true);
+            return;
+        }
+        if (order.Handoff == null) order.Handoff = new HandoffProgress { LastPosition = order.Vehicle.Position };
+        HandoffProgress progress = order.Handoff;
+        bool clear = HandoffZoneAvailable(order);
+        float speed = order.Vehicle.Speed;
+        bool stopped = clear && DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 16f &&
+            !float.IsNaN(speed) && !float.IsInfinity(speed) && speed >= 0 && speed < 1.5f;
+        progress.StableSamples = stopped ? Math.Min(2, progress.StableSamples + 1) : 0;
+        if (progress.StableSamples >= 2)
+        {
+            if (returning)
+            {
+                GTA.Native.Function.Call(GTA.Native.Hash.TASK_LEAVE_VEHICLE, driver.Handle, order.Vehicle.Handle, 0);
+                order.Stage = CustomerStage.MechanicExitingAtDropoff;
+                order.SecondsInStage = 0;
+            }
+            else BeginCustomerExit(order);
+            return;
+        }
+        double timeout = _parkingTimeoutSeconds + (returning ? 15 : 0);
+        if (order.SecondsInStage >= timeout)
+        {
+            if (returning) FailVehicleTransfer(order, false, "Customer handoff timed out; order held for existing recovery");
+            else CancelCustomerOrder("Customer handoff timed out; check clear road access", true);
+            return;
+        }
+        if (!progress.Issued)
+        {
+            if (clear) IssueDirectionFreeHandoff(order, driver);
+            return;
+        }
+        if (DistanceSquared(order.Vehicle.Position, progress.LastPosition) >= 2.25f)
+        { progress.LastPosition = order.Vehicle.Position; progress.NoProgress = 0; }
+        else progress.NoProgress += 1;
+        if (progress.NoProgress >= 14 && progress.Retries == 0 && clear)
+        {
+            progress.Retries++;
+            IssueDirectionFreeHandoff(order, driver); // One bounded position-only retry.
+        }
+    }
+
+    private static void MarkCustomerHandoffZone(WorkBay point, Color color)
+    {
+        if (point == null || !point.IsSet) return;
+        World.DrawMarker((MarkerType)1, new Vector3(point.Position.X, point.Position.Y, point.Position.Z + 0.025f),
+            new Vector3(), new Vector3(), new Vector3(8f, 8f, 0.025f), color);
+    }
+
     private void UpdateVehicleApproach(CustomerOrder order, bool toBay)
     {
         Ped worker = AssignedWorker(order);
@@ -6506,6 +6570,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         { FailVehicleTransfer(order, toBay, "Mechanic lost vehicle during transfer"); return; }
         WorkBay dest = VehicleDestination(order, toBay);
         float parkingDistanceSquared = order.AutomaticLot ? 81f : 196f;
+        if (!toBay && DistanceSquared(order.Vehicle.Position, dest.Position) < parkingDistanceSquared)
+        { BeginDirectionFreeHandoff(order, worker, true); return; }
         if (DistanceSquared(order.Vehicle.Position, dest.Position) < parkingDistanceSquared)
         {
             GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK,
@@ -6544,6 +6610,7 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void UpdateVehicleParking(CustomerOrder order, bool atBay)
     {
+        if (!atBay) { UpdateDirectionFreeHandoff(order, true); return; }
         WorkBay dest = VehicleDestination(order, atBay);
         if (DistanceSquared(order.Vehicle.Position, dest.Position) < 16f && order.Vehicle.Speed < 1.5f)
         {
@@ -7059,7 +7126,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             Vector3 p = target.Position;
             if (float.IsNaN(p.X) || float.IsNaN(p.Y) || float.IsNaN(p.Z) ||
                 float.IsInfinity(p.X) || float.IsInfinity(p.Y) || float.IsInfinity(p.Z) ||
-                float.IsNaN(target.Heading) || float.IsInfinity(target.Heading)) return false;
+                (!pickup && (float.IsNaN(target.Heading) || float.IsInfinity(target.Heading)))) return false;
             Ped player = Game.Player.Character;
             if (player == null || !player.Exists() ||
                 GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_VEHICLE, player.Handle, order.Vehicle.Handle, false) ||
@@ -7116,7 +7183,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     order.Vehicle.Position = target.Position;
                     order.TeleportPositionApplied = true;
                 }
-                order.Vehicle.Heading = target.Heading;
+                if (!pickup) order.Vehicle.Heading = target.Heading;
             }
             catch (Exception ex) { Log("Deferred customer vehicle transfer #" + order.Id, ex); return true; }
             order.TeleportPositionApplied = false;

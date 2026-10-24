@@ -27,6 +27,7 @@ class Harness {
     readonly List<SavedRepairPromise> _pendingRepairPromises=new List<SavedRepairPromise>();
     /*<source:Mechanic>*/
     /*<source:CustomerStage>*/
+    /*<source:HandoffProgress>*/
     /*<source:CustomerOrder>*/
     /*<source:RemoteJob>*/
     /*<source:WorkBay>*/

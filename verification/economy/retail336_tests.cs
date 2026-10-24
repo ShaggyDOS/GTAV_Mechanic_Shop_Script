@@ -12,6 +12,9 @@ class ScriptSettings {
 }
 static class Game {internal static bool IsPaused;internal static int GameTime=100;internal static PlayerState Player=new PlayerState();internal class PlayerState {internal Ped Character=new Ped();}}
 class Harness {
+ // Direction-free handoff native adapter; focused parking37 tests exercise actual helpers.
+ void BeginDirectionFreeHandoff(CustomerOrder o,Ped driver,bool returning){o.Stage=returning?CustomerStage.MechanicParkingAtDropoff:CustomerStage.ParkingAtDropoff;o.SecondsInStage=0;}
+ void UpdateDirectionFreeHandoff(CustomerOrder o,bool returning){}
     bool TeleportAttemptDue(CustomerOrder o)=>true;
     bool TeleportTargetAvailable(CustomerOrder o,WorkBay b,bool pickup)=>true;
     /*<source:TrySellPart>*/
@@ -28,6 +31,7 @@ class Harness {
     readonly List<SavedRepairPromise> _pendingRepairPromises=new List<SavedRepairPromise>();
     /*<source:Mechanic>*/
     /*<source:CustomerStage>*/
+    /*<source:HandoffProgress>*/
     /*<source:CustomerOrder>*/
     /*<source:RemoteJob>*/
     /*<source:WorkBay>*/
