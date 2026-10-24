@@ -38,6 +38,7 @@ class Harness {
     /*<source:CreateFixedEquipmentProp>*/
     /*<source:UpdateOfficeDeskVisuals>*/
     /*<source:DeleteOfficeDeskProps>*/
+    void SyncWholesalePickupBlip(DateTime now){} // Native locator behavior has its own extracted-production suite.
     /*<source:OnTick>*/
     /*<source:AdvanceCustomerDemand>*/
     bool _customerServiceEnabled=true;double _customerDemandElapsed;

@@ -5,7 +5,7 @@ from source_tools import ROOT,BASE,SOURCE,baseline,members,strip_literals
 p=argparse.ArgumentParser();p.add_argument('--output');a=p.parse_args()
 old=baseline();new=SOURCE.read_text();before=members(old);after=members(new)
 allowed_changed=set('WrapMenuDescription DrawMenu GetSelectedDescription GetPageDescription GetMenuItems GetMenuItemValue GetMenuTitle EditingPointPurpose ExecutePointListSelection ExecuteRouteDirectionSelection ExecuteRoutePointSelection ExecuteMechanicWalkingSelection OnTick TryPlaceSupplierOrder SetSupplierPickupWaypoint ExecuteSelection TrySupplierPackageInteraction RecoverSupplierShipment CancelSupplierOrderWithConfirmation OnAborted ShowSupplierDeliveryStatus ExecutePlacementSelection ExecuteReceptionistManagement ExecuteManagerManagement ExecuteEmployeePathsSelection ExecuteReceptionWalkingSelection ExecuteManagerWalkingSelection NavigateBack'.split())
-allowed_added=set('FittingMenuWords LayoutMenuDescription MechanicRouteHeading MechanicRouteCounts MechanicRoutePreview PickupWaypointSnapshot WholesalePickupLocatorEligible PickupWaypointChanged ReadPickupWaypoint NotePickupLocatorFailure DeleteWholesalePickupBlip SyncWholesalePickupBlip'.split())
+allowed_added=set('FittingMenuWords LayoutMenuDescription MechanicRouteHeading MechanicRouteCounts MechanicRoutePreview PickupWaypointSnapshot WholesalePickupLocationValid WholesalePickupLocatorEligible PickupWaypointChanged ReadPickupWaypoint NotePickupLocatorFailure DeleteWholesalePickupBlip SyncWholesalePickupBlip'.split())
 changed=sorted(k for k in before.keys()&after.keys() if before[k]!=after[k]);added=sorted(after.keys()-before.keys());removed=sorted(before.keys()-after.keys())
 assert set(changed)<=allowed_changed,('unapproved changed methods',set(changed)-allowed_changed)
 assert set(added)<=allowed_added and not removed,('unapproved additions/removals',added,removed)
@@ -15,7 +15,7 @@ old_root=old;new_root=new
 for value in before.values():old_root=old_root.replace(value,'',1)
 for value in after.values():new_root=new_root.replace(value,'',1)
 new_fields=['_menuDescriptionCache','_lastDescriptionInput','_lastDescriptionWidth','_lastDescriptionLines',
- '_wholesalePickupBlip','_pickupLocatorOrderId','_pickupLocatorPosition','_pickupLocatorAttempts','_nextPickupLocatorAttempt','_nextPickupLocatorLog','_pickupGpsActive','_pickupWaypointAtGps']
+ '_wholesalePickupBlip','_pickupLocatorOrderId','_pickupLocatorPosition','_pickupLocatorAttempts','_nextPickupLocatorAttempt','_nextPickupLocatorLog','_pickupGpsActive','_pickupLocatorConfigured','_pickupWaypointAtGps']
 for field in new_fields:new_root=re.sub(r'^    private [^;\n]*\b'+field+r'\b[^;\n]*;\n','',new_root,flags=re.M)
 assert tokens(old_root)==tokens(new_root),'Existing declarations/defaults changed or unapproved session fields added'
 # No change to ANY existing settings/save key, including dynamically addressed point/profile keys.
@@ -23,6 +23,15 @@ for op in ['GetValue','SetValue']:
  keys=lambda t:re.findall(r'\.'+op+r'\(([^\n;]+)',t)
  assert keys(old)==keys(new),op+' expressions/schema changed'
 assert after['OnTick'].replace('                SyncWholesalePickupBlip(_supplierGameplayNow);\n','')==before['OnTick'],'Existing active-time/gameplay loop changed'
+if 'SyncWholesalePickupBlip' in after:
+ tick=after['OnTick'];call='SyncWholesalePickupBlip(_supplierGameplayNow);'
+ assert tick.count(call)==1 and tick.index('ProcessSupplierDelivery(_supplierGameplayNow)')<tick.index(call)<tick.index('UpdateCustomerVisuals()')
+ assert tick.index('_visualRefreshClock >= 1.0')<tick.index(call),'Locator called outside throttled refresh'
+ assert after['OnAborted'].index('DeleteWholesalePickupBlip()')>after['OnAborted'].index('return;'),'Pre-activation cleanup native'
+ assert '            _supplierVisualStage = 9;\n            DeleteWholesalePickupBlip();' in after['TrySupplierPackageInteraction']
+ assert '                _supplierStageAt = _supplierGameplayNow;\n                if (atWarehouse) DeleteWholesalePickupBlip();' in after['TrySupplierPackageInteraction']
+ assert after['CancelSupplierOrderWithConfirmation'].index('if (!TryCancelSupplierOrder()) return;')<after['CancelSupplierOrderWithConfirmation'].index('DeleteWholesalePickupBlip()')
+
 if 'TryPlaceSupplierOrder' in changed:
  assert after['TryPlaceSupplierOrder'].replace('DeleteWholesalePickupBlip();','SetSupplierPickupWaypoint();')==before['TryPlaceSupplierOrder'],'Supplier purchase delta is not navigation-only'
 for name in ['TrySupplierPackageInteraction','RecoverSupplierShipment','CancelSupplierOrderWithConfirmation','OnAborted']:
