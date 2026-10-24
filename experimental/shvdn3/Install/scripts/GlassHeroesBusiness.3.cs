@@ -38,7 +38,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         MechanicRouteDirection, MechanicRoutePoints, SupplierDeliverySetup, SupplierDriverWaypoints,
         HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints,
         PlacementSettings, DeliveryPlacements, PlacementWalkingRoutes,
-        MechanicPlacementRoutes, ReceptionPlacementRoutes, ManagerPlacementRoutes, CustomerPlacementRoutes, SupplierPlacementRoutes, OwnerTransferReview
+        MechanicPlacementRoutes, ReceptionPlacementRoutes, ManagerPlacementRoutes, CustomerPlacementRoutes, SupplierPlacementRoutes, OwnerTransferReview, PartsSaleReview
     }
     private const int VisibleMenuRows = 10;
     // Compact F2 menu (75% of the previous layout), anchored to upper-left.
@@ -1076,8 +1076,8 @@ public class GlassHeroesBusinessV3Experimental : Script
                 NavigateBack();
                 return;
             }
-            if (_menuPage == MenuPage.BuildSupplierOrder && (e.KeyCode == Keys.Left || e.KeyCode == Keys.Right))
-            { AdjustSupplierCart(e.KeyCode == Keys.Left ? -1 : 1); return; }
+            if ((_menuPage == MenuPage.BuildSupplierOrder || _menuPage == MenuPage.PartsSales) && (e.KeyCode == Keys.Left || e.KeyCode == Keys.Right))
+            { if (_menuPage == MenuPage.PartsSales) AdjustPartsSaleCart(e.KeyCode == Keys.Left ? -1 : 1); else AdjustSupplierCart(e.KeyCode == Keys.Left ? -1 : 1); return; }
             int menuCount = GetMenuItems().Length;
             if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down)
             {
@@ -1229,6 +1229,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.OwnerTransfers: _menuPage = MenuPage.Finances; _selection = 5; break;
             case MenuPage.OwnerTransferReview: _menuPage = MenuPage.OwnerTransfers; _selection = _ownerTransferDeposit ? 1 : 2; break;
             case MenuPage.PartsSales: _menuPage = MenuPage.InventoryManagement; _selection = 3; break;
+            case MenuPage.PartsSaleReview: _menuPage = MenuPage.PartsSales; _selection = 4; break;
             case MenuPage.InventoryOverview: _menuPage = MenuPage.InventoryManagement; _selection = 0; break;
             case MenuPage.BuildSupplierOrder: _menuPage = MenuPage.InventoryManagement; _selection = 1; break;
             case MenuPage.ActiveDeliveries: _menuPage = MenuPage.InventoryManagement; _selection = 2; break;
@@ -1466,8 +1467,9 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ActiveDeliveries:
                 return new string[] { "Delivery Status", "Order Contents", "Recover Original Order", "Cancel Pending Order", "< Back to Inventory" };
             case MenuPage.PartsSales:
-                return new string[] { "Universal Part", "Service Filter", "Brake Kit",
-                    "Diagnostic Supply", "< Back to Inventory" };
+                return new string[] { "Universal Parts: Quantity", "Service Filters: Quantity", "Brake Kits: Quantity",
+                    "Diagnostic Supplies: Quantity", "Review Sale >", "Clear Sale Draft", "< Back to Inventory" };
+            case MenuPage.PartsSaleReview: return new string[] { "Review Items / Proceeds", "Confirm Sale", "< Back to Parts Sales" };
             case MenuPage.EquipmentManagement:
                 return new string[] { "Equipment Status", "Buy Tool Set", "Buy Diagnostic Scanner",
                     "Buy Desk + Laptop", "Place Tool Chest", "Remove Tool Chest",
@@ -1628,7 +1630,9 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ActiveDeliveries:
                 return index == 0 ? (_deliveryKind == -2 ? "NONE" : ((int)Math.Ceiling(_deliveryRemainingGameSeconds)) + "s") : ">";
             case MenuPage.PartsSales:
-                return index < 4 ? "$" + EstimatedUnitAcquisitionCost(index - 1).ToString("N0") : "BACK";
+                return index < 4 ? "x" + _partsSaleCart[index] + " / " + UnreservedRepairStock(null)[index] + " FREE" : index == 4 ? "$" + PartsSaleTotal(_partsSaleCart).ToString("N0") : ">";
+            case MenuPage.PartsSaleReview:
+                return index == 0 ? "$" + PartsSaleTotal(_partsSaleReview).ToString("N0") : index == 1 ? "SELL" : "BACK";
             case MenuPage.EquipmentManagement:
                 if (index == 1) return _toolSetPurchased ? "OWNED" : "$1,800";
                 if (index == 2) return _diagnosticScannerPurchased ? "OWNED" : "$1,600";
@@ -2009,7 +2013,8 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.HireManagerRoster: return "Recruit a manager: higher tiers reduce expenses and improve offsite shop efficiency.";
             case MenuPage.HireMechanicRoster: return "Candidates have different starting skill, specialty, hiring price and wages.";
             case MenuPage.HireReceptionistRoster: return "Recruit a receptionist; skills permit one, two or three pending customers.";
-            case MenuPage.PartsSales: return _selection < 4 ? PartsSalePreview(_selection - 1) + ". ENTER sells ONE unreserved unit. Pending cargo excluded." : "Return to Inventory & Suppliers.";
+            case MenuPage.PartsSales: return _selection < 4 ? PartsSalePreview(_selection - 1) + ". Left/Right adjusts quantity; Enter adds one. Review before selling." : _selection == 4 ? "Review the entire sale before confirmation; reserved repair stock is protected." : _selection == 5 ? "Clear only the unsold draft; no inventory or cash changes." : "Return to Inventory & Suppliers.";
+            case MenuPage.PartsSaleReview: return _selection == 0 ? "Inspect quantities, free stock, unchanged unit estimates and total proceeds." : _selection == 1 ? "Sell this draft atomically after current stock and ledger checks; failed save rolls back all lines." : "Return to the draft without selling.";
             case MenuPage.InventoryManagement:
                 return new string[] { "Inspect stock on hand and shared storage capacity.", "Choose supplier and build an order; invoiced only after stocking.", "Track ETA, inspect contents, recover or cancel the original shipment.", "Sell one unreserved unit; see availability and fixed sale estimate below.", "Buy or position pallets and inspect the stockroom.", "Configure supplier fleet, road route and pickup vehicle.", "Return to Business Management." }[Math.Min(_selection, 6)];
             case MenuPage.InventoryOverview: return "Stock on hand excludes pending cargo. Repair-reserved stock cannot be sold. Capacity is shared by all four items.";
@@ -2138,7 +2143,8 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.OwnerTransfers: return "OWNER CASH TRANSFERS";
             case MenuPage.OwnerTransferReview: return _ownerTransferDeposit ? "CONFIRM OWNER DEPOSIT" : "CONFIRM OWNER WITHDRAWAL";
             case MenuPage.BusinessExpenses: return "EXPENSES & BILLS";
-            case MenuPage.PartsSales: return "PARTS SALES - ONE UNIT";
+            case MenuPage.PartsSales: return "BUILD PARTS RETAIL SALE";
+            case MenuPage.PartsSaleReview: return "CONFIRM PARTS RETAIL SALE";
             case MenuPage.InventoryManagement: return "INVENTORY & SUPPLIERS";
             case MenuPage.InventoryOverview: return "INVENTORY OVERVIEW";
             case MenuPage.BuildSupplierOrder: return "BUILD SUPPLIER ORDER";
@@ -2313,7 +2319,8 @@ public class GlassHeroesBusinessV3Experimental : Script
                 else if (_selection == 2) RecoverSupplierShipment();
                 else if (_selection == 3) CancelSupplierOrderWithConfirmation();
                 else NavigateBack(); break;
-            case MenuPage.PartsSales: if (_selection < 4) TrySellPart(_selection - 1); else NavigateBack(); break;
+            case MenuPage.PartsSales:
+            case MenuPage.PartsSaleReview: ExecutePartsSalesSelection(); break;
             case MenuPage.EquipmentManagement: ExecuteEquipmentSelection(); break;
             case MenuPage.ControllerSettings: ExecuteControllerSelection(); break;
             case MenuPage.MechanicRouteRoster: ExecuteRouteRosterSelection(); break;
@@ -7653,38 +7660,102 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private bool TrySellPart(int kind)
     {
-        if (!_bootGameplayActivated || Game.IsPaused || kind < -1 || kind > 2) return false;
+        if (kind < -1 || kind > 2) return false;
+        int[] quantities = new int[4]; quantities[kind + 1] = 1;
+        return TrySellParts(quantities);
+    }
+
+    private long PartsSaleTotal(int[] quantities)
+    {
+        long total = 0;
+        checked { for (int i = 0; i < 4; i++) total += EstimatedUnitAcquisitionCost(i - 1) * quantities[i]; }
+        return total;
+    }
+
+    private bool TrySellParts(int[] quantities)
+    {
+        if (!_bootGameplayActivated || Game.IsPaused || quantities == null || quantities.Length != 4) return false;
         int now = Game.GameTime;
-        if (_lastPartsSaleGameTime == now) return false; // Defense beyond the shared input gate.
+        if (_lastPartsSaleGameTime == now) return false;
         _lastPartsSaleGameTime = now;
-        if (UnreservedRepairStock(null)[kind + 1] < 1)
-        { Notify("No unreserved " + DeliveryItemName(kind) + " available to sell."); return false; }
-        long price = EstimatedUnitAcquisitionCost(kind);
-        if (price < 0 || _cash > long.MaxValue - price || _revenue > long.MaxValue - price ||
-            _partsSalesRevenue > long.MaxValue - price || _partsSalesUnitsSold == long.MaxValue)
+        int[] free = UnreservedRepairStock(null); int count = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            if (quantities[i] < 0 || quantities[i] > 100 || quantities[i] > free[i])
+            { Notify("Sale exceeds unreserved stock or supported quantity. Review the draft."); return false; }
+            count += quantities[i];
+        }
+        if (count == 0) { Notify("Add at least one unit before confirming."); return false; }
+        long proceeds;
+        try { proceeds = PartsSaleTotal(quantities); }
+        catch (OverflowException) { Notify("Parts sale total overflow; nothing sold."); return false; }
+        if (proceeds < 0 || _cash > long.MaxValue - proceeds || _revenue > long.MaxValue - proceeds ||
+            _partsSalesRevenue > long.MaxValue - proceeds || _partsSalesUnitsSold > long.MaxValue - count)
         { Notify("Parts sale cannot fit in the business ledger."); return false; }
         long cash = _cash, revenue = _revenue, sales = _partsSalesRevenue, units = _partsSalesUnitsSold;
-        int stock = kind < 0 ? _parts : _specialStock[kind];
-        if (kind < 0) _parts--; else _specialStock[kind]--;
-        _cash += price; _revenue += price; _partsSalesRevenue += price; _partsSalesUnitsSold++;
+        int parts = _parts; int[] special = (int[])_specialStock.Clone();
+        _parts -= quantities[0];
+        for (int i = 0; i < 3; i++) _specialStock[i] -= quantities[i + 1];
+        _cash += proceeds; _revenue += proceeds; _partsSalesRevenue += proceeds; _partsSalesUnitsSold += count;
         if (!Save())
         {
-            if (kind < 0) _parts = stock; else _specialStock[kind] = stock;
+            _parts = parts; Array.Copy(special, _specialStock, 3);
             _cash = cash; _revenue = revenue; _partsSalesRevenue = sales; _partsSalesUnitsSold = units;
-            Notify("Parts sale cancelled because its save did not commit.");
-            return false;
+            Notify("Parts sale cancelled because its save did not commit."); return false;
         }
-        // Successful stocking remains a historical earned-package visual, not a stock counter.
         try
         {
             string path = Path.Combine(DataDirectory, "PartsSales.v1.csv");
             if (!File.Exists(path)) File.AppendAllText(path, "Utc,Kind,Units,UnitEstimate,Total,GameTimeMs" + Environment.NewLine);
-            File.AppendAllText(path, DateTime.UtcNow.ToString("o", System.Globalization.CultureInfo.InvariantCulture) +
-                "," + kind + ",1," + price + "," + price + "," + now + Environment.NewLine);
+            for (int i = 0; i < 4; i++) if (quantities[i] > 0)
+            {
+                long price = EstimatedUnitAcquisitionCost(i - 1);
+                File.AppendAllText(path, DateTime.UtcNow.ToString("o", System.Globalization.CultureInfo.InvariantCulture) +
+                    "," + (i - 1) + "," + quantities[i] + "," + price + "," + (price * quantities[i]) + "," + now + Environment.NewLine);
+            }
         }
         catch (Exception ex) { Log("Parts sales audit (ledger already committed)", ex); }
-        Notify("Sold 1 " + DeliveryItemName(kind) + " for $" + price.ToString("N0") + " (fixed cost estimate).");
+        Notify("Sold " + count + " units for $" + proceeds.ToString("N0") + " (unchanged unit-cost estimates).");
         return true;
+    }
+
+    private readonly int[] _partsSaleCart = new int[4];
+    private int[] _partsSaleReview = new int[4];
+
+    private void AdjustPartsSaleCart(int direction)
+    {
+        if (_selection >= 0 && _selection < 4)
+            _partsSaleCart[_selection] = Math.Max(0, Math.Min(100, _partsSaleCart[_selection] + direction));
+    }
+
+    private void ExecutePartsSalesSelection()
+    {
+        if (_menuPage == MenuPage.PartsSaleReview)
+        {
+            if (_selection == 0)
+            {
+                ShowStatusNotice("PARTS SALE REVIEW", "Total proceeds $" + PartsSaleTotal(_partsSaleReview).ToString("N0"),
+                    "Prices remain acquisition-cost estimates; no added retail markup.");
+                int[] free = UnreservedRepairStock(null);
+                for (int i = 0; i < 4; i++) if (_partsSaleReview[i] > 0)
+                    Notify(DeliveryItemName(i - 1) + " x" + _partsSaleReview[i] + " | free " + free[i] +
+                        " | unit $" + EstimatedUnitAcquisitionCost(i - 1).ToString("N0"));
+            }
+            else if (_selection == 1)
+            {
+                if (TrySellParts(_partsSaleReview)) { Array.Clear(_partsSaleCart, 0, 4); NavigateBack(); }
+            }
+            else NavigateBack();
+            return;
+        }
+        if (_selection < 4) AdjustPartsSaleCart(1);
+        else if (_selection == 4)
+        {
+            _partsSaleReview = (int[])_partsSaleCart.Clone();
+            _menuPage = MenuPage.PartsSaleReview; _selection = 0;
+        }
+        else if (_selection == 5) Array.Clear(_partsSaleCart, 0, 4);
+        else NavigateBack();
     }
 
     // Same-volume atomic snapshot. Failure never replaces a previously valid save.
@@ -8180,11 +8251,12 @@ public class GlassHeroesBusinessV3Experimental : Script
             return;
         }
         if (!_showMenu) return;
-        if (_menuPage == MenuPage.BuildSupplierOrder &&
+        if ((_menuPage == MenuPage.BuildSupplierOrder || _menuPage == MenuPage.PartsSales) &&
             (PadJustPressed(GTA.Control.FrontendLeft) || PadJustPressed(GTA.Control.FrontendRight)))
         {
             int direction = PadJustPressed(GTA.Control.FrontendLeft) ? -1 : 1;
-            if (_menuInput.TryController(direction < 0 ? 5 : 6, now.Ticks)) AdjustSupplierCart(direction);
+            if (_menuInput.TryController(direction < 0 ? 5 : 6, now.Ticks))
+            { if (_menuPage == MenuPage.PartsSales) AdjustPartsSaleCart(direction); else AdjustSupplierCart(direction); }
             _lastControllerAction = now; return;
         }
         // Unlike keyboard KeyDown, gamepad edges must be polled during Tick.

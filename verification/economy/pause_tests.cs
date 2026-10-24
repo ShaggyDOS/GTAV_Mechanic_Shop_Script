@@ -44,6 +44,8 @@ class Harness
     bool IsPlayerAtOfficeDesk() { return false; }
     void OpenBusinessFromOffice() { }
     string[] GetMenuItems() { return new string[10]; }
+    int[] _partsSaleCart=new int[4];
+    /*<source:AdjustPartsSaleCart>*/
     void AdjustSupplierCart(int direction){}
     void ExecuteSelection() { selections++; _menuPage=MenuPage.PointEditor; }
     static void Log(string c, Exception e) { throw new Exception(c,e); }

@@ -52,6 +52,8 @@ class Harness {
     WorkBay _customerDropoff=new WorkBay{IsSet=true,Position=new Vector3(0,0,0),Heading=180};
 
     /*<source:TrySellPart>*/
+    /*<source:TrySellParts>*/
+    /*<source:PartsSaleTotal>*/
     /*<source:PartsSalePreview>*/
     /*<source:TryCommitBusinessSave>*/
     /*<source:RepairLedgerStamp>*/

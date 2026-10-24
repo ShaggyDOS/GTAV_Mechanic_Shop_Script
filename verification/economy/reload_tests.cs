@@ -19,6 +19,8 @@ class Harness {
     bool TeleportAttemptDue(CustomerOrder o)=>true;
     bool TeleportTargetAvailable(CustomerOrder o,WorkBay b,bool pickup)=>true;
     /*<source:TrySellPart>*/
+    /*<source:TrySellParts>*/
+    /*<source:PartsSaleTotal>*/
     /*<source:PartsSalePreview>*/
     /*<source:TryCommitBusinessSave>*/
     /*<source:RepairLedgerStamp>*/
