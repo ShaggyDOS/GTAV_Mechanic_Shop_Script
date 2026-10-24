@@ -34,7 +34,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         StaffRoster, StaffProfile, VehicleDriveOptions, CustomerPlacements, EmployeePlacements,
         MechanicWalkingPaths, ReceptionWalkingPaths, ReceptionWaypoints, CustomerQueueSettings,
         PartsSales, VehicleAutoLotOptions, BusinessExpenses, MechanicInvoices, CustomerWalkingRoutes,
-        InventoryManagement, InventoryOverview, BuildSupplierOrder, ActiveDeliveries, EquipmentManagement, MechanicRouteRoster,
+        InventoryManagement, InventoryOverview, BuildSupplierOrder, SupplierOrderReview, ActiveDeliveries, EquipmentManagement, MechanicRouteRoster,
         MechanicRouteDirection, MechanicRoutePoints, SupplierDeliverySetup, SupplierDriverWaypoints,
         HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints,
         PlacementSettings, DeliveryPlacements, PlacementWalkingRoutes,
@@ -1239,6 +1239,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.PartsSales: _menuPage = MenuPage.InventoryManagement; _selection = 3; break;
             case MenuPage.PartsSaleReview: _menuPage = MenuPage.PartsSales; _selection = 4; break;
             case MenuPage.InventoryOverview: _menuPage = MenuPage.InventoryManagement; _selection = 0; break;
+            case MenuPage.SupplierOrderReview: _menuPage = MenuPage.BuildSupplierOrder; _selection = 6; break;
             case MenuPage.BuildSupplierOrder: _menuPage = MenuPage.InventoryManagement; _selection = 1; break;
             case MenuPage.ActiveDeliveries: _menuPage = MenuPage.InventoryManagement; _selection = 2; break;
             case MenuPage.InventoryManagement: _menuPage = MenuPage.BusinessManagement; _selection = 2; break;
@@ -1472,9 +1473,10 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.InventoryOverview:
                 return new string[] { "Universal Parts", "Service Filters", "Brake Kits", "Diagnostic Supplies", "Storage Capacity", "Reorder Advice", "Low-stock Threshold", "< Back to Inventory" };
             case MenuPage.BuildSupplierOrder:
-                return new string[] { "Universal Parts", "Service Filters", "Brake Kits", "Diagnostic Supplies", "Supplier: Change", "Cost / Capacity Preview", "Place Purchase Order", "Fill Low-stock Cart", "Clear Cart", "< Back to Inventory" };
+                return new string[] { "Universal Parts", "Service Filters", "Brake Kits", "Diagnostic Supplies", "Supplier: Change", "Cost / Capacity Preview", "Review Purchase Order >", "Fill Low-stock Cart", "Clear Cart", "< Back to Inventory" };
+            case MenuPage.SupplierOrderReview: return new string[] { "Review Order Details", "Confirm Purchase Order", "< Back to Supplier Cart" };
             case MenuPage.ActiveDeliveries:
-                return new string[] { "Delivery Status", "Order Contents", "Recover Original Order", "Cancel Pending Order", "< Back to Inventory" };
+                return new string[] { "Delivery Status", "Order / Last Receipt", "Recover Original Order", "Cancel Pending Order", "< Back to Inventory" };
             case MenuPage.PartsSales:
                 return new string[] { "Universal Parts: Quantity", "Service Filters: Quantity", "Brake Kits: Quantity",
                     "Diagnostic Supplies: Quantity", "Review Sale >", "Clear Sale Draft", "< Back to Inventory" };
@@ -1635,8 +1637,9 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return index == 4 ? StoredPartsTotal() + "/" + TotalStorageCapacity() : index == 6 ? _reorderThreshold.ToString() : ">";
             case MenuPage.BuildSupplierOrder:
                 return index < 4 ? _supplierCart[index] + " units" : index == 4 ? SupplierName(_selectedSupplier) : index == 5 ? (SupplierLineTotal(_supplierCart) < 0 ? "OVER LIMIT" : "$" + SupplierCartCost(_supplierCart).ToString("N0")) : index == 6 ? (_deliveryKind == -2 ? "CONFIRM" : "PENDING") : ">";
+            case MenuPage.SupplierOrderReview: return index == 1 ? "$" + _supplierReviewCost.ToString("N0") : ">";
             case MenuPage.ActiveDeliveries:
-                return index == 0 ? (_deliveryKind == -2 ? "NONE" : ((int)Math.Ceiling(_deliveryRemainingGameSeconds)) + "s") : ">";
+                return index == 0 ? (_deliveryKind == -2 ? "NONE" : _deliveryRemainingGameSeconds > 0 ? ((int)Math.Ceiling(_deliveryRemainingGameSeconds)) + "s" : SupplierLiveState()) : ">";
             case MenuPage.PartsSales:
                 return index < 4 ? "x" + _partsSaleCart[index] + " / " + UnreservedRepairStock(null)[index] + " FREE" : index == 4 ? PartsSaleTotalText(_partsSaleCart) : ">";
             case MenuPage.PartsSaleReview:
@@ -1925,8 +1928,9 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.InventoryOverview: return FooterRow("View universal on-hand, reserved, free and incoming units on demand; nothing is sold or purchased.", "Inspect filter stock and the units still promised to repairs.", "Inspect brake stock; incoming parts are not yet available for work.", "Inspect diagnostic supplies and their estimated unit cost.", "Inspect all four stocks, shared unit capacity and remaining parcel slots.", "Read low-stock advice without ordering.", "Change reorder advice threshold; no automatic purchase.", "Return to inventory.");
             case MenuPage.BuildSupplierOrder:
                 if (_selection < 4) return "Set " + label + " quantity with Left/Right or Enter; this edits only the unsent supplier cart.";
-                return FooterRow("", "", "", "", "Choose one supplier for the entire cart; wholesale stays player-only.", "Preview full cost and capacity before placing anything.", "Submit this whole purchase order after funds/capacity checks.", "Fill unsent quantities using low-stock advice; does not submit.", "Clear the unsent supplier draft only.", "Return to inventory.");
-            case MenuPage.ActiveDeliveries: return FooterRow("Show current delivery identity/stage as an on-demand snapshot.", "Review every saved line and consolidated order price.", "Recover the original pending order, without a second purchase or receipt.", "Request cancellation using existing confirmation/financial rules.", "Return to inventory.");
+                return FooterRow("", "", "", "", "Choose one supplier for the entire cart; wholesale stays player-only.", "Preview full cost and capacity before placing anything.", "Review this mixed order before a separate explicit confirmation.", "Fill unsent quantities using low-stock advice; does not submit.", "Clear the unsent supplier draft only.", "Return to inventory.");
+            case MenuPage.SupplierOrderReview: return FooterRow("Inspect frozen quantities, quote, ETA, capacity and receipt requirements.", "Confirm once; current supplier, quote, capacity and pending state are checked again.", "Return to the unchanged cart without placing an order.");
+            case MenuPage.ActiveDeliveries: return FooterRow("Show current delivery identity/stage as an on-demand snapshot.", "Review current order lines, or the last durable receipt/cancellation if none is pending.", "Recover the original pending order, without a second purchase or receipt.", "Request cancellation using existing confirmation/financial rules.", "Return to inventory.");
             case MenuPage.Finances: return FooterRow("Cash bridge and audit status distinguish sales from available cash.", "Compare physical, remote, autonomous and retail sales without overlap.",
                 "Review/pay actual bills and reach equipment; accrued bills are not cash payments.", "Inspect accounting profit on purchase-expense basis.", "Read committed transaction identities and resulting cash.",
                 "Select $1,000/$10,000/$100,000, review and confirm owner capital movement.", "Toggle current/last shift versus lifetime reporting only.", "Return to management.");
@@ -2228,6 +2232,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.PartsSaleReview: return "CONFIRM PARTS RETAIL SALE";
             case MenuPage.InventoryManagement: return "INVENTORY & SUPPLIERS";
             case MenuPage.InventoryOverview: return "INVENTORY OVERVIEW";
+            case MenuPage.SupplierOrderReview: return "CONFIRM SUPPLIER ORDER";
             case MenuPage.BuildSupplierOrder: return "BUILD SUPPLIER ORDER";
             case MenuPage.ActiveDeliveries: return "ACTIVE DELIVERIES";
             case MenuPage.SupplierDeliverySetup: return "SUPPLIER SETTINGS";
@@ -2395,6 +2400,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 else if (_selection == 5) ShowReorderAdvice();
                 else if (_selection == 6) { _reorderThreshold = _reorderThreshold == 3 ? 5 : _reorderThreshold == 5 ? 10 : 3; Save(); }
                 else NavigateBack(); break;
+            case MenuPage.SupplierOrderReview: ExecuteSupplierOrderReview(); break;
             case MenuPage.BuildSupplierOrder: ExecuteSupplierCart(); break;
             case MenuPage.ActiveDeliveries:
                 if (_selection == 0) ShowSupplierDeliveryStatus();
@@ -8453,7 +8459,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             return;
         }
         double remain = Math.Max(0, _deliveryRemainingGameSeconds);
-        ShowStatusNotice("SUPPLIER DELIVERY",
+        ShowStatusNotice("PENDING #" + _deliveryDueUtcTicks,
             _deliveryQuantity + " " + (_deliveryLines == null ? DeliveryItemName(_deliveryKind) : "mixed parts") + " | " + SupplierName(_deliverySupplier),
             (_deliveryPrepaid ? "PREPAID" : "BILL AFTER STOCKING") + " $" + _deliveryCost.ToString("N0") +
                 " | ETA " + (int)Math.Ceiling(remain) + " sec",
@@ -9079,9 +9085,10 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         if (_deliveryKind == -2) { Notify("No pending supplier order to cancel."); return; }
         DateTime now = DateTime.UtcNow;
-        if (now > _cancelSupplierConfirmUntil)
+        if (now > _cancelSupplierConfirmUntil || _cancelSupplierConfirmOrderTicks != _deliveryDueUtcTicks)
         {
             _cancelSupplierConfirmUntil = now.AddSeconds(12);
+            _cancelSupplierConfirmOrderTicks = _deliveryDueUtcTicks;
             Notify("Press CANCEL PENDING ORDER again within 12 seconds. No stock will be added.");
             return;
         }
@@ -9422,6 +9429,68 @@ public class GlassHeroesBusinessV3Experimental : Script
         _supplierCart[_selection] = Math.Max(0, Math.Min(100, _supplierCart[_selection] + direction));
     }
 
+    private int[] _supplierReviewLines;
+    private int _supplierReviewSupplier;
+    private long _supplierReviewCost, _cancelSupplierConfirmOrderTicks;
+
+    private void PrepareSupplierOrderReview()
+    {
+        if (_deliveryKind != -2 || SupplierLineTotal(_supplierCart) <= 0)
+        { Notify("Review unavailable: choose 1-100 units and finish the pending order first."); return; }
+        _supplierReviewLines = (int[])_supplierCart.Clone();
+        _supplierReviewSupplier = _selectedSupplier;
+        _supplierReviewCost = SupplierCartCost(_supplierReviewLines);
+        _menuPage = MenuPage.SupplierOrderReview; _selection = 0;
+        ShowSupplierPurchaseReview();
+    }
+
+    private void ShowSupplierPurchaseReview()
+    {
+        if (_supplierReviewLines == null) return;
+        ShowStatusNotice("PURCHASE REVIEW - NOT YET ORDERED",
+            SupplierName(_supplierReviewSupplier) + " | " + SupplierLineTotal(_supplierReviewLines) + " units | $" + _supplierReviewCost.ToString("N0"),
+            "Universal " + _supplierReviewLines[0] + " | Filters " + _supplierReviewLines[1] +
+                " | Brakes " + _supplierReviewLines[2] + " | Diagnostics " + _supplierReviewLines[3],
+            SupplierDeliverySeconds(_supplierReviewSupplier) + " active seconds | " +
+                (_supplierReviewSupplier == 0 ? "Assigned vehicle / player warehouse pickup." : "Player handoff or eligible manager receipt."),
+            "Capacity " + (CanStoreShipment(SupplierLineTotal(_supplierReviewLines)) ? "AVAILABLE" : "HELD") + "; invoice after stocking, not a cash payment.");
+    }
+
+    private void ExecuteSupplierOrderReview()
+    {
+        if (_selection == 0) { ShowSupplierPurchaseReview(); return; }
+        if (_selection != 1) { NavigateBack(); return; }
+        if (_supplierReviewLines == null || _selectedSupplier != _supplierReviewSupplier ||
+            SupplierCartCost(_supplierReviewLines) != _supplierReviewCost)
+        { Notify("Supplier or quote changed. Review the cart again before confirming."); NavigateBack(); return; }
+        if (!TryPlaceSupplierOrder(_supplierReviewLines)) return;
+        Array.Clear(_supplierCart, 0, 4); _supplierReviewLines = null;
+        _menuPage = MenuPage.ActiveDeliveries; _selection = 0;
+    }
+
+    private string SupplierLiveState()
+    {
+        if (_deliveryRemainingGameSeconds > 0) return "IN TRANSIT";
+        if (_deliverySupplier == 0) return _wholesaleCargoLoaded ? "VEHICLE CARGO" : _wholesaleCargoUnloaded ? "UNLOADED" : "WAREHOUSE READY";
+        if (!CanStoreShipment(_deliveryQuantity)) return "CAPACITY HOLD";
+        if (_supplierVisualStage == 0) return "WAIT / RETRY";
+        switch (_supplierVisualStage)
+        {
+            case 1: return "ARRIVING";
+            case 2: return "DRIVER EXITING";
+            case 3: return "DRIVER WALKING";
+            case 4: return _managerSupplierPallet >= 0 ? "PALLET DROP" : "PLAYER HANDOFF";
+            case 6: return "PLAYER CARRYING";
+            case 8: return "REAR UNLOAD";
+            default: return "WAIT / RETRY";
+        }
+    }
+
+    private void ShowLastSupplierOutcome()
+    {
+        Notify("No pending order. Historical identities were not recorded by older builds.");
+    }
+
     private void ExecuteSupplierCart()
     {
         if (_selection < 4) AdjustSupplierCart(1);
@@ -9429,9 +9498,13 @@ public class GlassHeroesBusinessV3Experimental : Script
         else if (_selection == 5)
         {
             if (SupplierLineTotal(_supplierCart) < 0) Notify("Cart exceeds the 100-unit limit. Reduce quantities before previewing or ordering.");
-            else Notify("Cart " + SupplierLineTotal(_supplierCart) + " units | $" + SupplierCartCost(_supplierCart).ToString("N0") + " | free capacity " + Math.Max(0, TotalStorageCapacity() - StoredPartsTotal()));
+            else ShowStatusNotice("SUPPLIER OPTIONS / CURRENT CART",
+                "Wholesale " + SupplierDeliverySeconds(0) + "s: player warehouse pickup / assigned vehicle.",
+                "Local " + SupplierDeliverySeconds(1) + "s | Express " + SupplierDeliverySeconds(2) + "s: eligible manager receipt.",
+                "Selected " + SupplierName(_selectedSupplier) + " | " + SupplierLineTotal(_supplierCart) + " units | $" + SupplierCartCost(_supplierCart).ToString("N0"),
+                "Free units " + Math.Max(0, TotalStorageCapacity() - StoredPartsTotal()) + "; review before confirming.");
         }
-        else if (_selection == 6) { if (TryPlaceSupplierOrder(_supplierCart)) Array.Clear(_supplierCart, 0, 4); }
+        else if (_selection == 6) PrepareSupplierOrderReview();
         else if (_selection == 7)
         { _supplierCart[0] = Math.Max(0, Math.Max(5, _reorderThreshold) - _parts); for (int i = 1; i < 4; i++) _supplierCart[i] = Math.Max(0, _reorderThreshold - _specialStock[i - 1]); }
         else if (_selection == 8) Array.Clear(_supplierCart, 0, 4);
@@ -9440,10 +9513,10 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void ShowSupplierOrderContents()
     {
-        if (_deliveryKind == -2) { Notify("No pending supplier order."); return; }
+        if (_deliveryKind == -2) { ShowLastSupplierOutcome(); return; }
         int[] lines = _deliveryLines;
         if (lines == null) { lines = new int[4]; lines[_deliveryKind + 1] = _deliveryQuantity; }
-        ShowStatusNotice("PENDING ORDER CONTENTS", "Universal " + lines[0] + " | Filters " + lines[1],
+        ShowStatusNotice("PENDING #" + _deliveryDueUtcTicks, "Universal " + lines[0] + " | Filters " + lines[1],
             "Brake kits " + lines[2] + " | Diagnostics " + lines[3],
             SupplierName(_deliverySupplier) + " | " + (int)Math.Ceiling(_deliveryRemainingGameSeconds) + " active seconds remaining",
             "$" + _deliveryCost.ToString("N0") + (_deliveryPrepaid ? " PREPAID" : " consolidated invoice on stocking"));

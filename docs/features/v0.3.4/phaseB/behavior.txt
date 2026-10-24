@@ -1,0 +1,13 @@
+PASS procurement340 review copies all four lines without saving or receiving
+PASS procurement340 empty and oversized cart cannot enter review
+PASS procurement340 pending order cannot be overwritten by review
+PASS procurement340 Back retains draft and posts no invoice
+PASS procurement340 explicit confirmation places single mixed order only
+PASS procurement340 changed supplier requires fresh review
+PASS procurement340 changed current quote requires fresh review
+PASS procurement340 capacity revalidated after review
+PASS procurement340 wholesale assigned vehicle required at final confirmation
+PASS procurement340 failed save retains reviewed order and original draft
+PASS procurement340 paused confirmation cannot create order
+PASS procurement340 details explicitly distinguish invoice from cash
+procurement340 12/12 PASS; production review/confirmation, native input/rendering NOT RUN.
