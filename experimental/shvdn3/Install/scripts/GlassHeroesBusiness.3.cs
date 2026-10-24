@@ -542,7 +542,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             RequireExclusiveBusinessInstallation(File.Exists);
             Directory.CreateDirectory(DataDirectory);
-            Log("BOOT v0.3.3.4 SHVDN3 SERVICE BAY INTEGRATION EXPERIMENTAL / constructor entered", null);
+            Log("BOOT v0.3.3.5 SHVDN3 CUSTOMER WORKFLOW + ROLE ROUTES EXPERIMENTAL / constructor entered", null);
             _configuration = ScriptSettings.Load(SettingsFile);
             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
@@ -5557,8 +5557,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     private void UpdateOneCustomerOrder(CustomerOrder order)
     {
         if (order.Customer == null || !order.Customer.Exists() || order.Customer.IsDead ||
-            order.Vehicle == null || !order.Vehicle.Exists() ||
-            ((!_vehicleTransfersEnabled || order.VehicleTeleport) && order.Vehicle.IsDead))
+            order.Vehicle == null || !order.Vehicle.Exists() || order.Vehicle.IsDead)
         {
             CancelCustomerOrder("Missing customer entity", true);
             return;
@@ -6750,17 +6749,12 @@ public class GlassHeroesBusinessV3Experimental : Script
         // Prefer a free specialist for the type of service, then any free generalist.
         // AUTO LOT accepts any configured mechanic station; CUSTOM MLO still
         // requires individual vehicle parking points where the user placed them.
-        bool hasConfiguredCarBay = false;
-        if (_vehicleTransfersEnabled && !_automaticLotMode)
-            for (int j = 0; j < _mechanics.Count && j < VisualBayCount; j++)
-                if (_vehicleParkingBays[j].IsSet) hasConfiguredCarBay = true;
         if (!_vehicleTransfersEnabled && !TeleportAttemptDue(order)) return;
         int chosen = -1;
         for (int i = 0; i < _mechanics.Count && i < VisualBayCount; i++)
         {
             Mechanic mechanic = _mechanics[i];
-            if (!_bays[i].IsSet || mechanic.HasJob ||
-                (!_automaticLotMode && hasConfiguredCarBay && !_vehicleParkingBays[i].IsSet) ||
+            if (!CustomerBayAvailable(i, order) || mechanic.HasJob ||
                 mechanic.Worker == null || !mechanic.Worker.Exists() ||
                 mechanic.ArrivalPhase != PhaseAtBreak) continue;
             if (!_vehicleTransfersEnabled && !TeleportTargetAvailable(order,
@@ -6847,6 +6841,10 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         if (order == null || order.Paid || seconds <= 0 || double.IsNaN(seconds) || double.IsInfinity(seconds) || order.Stage != CustomerStage.Repairing ||
             order.MechanicSlot < 0 || order.MechanicSlot >= _mechanics.Count) return;
+        // Economy can run before the next visual cleanup; never settle a missing/destroyed car.
+        if (order.Vehicle == null || !order.Vehicle.Exists() || order.Vehicle.IsDead ||
+            order.Customer == null || !order.Customer.Exists() || order.Customer.IsDead)
+        { CancelCustomerOrder("Customer entity unavailable before repair settlement", true); return; }
         Mechanic mechanic = _mechanics[order.MechanicSlot];
         if (!mechanic.HasJob || mechanic.ArrivalPhase == PhaseRouteBlocked)
         {

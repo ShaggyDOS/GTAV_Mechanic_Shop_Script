@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 struct Vector3 {internal float X,Y,Z;}
-class Ped {internal bool alive=true;internal Vector3 Position;internal bool Exists()=>alive;}
+class Ped {internal bool IsDead;internal bool alive=true;internal Vector3 Position;internal bool Exists()=>alive;}
 class Vehicle {internal Vector3 Position;internal bool IsDead;internal bool Exists()=>true;}
 class Blip {}
 class ScriptSettings {
@@ -60,6 +60,7 @@ class Harness {
     /*<source:MechanicWage>*/
     /*<source:ServiceName>*/
     /*<source:AssignCustomerMechanic>*/
+    /*<source:CustomerBayAvailable>*/
     /*<source:ProcessOneCustomerRepair>*/
     /*<source:ProcessEconomy>*/
     /*<source:ProcessRemoteOperations>*/

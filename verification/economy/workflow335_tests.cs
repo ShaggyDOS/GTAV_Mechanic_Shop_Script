@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 namespace GTA.Native {
- enum Hash { IS_SPHERE_VISIBLE,SET_PED_INTO_VEHICLE,TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,TASK_VEHICLE_PARK,IS_PED_IN_VEHICLE,IS_VEHICLE_SEAT_FREE,GET_VEHICLE_NUMBER_OF_PASSENGERS,IS_POSITION_OCCUPIED,CLEAR_PED_TASKS,TASK_START_SCENARIO_IN_PLACE,TASK_STAND_STILL }
+ enum Hash { IS_PED_IN_ANY_VEHICLE,TASK_ENTER_VEHICLE,TASK_VEHICLE_DRIVE_WANDER,IS_SPHERE_VISIBLE,SET_PED_INTO_VEHICLE,TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,TASK_VEHICLE_PARK,IS_PED_IN_VEHICLE,IS_VEHICLE_SEAT_FREE,GET_VEHICLE_NUMBER_OF_PASSENGERS,IS_POSITION_OCCUPIED,CLEAR_PED_TASKS,TASK_START_SCENARIO_IN_PLACE,TASK_STAND_STILL }
  static class Function {internal static bool playerInside,driverFree=true,obstacle,throwQuery;internal static int passengers,calls,animations;internal static T Call<T>(Hash h,params object[] args){calls++;if(throwQuery)throw new IOException("query failure");object v=h==Hash.GET_VEHICLE_NUMBER_OF_PASSENGERS?(object)passengers:h==Hash.IS_PED_IN_VEHICLE?playerInside:h==Hash.IS_VEHICLE_SEAT_FREE?driverFree:obstacle;return (T)v;}internal static void Call(Hash h,params object[] args){calls++;if(h==Hash.TASK_START_SCENARIO_IN_PLACE)animations++;}}
 }
 
@@ -27,6 +27,20 @@ class Harness {
  /*<source:OpenServiceBayProfile>*/
  /*<source:CustomerBayAvailable>*/
  /*<source:CanStartNextIntake>*/
+ /*<source:UpdateOneCustomerOrder>*/
+ WorkBay[] _bayApproaches={new WorkBay(),new WorkBay(),new WorkBay()};
+ bool _customEmployeeWalkingPaths;bool _fineParkingEnabled=true;int _parkingTimeoutSeconds=30,_driveArrivalTimeout=90;float _parkingRadius=2;
+ WorkBay _customerApproach=new WorkBay(),_customerQueue=new WorkBay();
+ void BeginCustomerExit(CustomerOrder o){o.Stage=CustomerStage.ExitingVehicle;}void AdvanceCustomerWalkingNode(CustomerOrder o){}
+ bool CustomerArrived(CustomerOrder o,Vector3 target)=>false;
+ void WalkCustomer(CustomerOrder o,Vector3 target,CustomerStage stage){o.Stage=stage;}
+ void HandleCustomerStall(CustomerOrder o,Vector3 target){}bool ProgressVehicleWalk(CustomerOrder o)=>false;
+ bool MechanicInCustomerCar(CustomerOrder o)=>false;bool MechanicOutOfCar(CustomerOrder o)=>false;
+ void BeginEnterVehicle(CustomerOrder o,bool returning){}void StartValetDeparture(CustomerOrder o,bool outbound){}
+ void BeginVehicleDrive(CustomerOrder o,bool outbound){}void UpdateVehicleApproach(CustomerOrder o,bool inbound){}
+ void UpdateVehicleParking(CustomerOrder o,bool inbound){}
+ List<Vector3> BuildMechanicReturnFromDropoffRoute(int slot)=>new List<Vector3>();
+
  /*<source:CustomerSpawnRetryReady>*/
  /*<source:DeferCustomerSpawn>*/
  /*<source:SpawnCustomerOrder>*/
@@ -155,7 +169,8 @@ class Harness {
     void RecordCustomerInvoice(CustomerOrder o){invoiceWrites++;}void AppendRemoteInvoice(RemoteJob o,Mechanic m){invoiceWrites++;}
     bool failRelease;void ReleaseCustomerForPickup(CustomerOrder o){if(failRelease)throw new IOException("release failure");o.Stage=CustomerStage.ReturningToVehicle;}
 void StartReturnVehicleWalk(CustomerOrder o){}
-    void CancelCustomerOrder(string why,bool notify){if(_customerOrder!=null)_activeCustomerOrders.Remove(_customerOrder);}
+    /*<source:CancelCustomerOrder>*/
+    void DismissWorker(Mechanic m){if(m.Worker!=null)m.Worker.alive=false;m.Worker=null;}
     void RestoreCurrentOrder(){_customerOrder=_activeCustomerOrders.FirstOrDefault();}
     static Harness Fresh(){var h=new Harness();h.InitialiseRepairPricing();return h;}
     Mechanic Worker(int level=1,int specialty=0,int bonus=0){var m=new Mechanic{Xp=(level-1)*200,Specialty=specialty,WageBonus=bonus,Name="Test",Worker=new Ped(),ArrivalPhase=PhaseAtBreak};_mechanics.Add(m);return m;}
@@ -195,6 +210,18 @@ void StartReturnVehicleWalk(CustomerOrder o){}
  BayTest("destroyed staged car retains request without dispatch",()=>{var h=QueueFixture();h._stagedCustomerOrder=new CustomerOrder{Customer=new Ped(),Vehicle=new Vehicle{IsDead=true}};h.ValidateStagedCustomer(ref h._stagedCustomerOrder);Check(h._stagedCustomerOrder==null&&h._waitingCustomerRequests==2,"destroyed stage");});
  BayTest("failed pending quote save retains fixed promise and no vehicle transfer",()=>{var h=QueueFixture();h.saveSuccess=false;var a=h.Customer(0);h.AssignCustomerMechanic(a);Check(a.MechanicSlot==-1&&!h._mechanics[0].HasJob&&a.Vehicle.moves==0,"quote failure");});
  BayTest("reserved parts block additional customer intake",()=>{var h=QueueFixture();h._parts=0;h._specialStock[0]=1;h._specialStock[1]=h._specialStock[2]=0;var a=Assigned(h);Advance(h,a);h._stagedCustomerOrder=new CustomerOrder{ServiceKind=0,PartsNeeded=1};Check(!h.CanStartNextIntake(),"part reservation");});
+ BayTest("ON overlapping saved bays cannot double assign",()=>{var h=QueueFixture(2);h._vehicleTransfersEnabled=true;var a=h.Customer(0);h.AssignCustomerMechanic(a);h._vehicleParkingBays[1].Position=a.ResolvedParkingBay.Position;var b=h.Customer(0);h.AssignCustomerMechanic(b);Check(a.MechanicSlot==0&&b.MechanicSlot==-1&&!h._mechanics[1].HasJob&&h.drives==1,"ON duplicate bay");});
+ BayTest("paid OFF bay remains reserved until vehicle returns",()=>{var h=QueueFixture(2);var a=Assigned(h);Advance(h,a);h._mechanics[0].ArrivalPhase=PhaseWorking;h._customerOrder=a;RunRepair(h,a,120);Check(a.Paid&&!h.CustomerBayAvailable(0,null),"paid bay released too soon");a.Stage=CustomerStage.ReturningToVehicle;Check(h.CustomerBayAvailable(0,null),"bay not released after return");});
+ for(int mode=0;mode<2;mode++)for(int fault=0;fault<3;fault++){int m=mode,f=fault;BayTest("no ghost repair settlement mode/fault "+m+"/"+f,()=>{var h=QueueFixture();h._vehicleTransfersEnabled=m==1;var a=h.Customer(0);h.AssignCustomerMechanic(a);if(m==0)Advance(h,a);a.Stage=CustomerStage.Repairing;h._customerOrder=a;h._mechanics[0].ArrivalPhase=PhaseWorking;h._mechanics[0].WorkSeconds=a.RepairSeconds;if(f==0)a.Vehicle=null;if(f==1)a.Vehicle.alive=false;if(f==2)a.Vehicle.IsDead=true;RunRepair(h,a,1);Check(!a.Paid&&h._cash==0&&h.invoiceWrites==0&&!h._activeCustomerOrders.Contains(a)&&!h._mechanics[0].HasJob,"ghost charge");Check(h._pendingRepairPromises.Count==1,"accepted quote lost");});}
+ BayTest("missing customer prevents completion credit",()=>{var h=QueueFixture();var a=Assigned(h);Advance(h,a);h._customerOrder=a;h._mechanics[0].ArrivalPhase=PhaseWorking;a.Customer.alive=false;RunRepair(h,a,120);Check(!a.Paid&&h._cash==0&&h._pendingRepairPromises.Count==1,"customer loss");});
+ BayTest("unpaid cancel releases reservation and retains exact quote",()=>{var h=QueueFixture();var a=Assigned(h);var q=a.Pricing;h._customerOrder=a;h.CancelCustomerOrder("test cancellation",false);Check(h._activeCustomerOrders.Count==0&&!h._mechanics[0].HasJob&&h._cash==0&&h._specialStock[0]==10,"cancel ownership");SameQuote(q,h._pendingRepairPromises.Single().Quote);});
+ BayTest("paid cancellation never restores unpaid quote or pays twice",()=>{var h=QueueFixture();var a=Assigned(h);Advance(h,a);h._customerOrder=a;h._mechanics[0].ArrivalPhase=PhaseWorking;RunRepair(h,a,120);long cash=h._cash;h.CancelCustomerOrder("after payment",false);Check(a.Paid&&h._cash==cash&&h._pendingRepairPromises.Count==0&&h.invoiceWrites==1,"paid cancel");RunRepair(h,a,120);Check(h._cash==cash&&h.invoiceWrites==1,"repeat paid");});
+ BayTest("failed settlement retries atomically with one invoice",()=>{var h=QueueFixture();var a=Assigned(h);Advance(h,a);h._customerOrder=a;h._mechanics[0].ArrivalPhase=PhaseWorking;h.saveSuccess=false;RunRepair(h,a,120);Check(!a.Paid&&h._cash==0&&h._specialStock[0]==10&&h.invoiceWrites==0,"failed settle");h.saveSuccess=true;RunRepair(h,a,6);RunRepair(h,a,6);Check(a.Paid&&h._cash==a.Price&&h._specialStock[0]==9&&h.invoiceWrites==1,"settle once");});
+ BayTest("staged driving timeout cancels owned entities but keeps request",()=>{var h=QueueFixture();h._stagedCustomerOrder=new CustomerOrder{Customer=new Ped(),Vehicle=new Vehicle(),Stage=CustomerStage.DrivingToQueueSpace,QueueDestination=new WorkBay{IsSet=true,Position=new Vector3(200,0,0)}};for(int i=0;i<86;i++)h.UpdateStagedQueueTravel(ref h._stagedCustomerOrder);Check(h._stagedCustomerOrder==null&&h._waitingCustomerRequests==2,"staged timeout");});
+ BayTest("reload during accepted service parks quote not stale transfer",()=>{var h=QueueFixture();var a=Assigned(h);Advance(h,a);h._mechanics[0].WorkSeconds=20;h.Save();var restored=ReadForTest();Check(restored._activeCustomerOrders.Count==0&&restored._pendingRepairPromises.Count==1&&!restored._bootGameplayActivated,"reload boundary");SameQuote(a.Pricing,restored._pendingRepairPromises[0].Quote);});
+ BayTest("pause and closed shop cannot progress repairs",()=>{var h=QueueFixture();var a=Assigned(h);Advance(h,a);h._mechanics[0].ArrivalPhase=PhaseWorking;Game.IsPaused=true;h.ProcessEconomy(1000);Check(!a.Paid&&h._cash==0&&h._mechanics[0].WorkSeconds==0,"pause progress");Game.IsPaused=false;h._clockedIn=false;h.ProcessEconomy(1000);Check(!a.Paid&&h._cash==0,"closed progress");});
+ foreach(var stage in new[]{CustomerStage.MechanicEnteringVehicle,CustomerStage.MechanicEnteringForReturn,CustomerStage.MechanicExitingAtBay,CustomerStage.MechanicExitingAtDropoff}){var phase=stage;BayTest("physical transition timeout cancels once without teleport "+phase,()=>{var h=QueueFixture();h._vehicleTransfersEnabled=true;var a=h.Customer(0);h.AssignCustomerMechanic(a);h._customerOrder=a;a.Stage=phase;a.SecondsInStage=23;h.UpdateOneCustomerOrder(a);Check(!h._activeCustomerOrders.Contains(a)&&a.Vehicle.moves==0&&h._cash==0&&h._pendingRepairPromises.Count==1,"bounded transition");});}
+ BayTest("paid physical pickup wait cannot rerun payment or teleport",()=>{var h=QueueFixture();h._vehicleTransfersEnabled=true;var a=h.Customer(0);h.AssignCustomerMechanic(a);h._customerOrder=a;a.Stage=CustomerStage.Repairing;a.Vehicle.backing=a.ResolvedParkingBay.Position;h._mechanics[0].ArrivalPhase=PhaseWorking;h.pickupBlocked=true;RunRepair(h,a,120);Check(a.Paid&&a.Stage==CustomerStage.MechanicWaitingToReturn,"hold paid return");long cash=h._cash;for(int i=0;i<10;i++){h.UpdateOneCustomerOrder(a);RunRepair(h,a,10);}Check(h._cash==cash&&h.invoiceWrites==1&&a.Vehicle.moves==0,"repeat charge/move");});
  World.failVehicle=World.failPed=false;
     }
     static void Main(){DataDirectory=Path.Combine(Path.GetTempPath(),"gh335-"+Guid.NewGuid());Directory.CreateDirectory(DataDirectory);try{
