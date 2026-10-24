@@ -1,0 +1,431 @@
+# Issue37 production row descriptions
+
+Source-derived, not native visual/controller qualification.
+
+- Business [0] Open Business: Open Business: Start or end your shop's work shift.
+- Business [1] Save Business: Save Business: Save shop funds, invoices, employees and positions.
+- Business [2] Business Status: Business Status: Show detailed shop, customer and payroll status.
+- Business [3] Business Management >: Open Business Management. Open the complete business management directory.
+- BusinessManagement [0] Employees >: Staff status, hiring, profiles, wages and operating settings.
+- BusinessManagement [1] Customers >: Customer queue, arrivals, vehicle workflow and recovery controls.
+- BusinessManagement [2] Inventory & Suppliers >: Stock overview, mixed supplier orders, delivery status and confirmed retail sales.
+- BusinessManagement [3] Finances & Accounting >: Income, expenses, profit, ledger and owner capital transfers.
+- BusinessManagement [4] Placement Settings >: Edit existing saved positions and role routes; marker visibility does not delete points.
+- BusinessManagement [5] Set Shop Location: Set the permanent shop anchor while closed; review location before applying.
+- BusinessManagement [6] < Back to Main: Return to the previous menu and its selected row; nothing is changed.
+- Employees [0] Employee Status: Open an explicit staff snapshot; select a row to refresh job, bay and route details.
+- Employees [1] Mechanics >: Mechanic roster, hiring, specialization and route operating controls.
+- Employees [2] Receptionist >: Receptionist profile, hiring, queue skill and walking mode.
+- Employees [3] Business Manager >: Manager profile, hiring, wages, remote operations and walking mode.
+- Employees [4] Employee Settings >: Shared staff settings and placement-hub shortcut.
+- Employees [5] < Back to Business Management: Return to the previous menu and its selected row; nothing is changed.
+- EmployeeSettings [0] Placement Settings >: Open Placement Settings. Staff placement and walking options are separated.
+- EmployeeSettings [1] Employee Walking Paths >: Open Employee Walking Paths. Staff placement and walking options are separated.
+- EmployeeSettings [2] Blocked Path Recovery >: Open Blocked Path Recovery. Staff placement and walking options are separated.
+- EmployeeSettings [3] Placement Markers >: Open Placement Markers. Staff placement and walking options are separated.
+- EmployeeSettings [4] Break-Time Animations: Break-Time Animations: Staff placement and walking options are separated.
+- EmployeeSettings [5] < Back to Employees: Return to the previous menu and its selected row; nothing is changed.
+- EmployeePaths [0] Mechanic Walking Paths >: Open Mechanic Walking Paths. Configure walking routes for mechanics and receptionist independently.
+- EmployeePaths [1] Receptionist Walk Route >: Open Receptionist Walk Route. Configure walking routes for mechanics and receptionist independently.
+- EmployeePaths [2] Manager Walk Route >: Open Manager Walk Route. Configure walking routes for mechanics and receptionist independently.
+- EmployeePaths [3] < Back: Return to the previous menu and its selected row; nothing is changed.
+- ArrivalWaypoints [0] Spawn-to-Break Stop 1 >: Edit Spawn-to-Break Stop 1: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ArrivalWaypoints [1] Spawn-to-Break Stop 2 >: Edit Spawn-to-Break Stop 2: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ArrivalWaypoints [2] Spawn-to-Break Stop 3 >: Edit Spawn-to-Break Stop 3: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ArrivalWaypoints [3] Spawn-to-Break Stop 4 >: Edit Spawn-to-Break Stop 4: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ArrivalWaypoints [4] Spawn-to-Break Stop 5 >: Edit Spawn-to-Break Stop 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ArrivalWaypoints [5] < Back: Return to the previous menu and its selected row; nothing is changed.
+- MechanicBays [0] Service Bay 1 >: Open Service Bay 1. One logical service bay; separate car and mechanic positions, existing roster slot preserved.
+- MechanicBays [1] Service Bay 2 >: Open Service Bay 2. One logical service bay; separate car and mechanic positions, existing roster slot preserved.
+- MechanicBays [2] Service Bay 3 >: Open Service Bay 3. One logical service bay; separate car and mechanic positions, existing roster slot preserved.
+- MechanicBays [3] < Back: Return to the previous menu and its selected row; nothing is changed.
+- ServiceWaypoints [0] Bay Walk Stop 1 >: Edit Bay Walk Stop 1: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ServiceWaypoints [1] Bay Walk Stop 2 >: Edit Bay Walk Stop 2: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ServiceWaypoints [2] Bay Walk Stop 3 >: Edit Bay Walk Stop 3: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ServiceWaypoints [3] Bay Walk Stop 4 >: Edit Bay Walk Stop 4: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ServiceWaypoints [4] Bay Walk Stop 5 >: Edit Bay Walk Stop 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ServiceWaypoints [5] < Back: Return to the previous menu and its selected row; nothing is changed.
+- BayApproaches [0] Workstation 1 Approach >: Edit Workstation 1 Approach: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- BayApproaches [1] Workstation 2 Approach >: Edit Workstation 2 Approach: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- BayApproaches [2] Workstation 3 Approach >: Edit Workstation 3 Approach: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- BayApproaches [3] < Back: Return to the previous menu and its selected row; nothing is changed.
+- ServiceVehicleBays [0] Service Bay 1 >: Open Service Bay 1. Custom MLO car bays; AUTO LOT does not require these.
+- ServiceVehicleBays [1] Service Bay 2 >: Open Service Bay 2. Custom MLO car bays; AUTO LOT does not require these.
+- ServiceVehicleBays [2] Service Bay 3 >: Open Service Bay 3. Custom MLO car bays; AUTO LOT does not require these.
+- ServiceVehicleBays [3] < Back: Return to the previous menu and its selected row; nothing is changed.
+- ServiceBayProfile [0] Set Vehicle Position (CUSTOM): Edit saved CUSTOM car position and heading; AUTO LOT remains computed until mode changes.
+- ServiceBayProfile [1] Set Mechanic Work Position: Edit the separate mechanic animation/work position; keep clear of the car center.
+- ServiceBayProfile [2] Mechanic Assignment: Inspect existing fixed roster-slot assignment; no staff reassignment.
+- ServiceBayProfile [3] View Current Configuration: Show both existing points, headings and active parking mode without saving.
+- ServiceBayProfile [4] < Back to Service Bays: Return to the previous menu and its selected row; nothing is changed.
+- PointEditor [0] Set / Save Position + Facing: Set / Save Position + Facing: Edit existing point.
+- PointEditor [1] Clear Saved Position: Clear Saved Position: Remove this placement (shop must be closed).
+- PointEditor [2] Marker Display >: Open Marker Display. Choose marker modes and categories; changes persist after closing F2.
+- PointEditor [3] Show Saved Coordinates: Show Saved Coordinates: Print coordinates and heading in a notification.
+- PointEditor [4] < Back: Return to the previous menu and its selected row; nothing is changed.
+- RouteRecovery [0] Blocked-Route Teleport: Blocked-Route Teleport: Stuck employees can recover at saved waypoints.
+- RouteRecovery [1] Recovery Status: Recovery Status: Stuck employees can recover at saved waypoints.
+- RouteRecovery [2] < Back: Return to the previous menu and its selected row; nothing is changed.
+- PlacementMarkers [0] Display Mode: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [1] Hide All (including previews): Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [2] Show Current Category: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [3] Restore Last Custom: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [4] Customers & Queue: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [5] Mechanics & Walking: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [6] Service Vehicle Bays: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [7] Reception / Manager / Equipment: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [8] Supplier & Stockroom: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [9] Computed Auto Bay Preview: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [10] Selected Point Identity: Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.
+- PlacementMarkers [11] < Back: Return to the previous menu and its selected row; nothing is changed.
+- Customers [0] Customer Order Status: Show current order stages, assigned workers, bay and wait reasons on demand.
+- Customers [1] Customer Queue >: Inspect or schedule bounded requests; active/paid orders are separate from roadside waiting cars.
+- Customers [2] Placement Settings >: Open central Placement Settings without changing saved coordinates.
+- Customers [3] Vehicle Driving Options >: Configure driving/transfer modes, inspect diagnostics or retry a held paid return safely.
+- Customers [4] Customer Arrivals: Enable/disable GTA-hour customer demand: daytime is busier, overnight quieter; existing cancellation rules remain.
+- Customers [5] Schedule Next Customer: Manually request one customer within configured queue capacity; bypass automatic demand wait.
+- Customers [6] Customer Blips: Show/hide script-owned customer blips.
+- Customers [7] Placement Markers: Show/hide placement preview only; saved points remain intact.
+- Customers [8] < Back to Business Management: Return to the previous menu and its selected row; nothing is changed.
+- Finances [0] Financial Overview >: Cash bridge and audit status distinguish sales from available cash.
+- Finances [1] Income & Sales >: Compare physical, remote, autonomous and retail sales without overlap.
+- Finances [2] Expenses & Bills >: Review/pay actual bills and reach equipment; accrued bills are not cash payments.
+- Finances [3] Profit & Loss >: Inspect accounting profit on purchase-expense basis.
+- Finances [4] Transaction History >: Read committed transaction identities and resulting cash.
+- Finances [5] Owner Cash Transfers >: Select $1,000/$10,000/$100,000, review and confirm owner capital movement.
+- Finances [6] Reporting Period: Toggle: Toggle current/last shift versus lifetime reporting only.
+- Finances [7] < Back to Management: Return to the previous menu and its selected row; nothing is changed.
+- FinancialOverview [0] Reporting Period: Toggle: Reporting Period: Toggle: CURRENT SHIFT: closing cash is not gross sales. Reconciliation separates expenses, owner transfers and adjustments.
+- FinancialOverview [1] Period Closing Cash: Period Closing Cash: CURRENT SHIFT: closing cash is not gross sales. Reconciliation separates expenses, owner transfers and adjustments.
+- FinancialOverview [2] Gross Revenue: Gross Revenue: CURRENT SHIFT: closing cash is not gross sales. Reconciliation separates expenses, owner transfers and adjustments.
+- FinancialOverview [3] Cash Flow Reconciliation: Cash Flow Reconciliation: CURRENT SHIFT: closing cash is not gross sales. Reconciliation separates expenses, owner transfers and adjustments.
+- FinancialOverview [4] Outstanding Bills at Close: Outstanding Bills at Close: CURRENT SHIFT: closing cash is not gross sales. Reconciliation separates expenses, owner transfers and adjustments.
+- FinancialOverview [5] Save / Audit State: Save / Audit State: CURRENT SHIFT: closing cash is not gross sales. Reconciliation separates expenses, owner transfers and adjustments.
+- FinancialOverview [6] < Back to Accounting: Return to the previous menu and its selected row; nothing is changed.
+- IncomeSales [0] Reporting Period: Toggle: Reporting Period: Toggle: CURRENT SHIFT: four non-overlapping revenue sources. Remote was already included in legacy customer totals.
+- IncomeSales [1] Physical Customer Repairs: Physical Customer Repairs: CURRENT SHIFT: four non-overlapping revenue sources. Remote was already included in legacy customer totals.
+- IncomeSales [2] Manager Remote Repairs: Manager Remote Repairs: CURRENT SHIFT: four non-overlapping revenue sources. Remote was already included in legacy customer totals.
+- IncomeSales [3] Autonomous Mechanic Jobs: Autonomous Mechanic Jobs: CURRENT SHIFT: four non-overlapping revenue sources. Remote was already included in legacy customer totals.
+- IncomeSales [4] Parts Retail Sales: Parts Retail Sales: CURRENT SHIFT: four non-overlapping revenue sources. Remote was already included in legacy customer totals.
+- IncomeSales [5] Gross Revenue (No Overlap): Gross Revenue (No Overlap): CURRENT SHIFT: four non-overlapping revenue sources. Remote was already included in legacy customer totals.
+- IncomeSales [6] Known Rebates / Refunds: Known Rebates / Refunds: CURRENT SHIFT: four non-overlapping revenue sources. Remote was already included in legacy customer totals.
+- IncomeSales [7] < Back to Accounting: Return to the previous menu and its selected row; nothing is changed.
+- ProfitLoss [0] Reporting Period: Toggle: Reporting Period: Toggle: CURRENT SHIFT: purchase-expense accounting profit; unpaid accruals are not cash payments. Owner capital is excluded.
+- ProfitLoss [1] Gross Revenue: Gross Revenue: CURRENT SHIFT: purchase-expense accounting profit; unpaid accruals are not cash payments. Owner capital is excluded.
+- ProfitLoss [2] Cash Expense Payments: Cash Expense Payments: CURRENT SHIFT: purchase-expense accounting profit; unpaid accruals are not cash payments. Owner capital is excluded.
+- ProfitLoss [3] Expenses Incurred: Expenses Incurred: CURRENT SHIFT: purchase-expense accounting profit; unpaid accruals are not cash payments. Owner capital is excluded.
+- ProfitLoss [4] Accounting Profit: Accounting Profit: CURRENT SHIFT: purchase-expense accounting profit; unpaid accruals are not cash payments. Owner capital is excluded.
+- ProfitLoss [5] Accounting Basis / Notes: Accounting Basis / Notes: CURRENT SHIFT: purchase-expense accounting profit; unpaid accruals are not cash payments. Owner capital is excluded.
+- ProfitLoss [6] < Back to Accounting: Return to the previous menu and its selected row; nothing is changed.
+- TransactionHistory [0] #1 test history: #1 test history: Latest 256 committed entries; older cash rolls into history opening checkpoint. Select for active time, identity and resulting cash.
+- TransactionHistory [1] Older Transactions >: Open Older Transactions. Latest 256 committed entries; older cash rolls into history opening checkpoint. Select for active time, identity and resulting cash.
+- TransactionHistory [2] Newer Transactions >: Open Newer Transactions. Latest 256 committed entries; older cash rolls into history opening checkpoint. Select for active time, identity and resulting cash.
+- TransactionHistory [3] < Back to Accounting: Return to the previous menu and its selected row; nothing is changed.
+- OwnerTransfers [0] Transfer Amount: Change: Cycle the session transfer amount: $1,000, $10,000 or $100,000; no payment yet.
+- OwnerTransfers [1] Review Owner Deposit >: Review moving the selected amount from the eligible Story Mode wallet to business cash.
+- OwnerTransfers [2] Review Owner Withdrawal >: Review moving selected business cash to the eligible Story Mode wallet.
+- OwnerTransfers [3] Recorded Owner Deposits: Recorded owner deposits are capital, never sales.
+- OwnerTransfers [4] Recorded Owner Withdrawals: Recorded owner withdrawals are capital, never expenses.
+- OwnerTransfers [5] Reporting Period: Toggle: Toggle report period; no funds move.
+- OwnerTransfers [6] < Back to Accounting: Return to the previous menu and its selected row; nothing is changed.
+- StaffRoster [0] Mechanic 1 >: Open Mechanic 1. Select a hired mechanic to view their persistent personnel record.
+- StaffRoster [1] Mechanic 2 >: Open Mechanic 2. Select a hired mechanic to view their persistent personnel record.
+- StaffRoster [2] Mechanic 3 >: Open Mechanic 3. Select a hired mechanic to view their persistent personnel record.
+- StaffRoster [3] < Back to Mechanics: Return to the previous menu and its selected row; nothing is changed.
+- StaffProfile [0] Profile / Performance: Profile / Performance: View this mechanic's XP, skill, specialty, wages and active job.
+- StaffProfile [1] Training: +40 XP: Training: +40 XP: Spend $750 for +40 XP without counting a repair completion.
+- StaffProfile [2] Change Specialization: Change Specialization: Pay for a new specialty certification at mechanic level 2+.
+- StaffProfile [3] Raise Period Wage (+$50): Raise Period Wage (+$50): Increase this mechanic's wage by $50 for each payroll period.
+- StaffProfile [4] Fire This Mechanic: Fire This Mechanic: Dismiss this mechanic when no customer repairs are active.
+- StaffProfile [5] < Back to Roster: Return to the previous menu and its selected row; nothing is changed.
+- VehicleDriveOptions [0] Drive-in Customer Cars: Drive-in Customer Cars: Customers drive from ROAD SPAWN to DROP-OFF.
+- VehicleDriveOptions [1] Mechanic Vehicle Transfers: Mechanic Vehicle Transfers: Mechanic collects car, drives to service bay, returns it.
+- VehicleDriveOptions [2] Service Parking Mode: Service Parking Mode: AUTO LOT derives spots; CUSTOM MLO uses saved car spots.
+- VehicleDriveOptions [3] Auto Lot Settings >: Open Auto Lot Settings. AUTO LOT: choose side, distance and target preview.
+- VehicleDriveOptions [4] Custom MLO Parking Bays >: Open Custom MLO Parking Bays. CUSTOM MLO: save independent car parking spots for bays.
+- VehicleDriveOptions [5] Reverse Before Driving: Reverse Before Driving: Optional careful reverse maneuver when exiting a service bay.
+- VehicleDriveOptions [6] Driving Status / Diagnostics: Inspect pickup walking, valet drive/parking, workstation and return stages on demand.
+- VehicleDriveOptions [7] Retry Held Paid Car Return: Retry held PAID physical returns: exit driver first, then only an empty stopped car to clear pickup. OFF-mode pickup retries automatically.
+- VehicleDriveOptions [8] < Back to Customers: Return to the previous menu and its selected row; nothing is changed.
+- CustomerPlacements [0] Customer Drop-off Parking >: Edit shared customer drop-off/pickup parking and facing.
+- CustomerPlacements [1] Customer Road Spawn >: Edit drive-in customer road entry point and facing.
+- CustomerPlacements [2] Customer Reception Approach >: Edit pedestrian reception approach.
+- CustomerPlacements [3] Customer Check-in Position >: Edit check-in/queue position near reception.
+- CustomerPlacements [4] Waiting Car 2 Position >: Edit Car 2 roadside waiting position and heading.
+- CustomerPlacements [5] Waiting Car 3 Position >: Edit Car 3 optional distinct waiting position and heading.
+- CustomerPlacements [6] Service Vehicle Parking Bays >: Open logical car/work bay profiles without changing mode.
+- CustomerPlacements [7] Customer Walking Route (0-3) >: Edit customer walking stops only.
+- CustomerPlacements [8] < Back: Return to the previous menu and its selected row; nothing is changed.
+- EmployeePlacements [0] Mechanic Break Area >: Edit Mechanic Break Area; existing EmployeeBreakArea key/heading stays compatible.
+- EmployeePlacements [1] Service Bays >: Open logical service bays; car and worker positions stay separate.
+- EmployeePlacements [2] Receptionist Desk >: Edit receptionist desk/work location.
+- EmployeePlacements [3] Receptionist Desk Approach >: Edit receptionist final desk approach.
+- EmployeePlacements [4] Manager Workstation >: Edit manager workstation.
+- EmployeePlacements [5] Manager Workstation Approach >: Edit manager final workstation approach.
+- EmployeePlacements [6] Staff Spawn / Entry >: Edit shared staff spawn/entry location.
+- EmployeePlacements [7] < Back: Return to the previous menu and its selected row; nothing is changed.
+- MechanicWalkingPaths [0] Mechanic Walking Mode: Mechanic Walking Mode: DIRECT for outside; CUSTOM MLO for optional paths.
+- MechanicWalkingPaths [1] Car Pickup: Reuse Spawn Path: Car Pickup: Reuse Spawn Path: Reuse entry corridor: pickup walks in reverse; drop-off return walks forward. Does not select work stops.
+- MechanicWalkingPaths [2] Staff Spawn -> Break >: Open Staff Spawn -> Break. Shared entry corridor: spawn to break; optional reuse for car pickup/return walks.
+- MechanicWalkingPaths [3] Break <-> Service Bay Stops >: Open Break <-> Service Bay Stops. Edit shared work stops. These serve workstation access, not customer-car pickup or driving.
+- MechanicWalkingPaths [4] Final Walking Approaches >: Open Final Walking Approaches. Optional last turn beside mechanic repair workstations.
+- MechanicWalkingPaths [5] Advanced: Legacy Checkpoint >: Open Advanced: Legacy Checkpoint. Legacy checkpoint, only when arrival points are absent.
+- MechanicWalkingPaths [6] Stops Used by Each Mechanic >: Open Stops Used by Each Mechanic. Select existing Break <-> Service Bay Stops separately for each mechanic and walking direction.
+- MechanicWalkingPaths [7] Smooth Through-Waypoints: Smooth Through-Waypoints: Advance ~1.9m before intermediate waypoints; final target unchanged.
+- MechanicWalkingPaths [8] Teleport Stuck Pedestrians: Teleport Stuck Pedestrians: Recover stuck workers beside saved points rather than cancelling jobs.
+- MechanicWalkingPaths [9] Custom Work Stop Routes: Custom Work Stop Routes: Toggle custom workstation access using selected Break <-> Service Bay Stops and the bay approach.
+- MechanicWalkingPaths [10] < Back: Return to the previous menu and its selected row; nothing is changed.
+- ReceptionWalkingPaths [0] Receptionist Walking Mode: Choose DIRECT or CUSTOM receptionist walking; close shop before changing mode.
+- ReceptionWalkingPaths [1] Entry-to-Desk Stops >: Edit the same five receptionist-only entry-to-desk stops from either menu shortcut.
+- ReceptionWalkingPaths [2] Final Desk Approach >: Edit the existing receptionist final desk approach; no duplicate route settings.
+- ReceptionWalkingPaths [3] < Back: Return to the previous menu and its selected row; nothing is changed.
+- ReceptionWaypoints [0] Reception Stop 1 / 5 >: Edit Reception Stop 1 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ReceptionWaypoints [1] Reception Stop 2 / 5 >: Edit Reception Stop 2 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ReceptionWaypoints [2] Reception Stop 3 / 5 >: Edit Reception Stop 3 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ReceptionWaypoints [3] Reception Stop 4 / 5 >: Edit Reception Stop 4 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ReceptionWaypoints [4] Reception Stop 5 / 5 >: Edit Reception Stop 5 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ReceptionWaypoints [5] < Back: Return to the previous menu and its selected row; nothing is changed.
+- CustomerQueueSettings [0] Pending Customer Requests: Pending Customer Requests: Cars 2 and 3 stage roadside. Multiple staffed bays can repair while arrivals take turns at drop-off.
+- CustomerQueueSettings [1] Maximum Queue Capacity: Maximum Queue Capacity: Cars 2 and 3 stage roadside. Multiple staffed bays can repair while arrivals take turns at drop-off.
+- CustomerQueueSettings [2] Schedule One Customer: Schedule One Customer: Cars 2 and 3 stage roadside. Multiple staffed bays can repair while arrivals take turns at drop-off.
+- CustomerQueueSettings [3] Clear Pending Requests: Clear Pending Requests: Cars 2 and 3 stage roadside. Multiple staffed bays can repair while arrivals take turns at drop-off.
+- CustomerQueueSettings [4] < Back to Customers: Return to the previous menu and its selected row; nothing is changed.
+- PartsSales [0] Universal Parts: Quantity: Universal Parts: Quantity: 10 FREE | $100. Left/Right adjusts quantity; Enter adds one. Review before selling.
+- PartsSales [1] Service Filters: Quantity: Service Filters: Quantity: 10 FREE | $100. Left/Right adjusts quantity; Enter adds one. Review before selling.
+- PartsSales [2] Brake Kits: Quantity: Brake Kits: Quantity: 10 FREE | $100. Left/Right adjusts quantity; Enter adds one. Review before selling.
+- PartsSales [3] Diagnostic Supplies: Quantity: Diagnostic Supplies: Quantity: 10 FREE | $100. Left/Right adjusts quantity; Enter adds one. Review before selling.
+- PartsSales [4] Review Sale >: Open Review Sale. Review the entire sale before confirmation; reserved repair stock is protected.
+- PartsSales [5] Clear Sale Draft: Clear Sale Draft: Clear only the unsold draft; no inventory or cash changes.
+- PartsSales [6] < Back to Inventory: Return to the previous menu and its selected row; nothing is changed.
+- VehicleAutoLotOptions [0] Car Parking Side: Car Parking Side: Adjust only AUTO LOT. Does not modify manually saved bays.
+- VehicleAutoLotOptions [1] Car Offset from Mechanic Bay: Car Offset from Mechanic Bay: Adjust only AUTO LOT. Does not modify manually saved bays.
+- VehicleAutoLotOptions [2] Auto Parking Preview: Auto Parking Preview: Adjust only AUTO LOT. Does not modify manually saved bays.
+- VehicleAutoLotOptions [3] < Back to Driving: Return to the previous menu and its selected row; nothing is changed.
+- BusinessExpenses [0] Outstanding Bills: Outstanding Bills: Settle wages, rent and delivered supplier invoices; restock and equipment are separate.
+- BusinessExpenses [1] Mechanic Wage Invoices >: Open Mechanic Wage Invoices. Settle wages, rent and delivered supplier invoices; restock and equipment are separate.
+- BusinessExpenses [2] Pay Receptionist Wages: Pay Receptionist Wages: Settle wages, rent and delivered supplier invoices; restock and equipment are separate.
+- BusinessExpenses [3] Pay Rent & Utilities: Pay Rent & Utilities: Settle wages, rent and delivered supplier invoices; restock and equipment are separate.
+- BusinessExpenses [4] Pay Supplier Invoices: Pay Supplier Invoices: Settle wages, rent and delivered supplier invoices; restock and equipment are separate.
+- BusinessExpenses [5] Pay All Bills: Pay All Bills: Settle wages, rent and delivered supplier invoices; restock and equipment are separate.
+- BusinessExpenses [6] Order 10 Universal Parts: Order 10 Universal Parts: Settle wages, rent and delivered supplier invoices; restock and equipment are separate.
+- BusinessExpenses [7] Equipment & Office >: Open Equipment & Office. Settle wages, rent and delivered supplier invoices; restock and equipment are separate.
+- BusinessExpenses [8] Financial Reports >: Open Financial Reports. Settle wages, rent and delivered supplier invoices; restock and equipment are separate.
+- BusinessExpenses [9] Pay Manager Wages: Pay Manager Wages: Pay only the outstanding manager wage invoice; no manager rebate on their own wages.
+- BusinessExpenses [10] < Back to Business Management: Return to the previous menu and its selected row; nothing is changed.
+- MechanicInvoices [0] Mechanic 1 Wage Invoice: Mechanic 1 Wage Invoice: Pay outstanding per-mechanic wage invoices or settle all at once.
+- MechanicInvoices [1] Mechanic 2 Wage Invoice: Mechanic 2 Wage Invoice: Pay outstanding per-mechanic wage invoices or settle all at once.
+- MechanicInvoices [2] Mechanic 3 Wage Invoice: Mechanic 3 Wage Invoice: Pay outstanding per-mechanic wage invoices or settle all at once.
+- MechanicInvoices [3] Pay Former Employee Wages: Pay Former Employee Wages: Pay outstanding per-mechanic wage invoices or settle all at once.
+- MechanicInvoices [4] Pay All Mechanic Wages: Pay All Mechanic Wages: Pay outstanding per-mechanic wage invoices or settle all at once.
+- MechanicInvoices [5] < Back to Expenses: Return to the previous menu and its selected row; nothing is changed.
+- CustomerWalkingRoutes [0] Customer Walking Stop 1 / 3 >: Edit Customer Walking Stop 1 / 3: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- CustomerWalkingRoutes [1] Customer Walking Stop 2 / 3 >: Edit Customer Walking Stop 2 / 3: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- CustomerWalkingRoutes [2] Customer Walking Stop 3 / 3 >: Edit Customer Walking Stop 3 / 3: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- CustomerWalkingRoutes [3] < Back: Return to the previous menu and its selected row; nothing is changed.
+- InventoryManagement [0] Inventory Overview >: View available inventory and capacity; pending cargo is not stock on hand.
+- InventoryManagement [1] Build Supplier Order >: Build a mixed-category order with one supplier, ETA and invoice after stocking.
+- InventoryManagement [2] Active Deliveries >: Inspect saved pending order identity and its current delivery stage.
+- InventoryManagement [3] Parts Sales >: Choose retail quantities, review unchanged cost-estimate prices, then confirm an atomic sale.
+- InventoryManagement [4] Stockroom & Pallets >: Inspect owned pallet capacity, explicitly buy or place pallets.
+- InventoryManagement [5] Supplier Settings >: Supplier physical setup, wholesale vehicle registration and recovery controls.
+- InventoryManagement [6] < Back to Management: Return to the previous menu and its selected row; nothing is changed.
+- InventoryOverview [0] Universal Parts: View universal on-hand, reserved, free and incoming units on demand; nothing is sold or purchased.
+- InventoryOverview [1] Service Filters: Inspect filter stock and the units still promised to repairs.
+- InventoryOverview [2] Brake Kits: Inspect brake stock; incoming parts are not yet available for work.
+- InventoryOverview [3] Diagnostic Supplies: Inspect diagnostic supplies and their estimated unit cost.
+- InventoryOverview [4] Storage Capacity: Inspect all four stocks, shared unit capacity and remaining parcel slots.
+- InventoryOverview [5] Reorder Advice: Read low-stock advice without ordering.
+- InventoryOverview [6] Low-stock Threshold: Change reorder advice threshold; no automatic purchase.
+- InventoryOverview [7] < Back to Inventory: Return to the previous menu and its selected row; nothing is changed.
+- BuildSupplierOrder [0] Universal Parts: Set Universal Parts quantity with Left/Right or Enter; this edits only the unsent supplier cart.
+- BuildSupplierOrder [1] Service Filters: Set Service Filters quantity with Left/Right or Enter; this edits only the unsent supplier cart.
+- BuildSupplierOrder [2] Brake Kits: Set Brake Kits quantity with Left/Right or Enter; this edits only the unsent supplier cart.
+- BuildSupplierOrder [3] Diagnostic Supplies: Set Diagnostic Supplies quantity with Left/Right or Enter; this edits only the unsent supplier cart.
+- BuildSupplierOrder [4] Supplier: Change: Choose one supplier for the entire cart; wholesale stays player-only.
+- BuildSupplierOrder [5] Cost / Capacity Preview: Preview full cost and capacity before placing anything.
+- BuildSupplierOrder [6] Review Purchase Order >: Review this mixed order before a separate explicit confirmation.
+- BuildSupplierOrder [7] Fill Low-stock Cart: Fill unsent quantities using low-stock advice; does not submit.
+- BuildSupplierOrder [8] Clear Cart: Clear the unsent supplier draft only.
+- BuildSupplierOrder [9] < Back to Inventory: Return to the previous menu and its selected row; nothing is changed.
+- SupplierOrderReview [0] Review Order Details: Inspect frozen quantities, quote, ETA, capacity and receipt requirements.
+- SupplierOrderReview [1] Confirm Purchase Order: Confirm once; current supplier, quote, capacity and pending state are checked again.
+- SupplierOrderReview [2] < Back to Supplier Cart: Return to the previous menu and its selected row; nothing is changed.
+- ActiveDeliveries [0] Delivery Status: Show current delivery identity/stage as an on-demand snapshot.
+- ActiveDeliveries [1] Order / Last Receipt: Review current order lines, or the last durable receipt/cancellation if none is pending.
+- ActiveDeliveries [2] Recover Original Order: Recover the original pending order, without a second purchase or receipt.
+- ActiveDeliveries [3] Cancel Pending Order: Request cancellation using existing confirmation/financial rules.
+- ActiveDeliveries [4] Set Warehouse GPS: Route to READY warehouse cargo only; your waypoint stays untouched. Choosing another yields this route.
+- ActiveDeliveries [5] < Back to Inventory: Return to the previous menu and its selected row; nothing is changed.
+- EquipmentManagement [0] Equipment Status: Equipment Status: Purchased equipment saves permanently; placements only control visible props.
+- EquipmentManagement [1] Buy Tool Set: Buy Tool Set: Tool set $1,800: permanent 7% shorter repair duration on all jobs.
+- EquipmentManagement [2] Buy Diagnostic Scanner: Buy Diagnostic Scanner: Scanner $1,600: permanent 10% shorter engine diagnostics.
+- EquipmentManagement [3] Buy Desk + Laptop: Buy Desk + Laptop: Purchased equipment saves permanently; placements only control visible props.
+- EquipmentManagement [4] Place Tool Chest: Place Tool Chest: Place/hide tool chest. Ownership and repair bonus are never lost.
+- EquipmentManagement [5] Remove Tool Chest: Remove Tool Chest: Place/hide tool chest. Ownership and repair bonus are never lost.
+- EquipmentManagement [6] Place Diagnostic Trolley: Place Diagnostic Trolley: Place/hide diagnostic trolley. Tablet removed; bonus remains active.
+- EquipmentManagement [7] Remove Diagnostic Trolley: Remove Diagnostic Trolley: Place/hide diagnostic trolley. Tablet removed; bonus remains active.
+- EquipmentManagement [8] Place Desk in Front: Place Desk in Front: Office desk: E or D-pad RIGHT nearby opens Business Management.
+- EquipmentManagement [9] Remove Placed Desk: Remove Placed Desk: Purchased equipment saves permanently; placements only control visible props.
+- EquipmentManagement [10] Office PC Status: Office PC Status: Purchased equipment saves permanently; placements only control visible props.
+- EquipmentManagement [11] < Back: Return to the previous menu and its selected row; nothing is changed.
+- MechanicRouteRoster [0] Mechanic 1 Work Stops >: Open Mechanic 1 Work Stops. Choose which shared work stops each mechanic uses to/from the workstation; coordinates remain shared.
+- MechanicRouteRoster [1] Mechanic 2 Work Stops >: Open Mechanic 2 Work Stops. Choose which shared work stops each mechanic uses to/from the workstation; coordinates remain shared.
+- MechanicRouteRoster [2] Mechanic 3 Work Stops >: Open Mechanic 3 Work Stops. Choose which shared work stops each mechanic uses to/from the workstation; coordinates remain shared.
+- MechanicRouteRoster [3] < Back to Mechanic Paths: Return to the previous menu and its selected row; nothing is changed.
+- MechanicRouteDirection [0] To Service Bay >: No mechanic. DIRECT: selections inactive.
+- MechanicRouteDirection [1] From Service Bay >: No mechanic. DIRECT: selections inactive.
+- MechanicRouteDirection [2] View Selected Routes: Show selected shared stops in travel order; no route, setting or coordinate changes.
+- MechanicRouteDirection [3] < Back to Mechanic List: Return to the previous menu and its selected row; nothing is changed.
+- MechanicRoutePoints [0] Bay Walk Stop 1: Change this mechanic's enabled stops only; physical coordinates stay unchanged.
+- MechanicRoutePoints [1] Bay Walk Stop 2: Change this mechanic's enabled stops only; physical coordinates stay unchanged.
+- MechanicRoutePoints [2] Bay Walk Stop 3: Change this mechanic's enabled stops only; physical coordinates stay unchanged.
+- MechanicRoutePoints [3] Bay Walk Stop 4: Change this mechanic's enabled stops only; physical coordinates stay unchanged.
+- MechanicRoutePoints [4] Bay Walk Stop 5: Change this mechanic's enabled stops only; physical coordinates stay unchanged.
+- MechanicRoutePoints [5] Select All Shared Stops: Change this mechanic's enabled stops only; physical coordinates stay unchanged.
+- MechanicRoutePoints [6] Deselect All Shared Stops: Change this mechanic's enabled stops only; physical coordinates stay unchanged.
+- MechanicRoutePoints [7] < Back to Route Direction: Return to the previous menu and its selected row; nothing is changed.
+- SupplierDeliverySetup [0] Physical Mule Delivery: Physical Mule Delivery: Use a Mule for local/express deliveries. Wholesale uses warehouse pickup.
+- SupplierDeliverySetup [1] Mule Road Spawn >: Open Mule Road Spawn. Road location where the supplier vehicle initially appears.
+- SupplierDeliverySetup [2] Truck Unloading Spot >: Open Truck Unloading Spot. Saved unloading parking space; leave room for a box truck.
+- SupplierDeliverySetup [3] Driver Box Handoff >: Open Driver Box Handoff. Driver opens rear doors, retrieves box and walks here for handoff.
+- SupplierDeliverySetup [4] Pallet Storage & Capacity >: Open Pallet Storage & Capacity. Buy extra storage pallets, place them and inspect stock capacity.
+- SupplierDeliverySetup [5] Driver Walk Stops (0-3) >: Open Driver Walk Stops (0-3). Up to three optional stops for the delivery driver's walking route.
+- SupplierDeliverySetup [6] Wholesale Warehouse: Fixed: Wholesale Warehouse: Fixed: Permanent wholesale parcel spawn: -164.2800, -2676.5900, 6.0141.
+- SupplierDeliverySetup [7] Assign Current Pickup Vehicle: Assign Current Pickup Vehicle: Assign the CURRENT vehicle (plate and model) for wholesale cargo missions.
+- SupplierDeliverySetup [8] Assigned Vehicle / Cargo Status: Assigned Vehicle / Cargo Status: View registered vehicle, loaded cargo and active wholesale order.
+- SupplierDeliverySetup [9] Delivery Route / Stock Status: Delivery Route / Stock Status: Truck route, warehouse pickup, box carry, supplier invoices and capacity.
+- SupplierDeliverySetup [10] Recover Stuck Shipment: Recover Stuck Shipment: Recover original pending shipment; no new order or stock credit.
+- SupplierDeliverySetup [11] Cancel Pending Order (press twice): Cancel Pending Order (press twice): Press twice within 12 seconds to cancel; legacy prepayments are refunded.
+- SupplierDeliverySetup [12] < Back to Inventory: Return to the previous menu and its selected row; nothing is changed.
+- SupplierDriverWaypoints [0] Driver Stop 1 / 3 >: Edit Driver Stop 1 / 3: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- SupplierDriverWaypoints [1] Driver Stop 2 / 3 >: Edit Driver Stop 2 / 3: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- SupplierDriverWaypoints [2] Driver Stop 3 / 3 >: Edit Driver Stop 3 / 3: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- SupplierDriverWaypoints [3] < Back: Return to the previous menu and its selected row; nothing is changed.
+- HireMechanicRoster [0] Junior General Mechanic: Junior General Mechanic: Candidates have different starting skill, specialty, hiring price and wages.
+- HireMechanicRoster [1] Skilled Brake Technician: Skilled Brake Technician: Candidates have different starting skill, specialty, hiring price and wages.
+- HireMechanicRoster [2] Experienced Diagnostic Technician: Experienced Diagnostic Technician: Candidates have different starting skill, specialty, hiring price and wages.
+- HireMechanicRoster [3] < Back to Mechanics: Return to the previous menu and its selected row; nothing is changed.
+- HireReceptionistRoster [0] Entry Receptionist (1 queue): Entry Receptionist (1 queue): Recruit a receptionist; skills permit one, two or three pending customers.
+- HireReceptionistRoster [1] Experienced Receptionist (2 queue): Experienced Receptionist (2 queue): Recruit a receptionist; skills permit one, two or three pending customers.
+- HireReceptionistRoster [2] Senior Service Advisor (3 queue): Senior Service Advisor (3 queue): Recruit a receptionist; skills permit one, two or three pending customers.
+- HireReceptionistRoster [3] < Back to Receptionist: Return to the previous menu and its selected row; nothing is changed.
+- MechanicManagement [0] Mechanic Roster >: Open Mechanic Roster. View hired mechanics; fire, train or raise wages from their profiles.
+- MechanicManagement [1] Hire Mechanic >: Open Hire Mechanic. Select a new general, brake-specialist or diagnostics candidate.
+- MechanicManagement [2] Stops Used by Each Mechanic >: Open Stops Used by Each Mechanic. Choose which job-route waypoints each individual mechanic uses.
+- MechanicManagement [3] Mechanic Walking Paths >: Open Mechanic Walking Paths. Configure custom MLO walk routing and stuck recovery for mechanics.
+- MechanicManagement [4] < Back to Employees: Return to the previous menu and its selected row; nothing is changed.
+- ReceptionistManagement [0] Receptionist Profile >: Open Receptionist Profile. See reception skill, queue limit, salary and unpaid wages.
+- ReceptionistManagement [1] Hire Receptionist >: Open Hire Receptionist. Browse three receptionist tiers; dismiss current staff before hiring.
+- ReceptionistManagement [2] Receptionist Walk Route >: Open Receptionist Walk Route. Configure reception-only walking waypoints into the shop.
+- ReceptionistManagement [3] < Back to Employees: Return to the previous menu and its selected row; nothing is changed.
+- ReceptionistProfile [0] Profile & Queue Skill: Profile & Queue Skill: Show receptionist performance and effective customer queue capacity.
+- ReceptionistProfile [1] Train Receptionist (+1 Capacity): Train Receptionist (+1 Capacity): Spend $500 on training to increase queue skill by one, up to 3.
+- ReceptionistProfile [2] Increase Period Wage (+$25): Increase Period Wage (+$25): Give your receptionist a $25 wage increase per payroll period.
+- ReceptionistProfile [3] Dismiss Receptionist: Dismiss Receptionist: Dismiss reception; unpaid wages stay owed to former staff.
+- ReceptionistProfile [4] < Back to Receptionists: Return to the previous menu and its selected row; nothing is changed.
+- SupplierPalletStorage [0] Storage Capacity Status: Storage Capacity Status: Each placed pallet holds 25 parts and 9 delivered boxes. Buy and place more to expand.
+- SupplierPalletStorage [1] Purchase Additional Pallet ($750): Purchase Additional Pallet ($750): Each placed pallet holds 25 parts and 9 delivered boxes. Buy and place more to expand.
+- SupplierPalletStorage [2] Place / Move Pallet 1 >: Open Place / Move Pallet 1. Each placed pallet holds 25 parts and 9 delivered boxes. Buy and place more to expand.
+- SupplierPalletStorage [3] Place / Move Pallet 2 >: Open Place / Move Pallet 2. Each placed pallet holds 25 parts and 9 delivered boxes. Buy and place more to expand.
+- SupplierPalletStorage [4] Place / Move Pallet 3 >: Open Place / Move Pallet 3. Each placed pallet holds 25 parts and 9 delivered boxes. Buy and place more to expand.
+- SupplierPalletStorage [5] Place / Move Pallet 4 >: Open Place / Move Pallet 4. Each placed pallet holds 25 parts and 9 delivered boxes. Buy and place more to expand.
+- SupplierPalletStorage [6] < Back: Return to the previous menu and its selected row; nothing is changed.
+- ManagerManagement [0] Manager Profile >: Open Manager Profile. Review manager finances, skills and wages.
+- ManagerManagement [1] Hire Business Manager >: Open Hire Business Manager. Hire or replace an existing manager after dismissal.
+- ManagerManagement [2] Manager Walk Route >: Open Manager Walk Route. Open manager-only walking settings; placement is under Employee Settings.
+- ManagerManagement [3] < Back to Employees: Return to the previous menu and its selected row; nothing is changed.
+- HireManagerRoster [0] Assistant Manager — 3% discount: Assistant Manager — 3% discount: Recruit a manager: higher tiers reduce expenses and improve offsite shop efficiency.
+- HireManagerRoster [1] Experienced Manager — 6% discount: Experienced Manager — 6% discount: Recruit a manager: higher tiers reduce expenses and improve offsite shop efficiency.
+- HireManagerRoster [2] General Manager — 10% discount: General Manager — 10% discount: Recruit a manager: higher tiers reduce expenses and improve offsite shop efficiency.
+- HireManagerRoster [3] < Back to Management: Return to the previous menu and its selected row; nothing is changed.
+- ManagerProfile [0] Profile & Business Reports: Profile & Business Reports: Manager level, savings, offsite jobs and revenue.
+- ManagerProfile [1] Train Manager (+40 XP): Train Manager (+40 XP): Train manager to improve experience and savings.
+- ManagerProfile [2] Pay Manager Wage Invoice: Pay Manager Wage Invoice: Pay currently owed manager wages.
+- ManagerProfile [3] Dismiss Manager: Dismiss Manager: Dismiss manager; unpaid wages move to former staff.
+- ManagerProfile [4] < Back to Manager: Return to the previous menu and its selected row; nothing is changed.
+- ManagerWalkingPaths [0] Manager Walking Mode: Choose DIRECT or CUSTOM manager walking; close shop before changing mode.
+- ManagerWalkingPaths [1] Entry-to-Workstation Stops >: Edit the same five manager-only entry-to-workstation stops from either shortcut.
+- ManagerWalkingPaths [2] Final Workstation Approach >: Edit the existing manager final workstation approach; no duplicate settings.
+- ManagerWalkingPaths [3] < Back: Return to the previous menu and its selected row; nothing is changed.
+- ManagerWaypoints [0] Manager Stop 1 / 5 >: Edit Manager Stop 1 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ManagerWaypoints [1] Manager Stop 2 / 5 >: Edit Manager Stop 2 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ManagerWaypoints [2] Manager Stop 3 / 5 >: Edit Manager Stop 3 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ManagerWaypoints [3] Manager Stop 4 / 5 >: Edit Manager Stop 4 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ManagerWaypoints [4] Manager Stop 5 / 5 >: Edit Manager Stop 5 / 5: >. Walk to the point, face the intended direction, then Save Position + Facing.
+- ManagerWaypoints [5] < Back: Return to the previous menu and its selected row; nothing is changed.
+- PlacementSettings [0] Customer Locations >: Customer car, reception and waiting-lane positions and approaches.
+- PlacementSettings [1] Employee Locations >: Mechanic Break Area, staff entry, receptionist/manager work points and approaches.
+- PlacementSettings [2] Service Bays >: Each logical bay keeps distinct saved car and mechanic animation points.
+- PlacementSettings [3] Delivery & Stockroom >: Supplier spawn/unload/handoff, owned pallets and equipment placement links.
+- PlacementSettings [4] Walking Routes & Approaches >: Choose Mechanics, Receptionist, Manager, Customers or Supplier Driver route editors.
+- PlacementSettings [5] Marker Display Settings >: Choose Hide All, Focused, Custom or Show All; no coordinate changes.
+- PlacementSettings [6] Reset & Restore Placements >: Protected geometry reset/restore: closed shop, no obligations, verified backup and two confirmations.
+- PlacementSettings [7] < Back to Management: Return to the previous menu and its selected row; nothing is changed.
+- DeliveryPlacements [0] Mule Road Spawn >: Open Mule Road Spawn. Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.
+- DeliveryPlacements [1] Truck Unloading Spot >: Open Truck Unloading Spot. Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.
+- DeliveryPlacements [2] Driver Box Handoff >: Open Driver Box Handoff. Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.
+- DeliveryPlacements [3] Pallet Storage & Placement >: Open Pallet Storage & Placement. Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.
+- DeliveryPlacements [4] Supplier Driver Stops >: Open Supplier Driver Stops. Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.
+- DeliveryPlacements [5] Equipment Placement & Upgrades >: Open Equipment Placement & Upgrades. Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.
+- DeliveryPlacements [6] < Back to Placement Settings: Return to the previous menu and its selected row; nothing is changed.
+- PlacementWalkingRoutes [0] Mechanics >: Mechanic pickup arrival route, workstation access and individual shared-stop masks.
+- PlacementWalkingRoutes [1] Receptionist >: Receptionist-only stops and final desk approach.
+- PlacementWalkingRoutes [2] Manager >: Manager-only stops and final workstation approach.
+- PlacementWalkingRoutes [3] Customers >: Customer-only stops and reception approach, reversed on pickup.
+- PlacementWalkingRoutes [4] Supplier Driver >: Supplier driver stops and handoff point.
+- PlacementWalkingRoutes [5] < Back to Placement Settings: Return to the previous menu and its selected row; nothing is changed.
+- MechanicPlacementRoutes [0] Staff Spawn -> Break >: Edit shared entry corridor: forward to break; reversed for pickup when car-walk reuse is on.
+- MechanicPlacementRoutes [1] Break <-> Service Bay Stops >: Edit five shared work stops; separate from car pickup/return and vehicle driving.
+- MechanicPlacementRoutes [2] Final Walking Approaches >: Edit the final walking approach to each separate mechanic work position.
+- MechanicPlacementRoutes [3] Stops Used by Each Mechanic >: Choose this mechanic's stops. USE/SKIP is separate from physical SAVED/NOT SAVED status.
+- MechanicPlacementRoutes [4] Legacy Mechanic Checkpoint >: Edit the legacy arrival checkpoint; not silently inserted into car pickup.
+- MechanicPlacementRoutes [5] Walking Mode & Recovery >: Open existing walking-mode/recovery toggles without duplicating saved settings.
+- MechanicPlacementRoutes [6] < Back to Roles: Return to the previous menu and its selected row; nothing is changed.
+- ReceptionPlacementRoutes [0] Spawn -> Desk Stops >: Edit five optional receptionist-only spawn-to-desk stops.
+- ReceptionPlacementRoutes [1] Final Desk Approach >: Edit the final receptionist desk approach.
+- ReceptionPlacementRoutes [2] Walking Mode >: Choose existing receptionist walking mode.
+- ReceptionPlacementRoutes [3] < Back to Roles: Return to the previous menu and its selected row; nothing is changed.
+- ManagerPlacementRoutes [0] Spawn -> Workstation Stops >: Edit five optional manager-only spawn-to-workstation stops.
+- ManagerPlacementRoutes [1] Final Workstation Approach >: Edit the final manager workstation approach.
+- ManagerPlacementRoutes [2] Walking Mode >: Choose existing manager walking mode.
+- ManagerPlacementRoutes [3] < Back to Roles: Return to the previous menu and its selected row; nothing is changed.
+- CustomerPlacementRoutes [0] Customer Walking Stops >: Edit customer-only walking stops; reverse traversal is reused at pickup.
+- CustomerPlacementRoutes [1] Reception Approach >: Edit the existing customer reception approach; does not change car parking.
+- CustomerPlacementRoutes [2] < Back to Roles: Return to the previous menu and its selected row; nothing is changed.
+- SupplierPlacementRoutes [0] Supplier Driver Stops >: Edit up to three existing driver walking stops, independent from the Mule's driving route.
+- SupplierPlacementRoutes [1] Driver Box Handoff >: Edit the saved driver box-handoff point; existing pallet receipt remains required.
+- SupplierPlacementRoutes [2] < Back to Roles: Return to the previous menu and its selected row; nothing is changed.
+- OwnerTransferReview [0] Review Amount / Business Cash: Withdraw $1,000; inspect business cash. Wallet, ped and limits are validated on Confirm.
+- OwnerTransferReview [1] Confirm Transfer: Confirm this capital transfer; save failure restores business and wallet state. Never counted as revenue or expense.
+- OwnerTransferReview [2] < Back to Owner Transfers: Return to the previous menu and its selected row; nothing is changed.
+- PartsSaleReview [0] Review Items / Proceeds: Review Items / Proceeds: Inspect quantities, free stock, unchanged unit estimates and total proceeds.
+- PartsSaleReview [1] Confirm Sale: Confirm Sale: Sell this draft atomically after current stock and ledger checks; failed save rolls back all lines.
+- PartsSaleReview [2] < Back to Parts Sales: Return to the previous menu and its selected row; nothing is changed.
+- EmployeeStatus [0] Mechanic 1 (vacant): Snapshot: SNAPSHOT. Select to refresh live details; no continuous entity scans.
+- EmployeeStatus [1] Mechanic 2 (vacant): Snapshot: SNAPSHOT. Select to refresh live details; no continuous entity scans.
+- EmployeeStatus [2] Mechanic 3 (vacant): Snapshot: SNAPSHOT. Select to refresh live details; no continuous entity scans.
+- EmployeeStatus [3] Receptionist: Snapshot: SNAPSHOT. Select to refresh live details; no continuous entity scans.
+- EmployeeStatus [4] Manager: Snapshot: SNAPSHOT. Select to refresh live details; no continuous entity scans.
+- EmployeeStatus [5] Refresh / Full Status: Refresh all staff snapshots and show detailed job/route/wage status; does not pay wages.
+- EmployeeStatus [6] < Back to Employees: Return to the previous menu and its selected row; nothing is changed.
+- PlacementReset [0] Reset Customer Positions >: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementReset [1] Reset Mechanics & Walking >: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementReset [2] Reset Service Vehicle Bays >: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementReset [3] Reset Reception / Manager >: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementReset [4] Reset Supplier & Stockroom >: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementReset [5] Reset Equipment Positions >: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementReset [6] Include Shop Anchor in Full Reset: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementReset [7] Reset All Saved Placements >: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementReset [8] Restore Placements from Backup >: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementReset [9] < Back: Return to the previous menu and its selected row; nothing is changed.
+- PlacementRestore [0] Restore Scope: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementRestore [1] Include Shop Anchor: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementRestore [2] Latest Backup / Status: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementRestore [3] Review Placement Restore >: Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.
+- PlacementRestore [4] < Back: Return to the previous menu and its selected row; nothing is changed.
+- PlacementResetReview [0] NO - Keep Current Placements: Placement-only review. No money, stock, masks or ownership changes.
+- PlacementResetReview [1] YES - Continue to Final Confirmation: Placement-only review. No money, stock, masks or ownership changes.
+- PlacementResetReview [2] Show Affected Scope: Placement-only review. No money, stock, masks or ownership changes.
+- PlacementResetConfirm [0] NO - Keep Current Placements: Placement-only review. No money, stock, masks or ownership changes.
+- PlacementResetConfirm [1] YES - Back Up and Apply Placements: Placement-only review. No money, stock, masks or ownership changes.
+- PlacementResetConfirm [2] Show Affected Scope: Placement-only review. No money, stock, masks or ownership changes.

@@ -1,0 +1,11 @@
+{
+  "code_checkpoint": "f6b90560304033ca538b585e61f850ee50863e10",
+  "base": "75e3623f608a05d1a2b59d12c243dbcdfc061358",
+  "source_sha256": "d9e7eb3ed5327acc6d61d368510a50d6d47df52dfab2caba2acd74e438749236",
+  "full_source_diff_reproduced": true,
+  "word_pdf_text_verified": true,
+  "pdf_pages": 11,
+  "gta_testing": "NOT RUN",
+  "owner_final_acceptance": "PENDING YES/NO",
+  "rc2_combination": false
+}

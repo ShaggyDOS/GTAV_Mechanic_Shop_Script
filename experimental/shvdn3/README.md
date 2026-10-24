@@ -1,3 +1,7 @@
+# v0.3.4 Issue #37 Placement & Parking Experimental — review pending
+
+Isolated branch `feature/shvdn3-37-placement-parking` implements owner-pre-approved A–D from verified RC1 without RC2 instrumentation: direction-free customer handoff, plain walking coordinates versus mechanic use, persistent filtered markers, and protected geometry reset/restore. [Developer guide](../../docs/features/issue37-placement-parking/DEVELOPER_GUIDE.md), [actual final validation](../../docs/features/issue37-placement-parking/final-validation/validation.json), Word/PDF, full source diff and isolated testing/rollback accompany the package. Actual Release 0 errors/two inherited warnings; 1057/1057 behavior/navigation, 21/21 static, 13/13 structural and preservation PASS. Final acceptance PENDING owner YES/NO; GTA testing NOT RUN. Active RC2/stable RC1, main and live data untouched; no merge or crash-fix claim. Earlier milestone context follows.
+
 # v0.3.3.6 — service recovery and business polish — EXPERIMENTAL REVIEW
 
 Issues #33/#34 on dedicated feature branch; [developer guide](../../docs/features/v0.3.3.6/DEVELOPER_GUIDE.md), [GTA checklist](../../docs/features/v0.3.3.6/GTA_TEST_CHECKLIST.md), [menu matrix](../../docs/features/v0.3.3.6/NAVIGATION_MATRIX.md), [all row footers](../../docs/features/v0.3.3.6/MENU_FOOTERS.md). Actual Release/tests, source diff/hash and Word/PDF included. No release/install; GTA/Enhanced validation pending. Preserve .5 backup and draft PR32. Earlier milestone context follows.

@@ -1,0 +1,1649 @@
+diff --git a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+index faee04f..663c9fe 100644
+--- a/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
++++ b/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs
+@@ -7,6 +7,7 @@ using System;
+ using System.Collections.Generic;
+ using System.Drawing;
+ using System.IO;
++using System.Linq;
+ using System.Windows.Forms;
+ using GTA;
+ using GTA.Math;
+@@ -38,7 +39,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+         MechanicRouteDirection, MechanicRoutePoints, SupplierDeliverySetup, SupplierDriverWaypoints,
+         HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints,
+         PlacementSettings, DeliveryPlacements, PlacementWalkingRoutes,
+-        MechanicPlacementRoutes, ReceptionPlacementRoutes, ManagerPlacementRoutes, CustomerPlacementRoutes, SupplierPlacementRoutes, OwnerTransferReview, PartsSaleReview, EmployeeStatus
++        MechanicPlacementRoutes, ReceptionPlacementRoutes, ManagerPlacementRoutes, CustomerPlacementRoutes, SupplierPlacementRoutes, OwnerTransferReview, PartsSaleReview, EmployeeStatus,
++        PlacementReset, PlacementRestore, PlacementResetReview, PlacementResetConfirm
+     }
+     private const int VisibleMenuRows = 10;
+     // Compact F2 menu (75% of the previous layout), anchored to upper-left.
+@@ -120,6 +122,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         ToExitApproach, ReturningToVehicle, DrivingAway, WaitingAtRoadside, DrivingToQueueSpace, ParkingAtQueueSpace, ToWalkWaypoint, ToPickupWaypoint, TeleportWaitingBay, TeleportWaitingPickup, PaidReturnRecovery }
+     private sealed class CustomerOrder
+     {
++        public HandoffProgress Handoff; // Session-only direction-free handoff tracking.
+         public bool RestoredPromise;
+         public int ResumeMechanicSlot = -1;
+         public double ResumeWorkSeconds;
+@@ -855,6 +858,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             Log("BOOT FinanceV1 read complete; retained rows=" + _financeBook.Entries.Count + "; activeMs=" + _financeActiveMs, null);
+ 
+             _clockedIn = false; // Opening shift is a deliberate action after every load.
++            LoadPlacementDisplayPreferences();
+             _lastTick = DateTime.UtcNow;
+             // Do not invoke GTA natives during the constructor while world/DLCs load.
+             _lastGameTimeSample = 0;
+@@ -1065,6 +1069,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             // When true, ordinary F2 is ignored; Ctrl+F2 is required.
+             if (e.KeyCode == _menuKey && (!_requireCtrlForMenu || e.Control))
+             {
++                DropPlacementConfirmation();
+                 _showMenu = !_showMenu;
+                 if (_showMenu) { _menuPage = MenuPage.Business; _selection = 0; }
+                 return;
+@@ -1167,6 +1172,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void NavigateBack()
+     {
++        if (_menuPage == MenuPage.PlacementResetReview || _menuPage == MenuPage.PlacementResetConfirm) { CancelPlacementConfirmation(); return; }
+         KeyValuePair<MenuPage, int> placementReturn;
+         if (_placementMenuReturns.TryGetValue(_menuPage, out placementReturn))
+         {
+@@ -1351,15 +1357,15 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             case MenuPage.PlacementSettings:
+                 return new string[] { "Customer Locations >", "Employee Locations >", "Service Bays >",
+-                    "Delivery & Stockroom >", "Walking Routes & Approaches >", "Marker Display Settings >", "< Back to Management" };
++                    "Delivery & Stockroom >", "Walking Routes & Approaches >", "Marker Display Settings >", "Reset & Restore Placements >", "< Back to Management" };
+             case MenuPage.DeliveryPlacements:
+                 return new string[] { "Mule Road Spawn >", "Truck Unloading Spot >", "Driver Box Handoff >",
+                     "Pallet Storage & Placement >", "Supplier Driver Stops >", "Equipment Placement & Upgrades >", "< Back to Placement Settings" };
+             case MenuPage.PlacementWalkingRoutes:
+                 return new string[] { "Mechanics >", "Receptionist >", "Manager >", "Customers >", "Supplier Driver >", "< Back to Placement Settings" };
+             case MenuPage.MechanicPlacementRoutes:
+-                return new string[] { "Shared Entry Corridor >", "Shared Work Stops >", "Workstation Approaches >",
+-                    "Selections by Mechanic >", "Legacy Mechanic Checkpoint >", "Walking Mode & Recovery >", "< Back to Roles" };
++                return new string[] { "Staff Spawn -> Break >", "Break <-> Service Bay Stops >", "Final Walking Approaches >",
++                    "Stops Used by Each Mechanic >", "Legacy Mechanic Checkpoint >", "Walking Mode & Recovery >", "< Back to Roles" };
+             case MenuPage.ReceptionPlacementRoutes:
+                 return new string[] { "Spawn -> Desk Stops >", "Final Desk Approach >", "Walking Mode >", "< Back to Roles" };
+             case MenuPage.ManagerPlacementRoutes:
+@@ -1397,7 +1403,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                     "< Back to Management" };
+             case MenuPage.MechanicManagement:
+                 return new string[] { "Mechanic Roster >", "Hire Mechanic >",
+-                    "Work Stop Selections >", "Mechanic Walking Paths >", "< Back to Employees" };
++                    "Stops Used by Each Mechanic >", "Mechanic Walking Paths >", "< Back to Employees" };
+             case MenuPage.ReceptionistManagement:
+                 return new string[] { "Receptionist Profile >", "Hire Receptionist >",
+                     "Receptionist Walk Route >", "< Back to Employees" };
+@@ -1415,10 +1421,10 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 return new string[] { "Mechanic Walking Paths >", "Receptionist Walk Route >",
+                     "Manager Walk Route >", "< Back" };
+             case MenuPage.MechanicWalkingPaths:
+-                return new string[] { "Mechanic Walking Mode", "Car Walks: Entry Corridor",
+-                    "Shared Entry Corridor >", "Shared Work Stops >",
+-                    "Workstation Approaches >", "Legacy Staff Checkpoint (MLO) >",
+-                    "Selections by Mechanic >", "Smooth Through-Waypoints",
++                return new string[] { "Mechanic Walking Mode", "Car Pickup: Reuse Spawn Path",
++                    "Staff Spawn -> Break >", "Break <-> Service Bay Stops >",
++                    "Final Walking Approaches >", "Advanced: Legacy Checkpoint >",
++                    "Stops Used by Each Mechanic >", "Smooth Through-Waypoints",
+                     "Teleport Stuck Pedestrians", "Custom Work Stop Routes", "< Back" };
+             case MenuPage.ReceptionWalkingPaths:
+                 return new string[] { "Receptionist Walking Mode", "Entry-to-Desk Stops >",
+@@ -1428,9 +1434,9 @@ public class GlassHeroesBusinessV3Experimental : Script
+                     "Reception Stop 3 / 5 >", "Reception Stop 4 / 5 >",
+                     "Reception Stop 5 / 5 >", "< Back" };
+             case MenuPage.ArrivalWaypoints:
+-                return new string[] { "Entry Corridor Stop 1 >", "Entry Corridor Stop 2 >",
+-                    "Entry Corridor Stop 3 >", "Entry Corridor Stop 4 >",
+-                    "Entry Corridor Stop 5 >", "< Back" };
++                return new string[] { "Spawn-to-Break Stop 1 >", "Spawn-to-Break Stop 2 >",
++                    "Spawn-to-Break Stop 3 >", "Spawn-to-Break Stop 4 >",
++                    "Spawn-to-Break Stop 5 >", "< Back" };
+             case MenuPage.MechanicBays:
+                 return new string[] { "Service Bay 1 >", "Service Bay 2 >",
+                     "Service Bay 3 >", "< Back" };
+@@ -1447,19 +1453,30 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 return new string[] { "Car Parking Side", "Car Offset from Mechanic Bay",
+                     "Auto Parking Preview", "< Back to Driving" };
+             case MenuPage.ServiceWaypoints:
+-                return new string[] { "Shared Work Stop 1 >", "Shared Work Stop 2 >",
+-                    "Shared Work Stop 3 >", "Shared Work Stop 4 >",
+-                    "Shared Work Stop 5 >", "< Back" };
++                return new string[] { "Bay Walk Stop 1 >", "Bay Walk Stop 2 >",
++                    "Bay Walk Stop 3 >", "Bay Walk Stop 4 >",
++                    "Bay Walk Stop 5 >", "< Back" };
+             case MenuPage.BayApproaches:
+                 return new string[] { "Workstation 1 Approach >", "Workstation 2 Approach >",
+                     "Workstation 3 Approach >", "< Back" };
+             case MenuPage.PointEditor:
+-                return new string[] { "Set / Save Position + Facing", "Clear Saved Position",
+-                    "Marker Preview", "Show Saved Coordinates", "< Back" };
++                return new string[] { _editingPoint == _customerDropoff ? "Set / Save Handoff Position" : "Set / Save Position + Facing", "Clear Saved Position",
++                    "Marker Display >", "Show Saved Coordinates", "< Back" };
+             case MenuPage.RouteRecovery:
+                 return new string[] { "Blocked-Route Teleport", "Recovery Status", "< Back" };
++            case MenuPage.PlacementReset:
++                return new string[] { "Reset Customer Positions >", "Reset Mechanics & Walking >", "Reset Service Vehicle Bays >", "Reset Reception / Manager >",
++                    "Reset Supplier & Stockroom >", "Reset Equipment Positions >", "Include Shop Anchor in Full Reset", "Reset All Saved Placements >", "Restore Placements from Backup >", "< Back" };
++            case MenuPage.PlacementRestore:
++                return new string[] { "Restore Scope", "Include Shop Anchor", "Latest Backup / Status", "Review Placement Restore >", "< Back" };
++            case MenuPage.PlacementResetReview:
++                return new string[] { "NO - Keep Current Placements", "YES - Continue to Final Confirmation", "Show Affected Scope" };
++            case MenuPage.PlacementResetConfirm:
++                return new string[] { "NO - Keep Current Placements", "YES - Back Up and Apply Placements", "Show Affected Scope" };
+             case MenuPage.PlacementMarkers:
+-                return new string[] { "Placement Markers", "Show Marker Color Legend", "< Back" };
++                return new string[] { "Display Mode", "Hide All (including previews)", "Show Current Category", "Restore Last Custom",
++                    "Customers & Queue", "Mechanics & Walking", "Service Vehicle Bays", "Reception / Manager / Equipment", "Supplier & Stockroom",
++                    "Computed Auto Bay Preview", "Selected Point Identity", "< Back" };
+             case MenuPage.StaffRoster:
+                 return new string[] { "Mechanic 1 >", "Mechanic 2 >", "Mechanic 3 >", "< Back to Mechanics" };
+             case MenuPage.StaffProfile:
+@@ -1492,11 +1509,11 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 return new string[] { "Mechanic 1 Work Stops >", "Mechanic 2 Work Stops >",
+                     "Mechanic 3 Work Stops >", "< Back to Mechanic Paths" };
+             case MenuPage.MechanicRouteDirection:
+-                return new string[] { "To Workstation >", "From Workstation >",
++                return new string[] { "To Service Bay >", "From Service Bay >",
+                     "View Selected Routes", "< Back to Mechanic List" };
+             case MenuPage.MechanicRoutePoints:
+-                return new string[] { "Shared Work Stop 1", "Shared Work Stop 2",
+-                    "Shared Work Stop 3", "Shared Work Stop 4", "Shared Work Stop 5",
++                return new string[] { "Bay Walk Stop 1", "Bay Walk Stop 2",
++                    "Bay Walk Stop 3", "Bay Walk Stop 4", "Bay Walk Stop 5",
+                     "Select All Shared Stops", "Deselect All Shared Stops", "< Back to Route Direction" };
+             case MenuPage.MechanicInvoices:
+                 return new string[] { "Mechanic 1 Wage Invoice", "Mechanic 2 Wage Invoice",
+@@ -1696,7 +1713,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 {
+                     Mechanic routeOwner = _mechanics[_routeConfigSlot];
+                     int mask = _routeConfigReturning ? routeOwner.JobReturnMask : routeOwner.JobOutboundMask;
+-                    return ((mask & (1 << index)) != 0 ? "USE" : "SKIP") + (_serviceRoute[index].IsSet ? " / SET" : " / UNSET");
++                    return (mask & (1 << index)) != 0 ? "USE" : "SKIP";
+                 }
+                 return ">";
+             case MenuPage.OwnerTransferReview:
+@@ -1777,6 +1794,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.BayApproaches:
+                 return ">";
+             case MenuPage.PointEditor:
++                if (index == 2) return ">";
+                 return PointEditorActionLabel(index,
+                     _editingPoint != null && _editingPoint.IsSet, _showPlacementMarkers);
+             case MenuPage.RouteRecovery:
+@@ -1828,8 +1846,19 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 if (index == 6) return _customerBlipsEnabled ? "ON" : "OFF";
+                 if (index == 7) return _showPlacementMarkers ? "ON" : "OFF";
+                 return ">";
++            case MenuPage.PlacementReset:
++                if (index == 6) return _resetIncludeAnchor ? "YES" : "NO";
++                return ">";
++            case MenuPage.PlacementRestore:
++                if (index == 0) return _placementGroups[_placementRestoreGroup];
++                if (index == 1) return _placementRestoreGroup == 6 ? (_restoreIncludeAnchor ? "YES" : "NO") : "FULL SCOPE ONLY";
++                return ">";
++            case MenuPage.PlacementResetReview: case MenuPage.PlacementResetConfirm: return ">";
+             case MenuPage.PlacementMarkers:
+-                return index == 0 ? (_showPlacementMarkers ? "ON" : "OFF") : ">";
++                if (index == 0) return _placementDisplayMode == PlacementDisplayMode.Hidden ? "HIDE ALL" : _placementDisplayMode.ToString().ToUpperInvariant();
++                if (index >= 4 && index <= 8) return (_activeMarkerCategories & (1 << (index - 4))) != 0 ? "ON" : "OFF";
++                if (index == 9) return _autoLotPreview ? "ON" : "OFF";
++                return ">";
+             default:
+                 switch (index)
+                 {
+@@ -1857,6 +1886,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private string EditingPointPurpose()
+     {
++        if (_editingPoint == _customerDropoff) return "Direction-free handoff zone. Saved facing is retained for initial non-driving spawn only.";
+         if (_editingPoint == _employeeEntrance)
+             return "Spawn for clocking-in staff ONLY. Not a customer-car stop.";
+         if (_editingPoint == _breakArea)
+@@ -1944,12 +1974,12 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 return _selection == 0 ? (_ownerTransferDeposit ? "Deposit $" : "Withdraw $") + _ownerTransferAmount.ToString("N0") + "; inspect business cash. Wallet, ped and limits are validated on Confirm." : "Confirm this capital transfer; save failure restores business and wallet state. Never counted as revenue or expense.";
+             case MenuPage.PlacementSettings: return FooterRow("Customer car, reception and waiting-lane positions and approaches.", "Mechanic Break Area, staff entry, receptionist/manager work points and approaches.",
+                 "Each logical bay keeps distinct saved car and mechanic animation points.", "Supplier spawn/unload/handoff, owned pallets and equipment placement links.",
+-                "Choose Mechanics, Receptionist, Manager, Customers or Supplier Driver route editors.", "Toggle visual previews or inspect marker colors; no coordinate changes.", "Return to caller.");
++                "Choose Mechanics, Receptionist, Manager, Customers or Supplier Driver route editors.", "Choose Hide All, Focused, Custom or Show All; no coordinate changes.", "Protected geometry reset/restore: closed shop, no obligations, verified backup and two confirmations.", "Return to caller.");
+             case MenuPage.PlacementWalkingRoutes: return FooterRow("Mechanic pickup arrival route, workstation access and individual shared-stop masks.",
+                 "Receptionist-only stops and final desk approach.", "Manager-only stops and final workstation approach.", "Customer-only stops and reception approach, reversed on pickup.", "Supplier driver stops and handoff point.", "Return to placement settings.");
+             case MenuPage.MechanicPlacementRoutes: return FooterRow("Edit shared entry corridor: forward to break; reversed for pickup when car-walk reuse is on.",
+                 "Edit five shared work stops; separate from car pickup/return and vehicle driving.", "Edit the final walking approach to each separate mechanic work position.",
+-                "Choose shared work-stop use per mechanic/direction. USE / UNSET means selected but unsaved.",
++                "Choose this mechanic's stops. USE/SKIP is separate from physical SAVED/NOT SAVED status.",
+                 "Edit the legacy arrival checkpoint; not silently inserted into car pickup.", "Open existing walking-mode/recovery toggles without duplicating saved settings.", "Return to role list.");
+             case MenuPage.ReceptionWalkingPaths: return FooterRow("Choose DIRECT or CUSTOM receptionist walking; close shop before changing mode.",
+                 "Edit the same five receptionist-only entry-to-desk stops from either menu shortcut.",
+@@ -1966,12 +1996,21 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.CustomerPlacements: return FooterRow("Edit shared customer drop-off/pickup parking and facing.", "Edit drive-in customer road entry point and facing.", "Edit pedestrian reception approach.",
+                 "Edit check-in/queue position near reception.", "Edit Car 2 roadside waiting position and heading.", "Edit Car 3 optional distinct waiting position and heading.",
+                 "Open logical car/work bay profiles without changing mode.", "Edit customer walking stops only.", "Return to caller.");
+-            case MenuPage.PlacementMarkers: return _selection == 0 ? "Toggle existing visual placement previews. Saved coordinates/headings are not cleared." : "Show the existing marker color legend; no saved changes.";
++            case MenuPage.PlacementReset: case MenuPage.PlacementRestore:
++                return "Geometry only. Close shop and finish all orders/jobs/cargo. Verified full backup required; masks, money, stock and ownership stay.";
++            case MenuPage.PlacementResetReview: case MenuPage.PlacementResetConfirm: return PlacementRequestDescription();
++            case MenuPage.PlacementMarkers: return "Hide All gates every placement preview. Focused shows the selected physical point; Custom filters categories. No AI or coordinate changes.";
+             case MenuPage.ServiceBayProfile: return FooterRow("Edit saved CUSTOM car position and heading; AUTO LOT remains computed until mode changes.",
+                 "Edit the separate mechanic animation/work position; keep clear of the car center.", "Inspect existing fixed roster-slot assignment; no staff reassignment.", "Show both existing points, headings and active parking mode without saving.", "Return to bay list.");
+             case MenuPage.MechanicRoutePoints:
+-                if (_selection < 5) return "Toggle Shared Work Stop " + (_selection + 1) + " for this mechanic/direction. " + (_serviceRoute[_selection].IsSet ? "Physical point is saved." : "UNSET: save this point or deselect it; it cannot supply a route node.");
+-                return _selection == 5 ? "Enable all five shared stops for this mechanic/direction; unsaved stops still cannot be traversed." : "Disable optional shared stops for this mechanic/direction; final approach/target remain.";
++                if (_selection >= 0 && _selection < 5 && _routeConfigSlot >= 0 && _routeConfigSlot < _mechanics.Count)
++                {
++                    int mask = _routeConfigReturning ? _mechanics[_routeConfigSlot].JobReturnMask : _mechanics[_routeConfigSlot].JobOutboundMask;
++                    return "Physical stop " + (_selection + 1) + ": " + (_serviceRoute[_selection].IsSet ? "SAVED" : "NOT SAVED") +
++                        ". This mechanic: " + ((mask & (1 << _selection)) != 0 ? "USE" : "SKIP") +
++                        ". Enter changes use only; edit coordinates under Break <-> Service Bay Stops.";
++                }
++                return "Change this mechanic's enabled stops only; physical coordinates stay unchanged.";
+             case MenuPage.MechanicRouteDirection:
+                 return _selection < 2 ? MechanicRouteCounts(_routeConfigSlot, _selection == 1) +
+                     (_customMechanicJobRoutes ? ". CUSTOM work stops active." : ". DIRECT: selections inactive.") :
+@@ -2008,7 +2047,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                     case 1: return EditingVehicleParkingSlot() >= 0 ?
+                         "Clear vehicle spot when no customer order is active." :
+                         "Remove this placement (shop must be closed).";
+-                    case 2: return "Keep world markers visible, even after closing " + MenuKeyLabel() + ".";
++                    case 2: return "Choose marker modes and categories; changes persist after closing " + MenuKeyLabel() + ".";
+                     case 3: return "Print coordinates and heading in a notification.";
+                     default: return "Return to the previous settings page.";
+                 }
+@@ -2039,10 +2078,10 @@ public class GlassHeroesBusinessV3Experimental : Script
+                     case 3: return "Edit shared work stops. These serve workstation access, not customer-car pickup or driving.";
+                     case 4: return "Optional last turn beside mechanic repair workstations.";
+                     case 5: return "Legacy checkpoint, only when arrival points are absent.";
+-                    case 6: return "Select existing Shared Work Stops separately for each mechanic and walking direction.";
++                    case 6: return "Select existing Break <-> Service Bay Stops separately for each mechanic and walking direction.";
+                     case 7: return "Advance ~1.9m before intermediate waypoints; final target unchanged.";
+                     case 8: return "Recover stuck workers beside saved points rather than cancelling jobs.";
+-                    case 9: return "Toggle custom workstation access using selected Shared Work Stops and the bay approach.";
++                    case 9: return "Toggle custom workstation access using selected Break <-> Service Bay Stops and the bay approach.";
+                     default: return "Return to separate employee walking settings.";
+                 }
+             case MenuPage.MechanicRouteRoster:
+@@ -2056,7 +2095,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                     "One receptionist route editor: existing five entry stops and final desk approach.";
+             case MenuPage.ReceptionWaypoints: return "OPTIONAL receptionist-only stops, staff entry to desk.";
+             case MenuPage.ManagerWalkingPaths: return "One manager route editor: existing walking mode, five entry stops and final workstation approach.";
+-            case MenuPage.ManagerWaypoints: return "Optional 0-5 manager-only route stops from staff entrance to workstation.";
++            case MenuPage.ManagerWaypoints: return "Optional 0-5 manager-only route stops from staff entrance to service bay.";
+             case MenuPage.EmployeePlacements: return "Set spawn, mechanic bays, receptionist and manager workstations and approaches.";
+             case MenuPage.CustomerPlacements: return "Road spawn, two waiting-car spaces, drop-off and optional customer path.";
+             case MenuPage.CustomerWalkingRoutes: return "Optional 0-3 walking stops in order from drop-off to reception; reverse on pickup.";
+@@ -2124,7 +2163,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 if (_selection == 8) return "Office desk: E or D-pad RIGHT nearby opens Business Management.";
+                 return "Purchased equipment saves permanently; placements only control visible props.";
+             case MenuPage.MechanicInvoices: return "Pay outstanding per-mechanic wage invoices or settle all at once.";
+-            case MenuPage.PlacementMarkers: return "Placement circles align with floor; car spots use ground-level rectangular outlines.";
++            case MenuPage.PlacementMarkers: return "Persistent cosmetic filters; Hide All also hides computed auto bays. Point saves keep your choice.";
+             case MenuPage.EmployeeSettings: return "Staff placement and walking options are separated.";
+             case MenuPage.Employees:
+                 return new string[] {
+@@ -2189,7 +2228,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+     {
+         string name = _routeConfigSlot >= 0 && _routeConfigSlot < _mechanics.Count ? _mechanics[_routeConfigSlot].Name : "NO MECHANIC";
+         string direction = _menuPage == MenuPage.MechanicRoutePoints ?
+-            (_routeConfigReturning ? "FROM WORKSTATION" : "TO WORKSTATION") : "WORK STOP USE";
++            (_routeConfigReturning ? "FROM BAY" : "TO BAY") : "STOPS USED";
+         return FitMenuText(direction + " / " + name, 382, 0.46f);
+     }
+ 
+@@ -2198,25 +2237,25 @@ public class GlassHeroesBusinessV3Experimental : Script
+         if (slot < 0 || slot >= _mechanics.Count) return "No mechanic";
+         int selected = (returning ? _mechanics[slot].JobReturnMask : _mechanics[slot].JobOutboundMask) & 31;
+         int effective = EffectiveWorkRouteMask(selected);
+-        return CountMask(selected) + " selected, " + CountMask(effective) + " saved, " + CountMask(selected & ~effective) + " unset";
++        return CountMask(selected) + " used, " + CountMask(effective) + " saved, " + CountMask(selected & ~effective) + " not saved";
+     }
+ 
+     private string MechanicRoutePreview(int slot, bool returning)
+     {
+         if (slot < 0 || slot >= _mechanics.Count) return "No mechanic";
+-        string target = returning ? "Break Area" : "Workstation " + (slot + 1);
+-        if (!_customMechanicJobRoutes) return (returning ? "From workstation" : "To workstation") + ": DIRECT -> " + target + " (shared selections inactive)";
++        string target = returning ? "Break Area" : "Service Bay " + (slot + 1);
++        if (!_customMechanicJobRoutes) return (returning ? "From bay" : "To bay") + ": DIRECT -> " + target + " (shared selections inactive)";
+         int mask = returning ? _mechanics[slot].JobReturnMask : _mechanics[slot].JobOutboundMask;
+         var steps = new List<string>();
+         if (returning && _bayApproaches[slot].IsSet) steps.Add("Bay " + (slot + 1) + " Approach");
+         for (int index = 0; index < _serviceRoute.Length; index++)
+         {
+             int point = returning ? _serviceRoute.Length - 1 - index : index;
+-            if (_serviceRoute[point].IsSet && (mask & (1 << point)) != 0) steps.Add("Work " + (point + 1));
++            if (_serviceRoute[point].IsSet && (mask & (1 << point)) != 0) steps.Add("Stop " + (point + 1));
+         }
+         if (!returning && _bayApproaches[slot].IsSet) steps.Add("Bay " + (slot + 1) + " Approach");
+         steps.Add(target);
+-        return (returning ? "From workstation: " : "To workstation: ") + string.Join(" -> ", steps);
++        return (returning ? "From bay: " : "To bay: ") + string.Join(" -> ", steps);
+     }
+ 
+     private string GetMenuTitle()
+@@ -2254,13 +2293,17 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.MechanicWalkingPaths: return "MECHANIC WALKING";
+             case MenuPage.ReceptionWalkingPaths: return "RECEPTIONIST WALK ROUTE";
+             case MenuPage.ReceptionWaypoints: return "RECEPTION ROUTE (0-5)";
+-            case MenuPage.ArrivalWaypoints: return "SHARED ENTRY CORRIDOR";
++            case MenuPage.ArrivalWaypoints: return "STAFF SPAWN -> BREAK";
+             case MenuPage.MechanicBays: return "SERVICE BAYS";
+             case MenuPage.ServiceBayProfile: return "SERVICE BAY " + (_serviceBaySlot + 1);
+-            case MenuPage.ServiceWaypoints: return "SHARED WORK STOPS (0-5)";
+-            case MenuPage.BayApproaches: return "WORKSTATION APPROACHES";
++            case MenuPage.ServiceWaypoints: return "BREAK <-> BAY: PHYSICAL STOPS (0-5)";
++            case MenuPage.BayApproaches: return "FINAL WALKING APPROACHES";
+             case MenuPage.PointEditor: return _editingPointLabel.ToUpperInvariant();
+             case MenuPage.RouteRecovery: return "ROUTE RECOVERY";
++            case MenuPage.PlacementReset: return "RESET & RESTORE PLACEMENTS";
++            case MenuPage.PlacementRestore: return "RESTORE PLACEMENT GEOMETRY";
++            case MenuPage.PlacementResetReview: return "PLACEMENT REVIEW - STEP 1 OF 2";
++            case MenuPage.PlacementResetConfirm: return "FINAL PLACEMENT CONFIRMATION";
+             case MenuPage.PlacementMarkers: return "PLACEMENT MARKERS";
+             case MenuPage.Customers: return "CUSTOMER SERVICE";
+             case MenuPage.ServiceVehicleBays: return "SERVICE VEHICLE PARKING";
+@@ -2287,7 +2330,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case MenuPage.HireMechanicRoster: return "HIRE A MECHANIC";
+             case MenuPage.HireReceptionistRoster: return "HIRE RECEPTIONIST";
+             case MenuPage.EquipmentManagement: return "SHOP EQUIPMENT";
+-            case MenuPage.MechanicRouteRoster: return "MECHANIC WORK STOP USE";
++            case MenuPage.MechanicRouteRoster: return "STOPS USED BY EACH MECHANIC";
+             case MenuPage.MechanicRouteDirection: return MechanicRouteHeading();
+             case MenuPage.MechanicRoutePoints: return MechanicRouteHeading();
+             case MenuPage.MechanicInvoices: return "MECHANIC WAGES";
+@@ -2447,6 +2490,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             case MenuPage.Business: ExecuteBusinessSelection(); break;
+             case MenuPage.BusinessManagement: ExecuteManagementSelection(); break;
++            case MenuPage.PlacementReset: case MenuPage.PlacementRestore:
++            case MenuPage.PlacementResetReview: case MenuPage.PlacementResetConfirm: ExecutePlacementResetSelection(); break;
+             case MenuPage.PlacementSettings:
+             case MenuPage.DeliveryPlacements:
+             case MenuPage.PlacementWalkingRoutes:
+@@ -2545,6 +2590,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+     // Former main-menu actions now live exclusively inside Business Management.
+     private void OpenPlacementMenu(MenuPage page)
+     {
++        DropPlacementConfirmation();
+         if (page == MenuPage.PlacementSettings) _placementMenuReturns.Clear();
+         _placementMenuReturns[page] = new KeyValuePair<MenuPage, int>(_menuPage, _selection);
+         _menuPage = page; _selection = 0;
+@@ -2556,8 +2602,9 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             MenuPage[] pages = { MenuPage.CustomerPlacements, MenuPage.EmployeePlacements,
+                 MenuPage.MechanicBays, MenuPage.DeliveryPlacements,
+-                MenuPage.PlacementWalkingRoutes, MenuPage.PlacementMarkers };
+-            if (_selection >= 0 && _selection < pages.Length) OpenPlacementMenu(pages[_selection]);
++                MenuPage.PlacementWalkingRoutes, MenuPage.PlacementMarkers, MenuPage.PlacementReset };
++            if (_selection == 5) OpenMarkerDisplay();
++            else if (_selection >= 0 && _selection < pages.Length) OpenPlacementMenu(pages[_selection]);
+             else NavigateBack();
+         }
+         else if (_menuPage == MenuPage.DeliveryPlacements)
+@@ -2581,7 +2628,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             MenuPage[] pages = { MenuPage.ArrivalWaypoints, MenuPage.ServiceWaypoints,
+                 MenuPage.BayApproaches, MenuPage.MechanicRouteRoster };
+-            if (_selection >= 0 && _selection < pages.Length) OpenPlacementMenu(pages[_selection]);
++            if (_selection == 5) OpenMarkerDisplay();
++            else if (_selection >= 0 && _selection < pages.Length) OpenPlacementMenu(pages[_selection]);
+             else if (_selection == 4) OpenPointEditor(_walkCheckpoint, "Legacy Mechanic Arrival Checkpoint", -1, true);
+             else if (_selection == 5) OpenPlacementMenu(MenuPage.MechanicWalkingPaths);
+             else NavigateBack();
+@@ -2631,6 +2679,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void ToggleBusinessShift()
+     {
++        if (!_clockedIn && _placementRecoveryRequired) { Notify("Reload after the interrupted placement cleanup before opening the shop."); return; }
+         if (!_placed) { Notify("Cannot open: set shop location under Business Management first."); return; }
+         bool opening = !_clockedIn;
+         if (opening)
+@@ -2675,34 +2724,16 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void SetShopLocationFromPlayer()
+     {
+-        if (_clockedIn) { Notify("Close the shop before moving its location."); return; }
++        string blocked = PlacementOperationBlock();
++        if (blocked != null) { Notify(blocked); return; }
+         if (Game.Player.Character == null) return;
+         Vector3 newLocation = Game.Player.Character.Position;
+-        if (_placed && DistanceSquared(_location, newLocation) > 400f)
+-        {
+-            foreach (WorkBay bay in _bays) bay.IsSet = false;
+-            _employeeEntrance.IsSet = false;
+-            _walkCheckpoint.IsSet = false;
+-            foreach (WorkBay point in _arrivalRoute) point.IsSet = false;
+-            foreach (WorkBay point in _receptionRoute) point.IsSet = false;
+-            _breakArea.IsSet = false;
+-            _receptionDesk.IsSet = false;
+-            _receptionApproach.IsSet = false;
+-            _customerDriveSpawn.IsSet = false;
+-            _customerDropoff.IsSet = false;
+-            _customerApproach.IsSet = false;
+-            _customerQueue.IsSet = false;
+-            _queueCar2.IsSet = false;
+-            _queueCar3.IsSet = false;
+-            foreach (WorkBay point in _serviceRoute) point.IsSet = false;
+-            foreach (WorkBay point in _bayApproaches) point.IsSet = false;
+-            Notify("New shop: bays, entrance, break and walking routes cleared.");
+-        }
+-        _location = newLocation;
+-        _placed = true;
+-        Save();
+-        Notify("Shop location SET: " + FormatLocation() + ". " +
+-            (File.Exists(SaveFile) ? "Save.ini exists." : "WARNING: Save.ini missing!"));
++        if (_placed && DistanceSquared(_location, newLocation) > 400f && PlacementScope(6).Exists(point => point.Target.IsSet))
++        { Notify("Moving this configured shop would invalidate placements. Use Reset & Restore with the optional shop anchor first; nothing cleared."); return; }
++        Vector3 previous = _location; bool placed = _placed;
++        _location = newLocation; _placed = true;
++        if (!Save()) { _location = previous; _placed = placed; return; }
++        Notify("Shop location SET: " + FormatLocation() + ". Existing placements preserved.");
+     }
+ 
+     private long MechanicWagesDue()
+@@ -3226,10 +3257,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 Save();
+                 Notify("Customer Blips " + (_customerBlipsEnabled ? "ON" : "OFF") + ".");
+                 break;
+-            case 7:
+-                _showPlacementMarkers = !_showPlacementMarkers;
+-                Notify("Placement Markers " + (_showPlacementMarkers ? "ON" : "OFF") + ".");
+-                break;
++            case 7: OpenMarkerDisplay(); break;
+             default: NavigateBack(); break;
+         }
+     }
+@@ -3286,7 +3314,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         if (_selection == 2)
+         {
+             _autoLotPreview = !_autoLotPreview;
+-            Notify("Computed auto-bay preview " + (_autoLotPreview ? "ON" : "OFF") + ".");
++            Notify("Computed auto-bay preview " + (_autoLotPreview ? "ON" : "OFF") + "; Hide All and service-bay filters still apply.");
+             return;
+         }
+         if (_customerOrder != null)
+@@ -3558,7 +3586,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             case 0: OpenPlacementMenu(MenuPage.PlacementSettings); break;
+             case 1: _menuPage = MenuPage.EmployeePaths; _selection = 0; break;
+             case 2: _menuPage = MenuPage.RouteRecovery; _selection = 0; break;
+-            case 3: _menuPage = MenuPage.PlacementMarkers; _selection = 0; break;
++            case 3: OpenMarkerDisplay(); break;
+             case 4:
+                 _breakAnimationsEnabled = !_breakAnimationsEnabled;
+                 foreach (Mechanic m in _mechanics)
+@@ -3661,7 +3689,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         Mechanic staff = _mechanics[_routeConfigSlot];
+         if (_selection == 2)
+         {
+-            ShowStatusNotice("MECHANIC WORK STOP USE", staff.Name + (_customMechanicJobRoutes ? " / CUSTOM active" : " / DIRECT mode"),
++            ShowStatusNotice("STOPS USED BY EACH MECHANIC", staff.Name + (_customMechanicJobRoutes ? " / CUSTOM active" : " / DIRECT mode"),
+                 "To: " + MechanicRouteCounts(_routeConfigSlot, false),
+                 "From: " + MechanicRouteCounts(_routeConfigSlot, true),
+                 MechanicRoutePreview(_routeConfigSlot, false), MechanicRoutePreview(_routeConfigSlot, true));
+@@ -3684,7 +3712,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         if (_routeConfigReturning) staff.JobReturnMask = mask;
+         else staff.JobOutboundMask = mask;
+         Save();
+-        GTA.UI.Screen.ShowSubtitle(staff.Name + ": " + (_routeConfigReturning ? "from workstation" : "to workstation") +
++        GTA.UI.Screen.ShowSubtitle(staff.Name + ": " + (_routeConfigReturning ? "from service bay" : "to service bay") +
+             " shared stops: " + MechanicRouteCounts(_routeConfigSlot, _routeConfigReturning) + ".", 1800);
+     }
+ 
+@@ -3733,15 +3761,15 @@ public class GlassHeroesBusinessV3Experimental : Script
+         else if (_menuPage == MenuPage.ServiceVehicleBays)
+             OpenPointEditor(_vehicleParkingBays[slot], "Vehicle Parking Bay " + (slot + 1), -1, false);
+         else if (_menuPage == MenuPage.ArrivalWaypoints)
+-            OpenPointEditor(_arrivalRoute[slot], "Entry Corridor Stop " + (slot + 1) + " (shared)", -1, true);
++            OpenPointEditor(_arrivalRoute[slot], "Spawn-to-Break Stop " + (slot + 1) + " (shared)", -1, true);
+         else if (_menuPage == MenuPage.ServiceWaypoints)
+-            OpenPointEditor(_serviceRoute[slot], "Shared Work Stop " + (slot + 1), -1, true);
++            OpenPointEditor(_serviceRoute[slot], "Bay Walk Stop " + (slot + 1), -1, true);
+         else if (_menuPage == MenuPage.ReceptionWaypoints)
+             OpenPointEditor(_receptionRoute[slot], "Reception: Stop " + (slot + 1) + "/5 (optional)", -1, true);
+         else if (_menuPage == MenuPage.ManagerWaypoints)
+             OpenPointEditor(_managerRoute[slot], "Manager: Stop " + (slot + 1) + "/5 (optional)", -1, true);
+         else if (_menuPage == MenuPage.BayApproaches)
+-            OpenPointEditor(_bayApproaches[slot], "Workstation Approach - Bay " + (slot + 1), -1, true);
++            OpenPointEditor(_bayApproaches[slot], "Final Walking Approach - Bay " + (slot + 1), -1, true);
+     }
+ 
+     private void ExecutePointEditorSelection()
+@@ -3755,8 +3783,6 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 else if (_editingBayIndex >= 0) ConfigureWorkBay(_editingBayIndex);
+                 else if (_editingRoutePoint) ConfigureRoutePoint(_editingPoint, _editingPointLabel);
+                 else ConfigureArrivalPoint(_editingPoint, _editingPointLabel);
+-                if (_editingPoint.IsSet)
+-                    _showPlacementMarkers = true; // SET always enables saved-point preview
+                 // Pallet markers/boxes follow edited stockroom positions immediately.
+                 if (Object.ReferenceEquals(_editingPoint, _supplierPartsPallet) ||
+                     Array.IndexOf(_extraStoragePallets, _editingPoint) >= 0)
+@@ -3782,10 +3808,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                 Save();
+                 Notify(_editingPointLabel + " CLEARED.");
+                 break;
+-            case 2:
+-                _showPlacementMarkers = !_showPlacementMarkers;
+-                Notify("Saved placement markers " + (_showPlacementMarkers ? "VISIBLE" : "HIDDEN") + ".");
+-                break;
++            case 2: OpenMarkerDisplay(); break;
+             case 3:
+                 Notify(_editingPointLabel + ": " + (_editingPoint.IsSet ?
+                     FormatPosition(_editingPoint.Position) + " | heading " +
+@@ -3817,20 +3840,35 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void ExecuteMarkerSelection()
+     {
+-        switch (_selection)
++        if (_selection == 0)
+         {
+-            case 0:
+-                _showPlacementMarkers = !_showPlacementMarkers;
+-                Notify(_showPlacementMarkers && !_placed ? "Set the shop location first: no placement points can be previewed yet." :
+-                    "Placement markers " + (_showPlacementMarkers ? "ON" : "OFF") +
+-                    (_showPlacementMarkers ? ". Visible within 80m of your shop when points are SET." : "."));
+-                break;
+-            case 1:
+-                Notify("BLUE: mechanic bays | TEAL: customer vehicle parking | GREEN: mechanic break" +
+-                    " | PINK: reception | ORANGE: arrival stops | YELLOW: work stops.");
+-                break;
+-            case 2: NavigateBack(); break;
++            var next = (PlacementDisplayMode)(((int)_placementDisplayMode + 1) % 4);
++            SetPlacementDisplay(next, next == PlacementDisplayMode.Custom ? _customMarkerCategories : _activeMarkerCategories, _customMarkerCategories);
++        }
++        else if (_selection == 1) SetPlacementDisplay(PlacementDisplayMode.Hidden, _activeMarkerCategories, _customMarkerCategories);
++        else if (_selection == 2)
++        {
++            if (_markerFocusCategory < 0) Notify("Open Marker Display from a point or category to focus that category.");
++            else SetPlacementDisplay(PlacementDisplayMode.Custom, 1 << _markerFocusCategory, _customMarkerCategories);
++        }
++        else if (_selection == 3) SetPlacementDisplay(PlacementDisplayMode.Custom, _customMarkerCategories, _customMarkerCategories);
++        else if (_selection >= 4 && _selection <= 8)
++        {
++            int mask = _activeMarkerCategories ^ (1 << (_selection - 4));
++            SetPlacementDisplay(PlacementDisplayMode.Custom, mask, mask);
++        }
++        else if (_selection == 9)
++        {
++            _autoLotPreview = !_autoLotPreview;
++            Notify("Computed bay preview " + (_autoLotPreview ? "ON" : "OFF") + "; Hide All and category filters still apply.");
++        }
++        else if (_selection == 10)
++        {
++            PlacementVisual found = PlacementVisuals().Find(item => Object.ReferenceEquals(item.Point, _markerFocusPoint));
++            Notify(found == null ? "Select a physical point, then open Marker Display for its identity." :
++                found.Label + " [" + found.Section + "]: " + Status(found.Point));
+         }
++        else NavigateBack();
+     }
+ 
+     private long TotalMechanicPayroll()
+@@ -3985,8 +4023,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         _bays[index].Heading = Game.Player.Character.Heading;
+         Save();
+         _visualRefreshClock = 1.0;
+-        _showPlacementMarkers = true;
+-        Notify("Mechanic Bay " + (index + 1) + " SAVED at " + FormatPosition(here) + ". Markers ON.");
++        Notify("Mechanic Bay " + (index + 1) + " SAVED at " + FormatPosition(here) + ".");
+     }
+ 
+     // Customer vehicle spots are NOT employee arrival routes. Capturing them
+@@ -4013,11 +4050,10 @@ public class GlassHeroesBusinessV3Experimental : Script
+         bay.IsSet = true;
+         bay.Position = position;
+         bay.Heading = player.Heading;
+-        _showPlacementMarkers = true;
+         Save();
+         Notify("Vehicle Bay " + (index + 1) + " parking SAVED: " +
+             FormatPosition(position) + " | heading " + bay.Heading.ToString("0") +
+-            ". Teal marker now visible.");
++            ".");
+     }
+ 
+     // Configure while shop is closed. The checkpoint is optional, but can guide
+@@ -4057,8 +4093,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+         point.Heading = Game.Player.Character.Heading;
+         Save();
+         _warnedMissingEntrance = false;
+-        _showPlacementMarkers = true;
+-        Notify(name + " SAVED at " + FormatPosition(here) + ". Markers ON.");
++        Notify(name + " SAVED at " + FormatPosition(here) + ".");
+     }
+ 
+     // Optional route markers are captured at the player's standing position.
+@@ -4082,79 +4117,770 @@ public class GlassHeroesBusinessV3Experimental : Script
+         point.Position = here;
+         point.Heading = Game.Player.Character.Heading;
+         Save();
+-        _showPlacementMarkers = true;
+-        Notify(label + " SAVED: " + FormatPosition(here) + ". Markers ON.");
++        Notify(label + " SAVED: " + FormatPosition(here) + ".");
+     }
+ 
+     // The previews are ephemeral, drawn per-frame only when enabled.
+     // They are NOT GTA objects and never persist in the save file.
+-    private void DrawPlacementMarkers()
++    private sealed class PlacementValue
+     {
+-        if (!_placed || Game.Player.Character == null || Game.IsPaused) return;
+-        if (DistanceSquared(Game.Player.Character.Position, _location) > 6400f) return;
+-        Color blue = Color.FromArgb(190, 58, 151, 245);
+-        Color green = Color.FromArgb(190, 65, 216, 137);
+-        Color pink = Color.FromArgb(190, 235, 95, 188);
+-        Color orange = Color.FromArgb(190, 254, 161, 60);
+-        Color yellow = Color.FromArgb(185, 255, 202, 75);
+-        if (_showPlacementMarkers)
+-        {
+-            MarkPoint(_breakArea, green);
+-            for (int i = 0; i < VisualBayCount; i++) MarkPoint(_bays[i], blue);
+-            MarkPoint(_employeeEntrance, orange);
+-            // Avoid showing legacy MLO-only route markers on the outdoor AUTO DIRECT mode.
+-            if (_customEmployeeWalkingPaths)
++        public string Section;
++        public WorkBay Target;
++        public bool Set;
++        public Vector3 Position;
++        public float Heading;
++    }
++
++    private sealed class PlacementChange
++    {
++        public List<PlacementValue> Points = new List<PlacementValue>();
++        public bool IncludeAnchor, ShopPlaced, Equipment;
++        public Vector3 Location;
++        public bool Office, Tools, Scanner;
++    }
++
++    private sealed class PlacementRequest
++    {
++        public int Group, ReturnRow;
++        public bool Restore, Anchor, Reviewed;
++        public string Backup, SaveHash, ManifestHash;
++        public DateTime Expires;
++        public int Count;
++    }
++
++    private PlacementRequest _placementRequest;
++    private bool _resetIncludeAnchor, _restoreIncludeAnchor, _placementTransactionActive, _placementRecoveryRequired;
++    private int _placementRestoreGroup = 6;
++    private string _lastPlacementBackup;
++    private static readonly string[] _placementGroups = { "Customers", "Mechanics & Walking", "Service Vehicle Bays", "Receptionist / Manager", "Supplier & Stockroom", "Equipment Positions", "All Placements" };
++
++    private string PlacementOperationBlock(bool transactionOwner = false)
++    {
++        if (!_bootGameplayActivated || Game.IsPaused) return "Use this action in active, unpaused gameplay after startup.";
++        if (_clockedIn || _remoteMode) return "Close the shop and finish remote operations first.";
++        if (_placementRecoveryRequired) return "Reload the script before further placement changes.";
++        if (_placementTransactionActive && !transactionOwner) return "Another placement operation is already running.";
++        if (_activeCustomerOrders.Count != 0 || _customerOrder != null || _stagedCustomerOrder != null || _stagedThirdCustomerOrder != null || _waitingCustomerRequests != 0)
++            return "Finish all active, staged, queued and paid-return customers first.";
++        if (_remoteJobs.Count != 0 || _pendingRepairPromises.Count != 0) return "Finish all remote jobs and saved customer promises first.";
++        foreach (Mechanic mechanic in _mechanics) if (mechanic.HasJob) return "Finish every mechanic job first.";
++        if (_deliveryKind != -2 || _supplierPlayerCarrying || _wholesaleCargoLoaded || _wholesaleCargoUnloaded ||
++            _supplierTruck != null || _supplierDriver != null || _supplierCrate != null)
++            return "Finish supplier deliveries, vehicle cargo and handoffs first.";
++        return null;
++    }
++
++    private List<PlacementValue> PlacementScope(int group)
++    {
++        if (group < 0 || group > 6) throw new ArgumentOutOfRangeException("group");
++        var points = new List<PlacementValue>();
++        foreach (PlacementVisual visual in PlacementVisuals())
++            if (group == 6 || visual.Group == group)
++                points.Add(new PlacementValue { Section = visual.Section, Target = visual.Point });
++        if (group == 1 || group == 6)
++            for (int i = 0; i < _mechanics.Count; i++)
++                points.Add(new PlacementValue { Section = "MechanicResumePost" + (i + 1), Target = _mechanics[i].SavedPost });
++        if (group == 3 || group == 6)
++            points.Add(new PlacementValue { Section = "ReceptionistResumePost", Target = _receptionist.SavedPost });
++        return points;
++    }
++
++    private static string PlacementHash(string file)
++    {
++        using (var input = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
++        using (var hash = System.Security.Cryptography.SHA256.Create())
++            return BitConverter.ToString(hash.ComputeHash(input)).Replace("-", "").ToLowerInvariant();
++    }
++
++    private static void RejectPlacementReparsePath(string path)
++    {
++        string current = Path.GetFullPath(path);
++        for (int depth = 0; depth < 128 && current != null; depth++)
++        {
++            if ((File.Exists(current) || Directory.Exists(current)) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
++                throw new IOException("Placement backups do not follow linked/reparse paths.");
++            current = Path.GetDirectoryName(current);
++        }
++        if (current != null) throw new IOException("Placement backup path is too deep.");
++    }
++
++    private static List<string> PlacementBackupFiles(string directory)
++    {
++        RejectPlacementReparsePath(directory);
++        var result = new List<string>(); var pending = new Queue<string>(); pending.Enqueue(Path.GetFullPath(directory));
++        int directories = 0; long bytes = 0;
++        while (pending.Count > 0)
++        {
++            string current = pending.Dequeue();
++            if (++directories > 256) throw new IOException("Too many data directories for an automatic placement backup.");
++            RejectPlacementReparsePath(current);
++            foreach (string file in Directory.GetFiles(current))
+             {
+-                MarkPoint(_walkCheckpoint, yellow);
+-                foreach (WorkBay point in _arrivalRoute)
+-                    MarkPoint(point, Color.FromArgb(185, 255, 155, 60));
+-                foreach (WorkBay point in _serviceRoute) MarkPoint(point, yellow);
+-                foreach (WorkBay point in _bayApproaches) MarkPoint(point, yellow);
+-            }
+-            if (_customReceptionWalkingPaths)
+-                foreach (WorkBay stop in _receptionRoute)
+-                    MarkPoint(stop, Color.FromArgb(185, 180, 135, 248));
+-            if (_customManagerWalkingPaths)
+-                foreach (WorkBay stop in _managerRoute)
+-                    MarkPoint(stop, Color.FromArgb(195, 92, 195, 255));
+-            MarkPoint(_managerApproach, Color.FromArgb(195, 115, 210, 248));
+-            MarkPoint(_receptionApproach, Color.FromArgb(190, 172, 110, 239));
+-            MarkPoint(_receptionDesk, pink);
+-            MarkPoint(_managerWorkstation, Color.FromArgb(195, 129, 195, 255));
+-            MarkPoint(_customerDriveSpawn, Color.FromArgb(220, 115, 208, 255));
+-            MarkParkingSquare(_customerDropoff, Color.FromArgb(215, 87, 210, 245));
+-            foreach (WorkBay point in _vehicleParkingBays)
+-                MarkParkingSquare(point, Color.FromArgb(210, 26, 225, 191));
+-            MarkPoint(_customerApproach, Color.FromArgb(200, 196, 156, 255));
+-            MarkPoint(_customerQueue, Color.FromArgb(200, 255, 135, 75));
+-            foreach (WorkBay point in _customerWalkingRoute)
+-                MarkPoint(point, Color.FromArgb(190, 235, 126, 236));
+-            MarkParkingSquare(_queueCar2, Color.FromArgb(220, 252, 185, 69));
+-            MarkParkingSquare(_queueCar3, Color.FromArgb(220, 245, 120, 54));
+-            MarkPoint(_supplierTruckSpawn, Color.FromArgb(210, 122, 210, 100));
+-            MarkPoint(_supplierTruckPark, Color.FromArgb(210, 222, 170, 50));
+-            MarkPoint(_supplierHandoff, Color.FromArgb(210, 185, 240, 70));
+-            MarkPoint(_supplierPartsPallet, Color.FromArgb(210, 110, 235, 120));
+-            foreach (WorkBay deliveryNode in _supplierDriverWaypoints)
+-                MarkPoint(deliveryNode, Color.FromArgb(195, 150, 220, 85));
+-        }
+-        // Preview is independent: works even with all normal placement markers OFF.
+-        if (_autoLotPreview && _automaticLotMode)
+-            for (int i = 0; i < VisualBayCount; i++)
+-                if (_bays[i].IsSet) MarkParkingSquare(ComputeAutomaticBay(i), Color.FromArgb(220, 110, 250, 180));
+-        // Emphasize the location currently being edited so similarly colored
+-        // bays/waypoints remain identifiable within the garage.
+-        if (_showMenu && _menuPage == MenuPage.PointEditor &&
+-            _editingPoint != null && _editingPoint.IsSet)
++                RejectPlacementReparsePath(file);
++                bytes += new FileInfo(file).Length;
++                if (result.Count >= 512 || bytes > 64L * 1024 * 1024) throw new IOException("Automatic placement backup limit exceeded; archive older reports manually before retrying.");
++                result.Add(Path.GetFullPath(file));
++            }
++            foreach (string child in Directory.GetDirectories(current))
++            { if (pending.Count >= 256) throw new IOException("Too many backup directories."); pending.Enqueue(child); }
++        }
++        result.Sort(StringComparer.OrdinalIgnoreCase);
++        return result;
++    }
++
++    private static string CreatePlacementBackup(string dataDirectory, string source, string root, Action<string, string> copy)
++    {
++        string data = Path.GetFullPath(dataDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
++        root = Path.GetFullPath(root);
++        if (root.StartsWith(data, StringComparison.OrdinalIgnoreCase) || string.Equals(root.TrimEnd(Path.DirectorySeparatorChar), data.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
++            throw new IOException("Placement backups must be outside the business-data directory.");
++        RejectPlacementReparsePath(root); RejectPlacementReparsePath(source);
++        if (!File.Exists(source) || new FileInfo(source).Length > 4 * 1024 * 1024) throw new IOException("Matching installed source is required for the backup.");
++        var files = PlacementBackupFiles(dataDirectory);
++        if (!files.Contains(Path.GetFullPath(Path.Combine(dataDirectory, "Save.ini")), StringComparer.OrdinalIgnoreCase)) throw new IOException("Save.ini is required for a consistent backup.");
++        Directory.CreateDirectory(root);
++        string backup = Path.Combine(root, DateTime.UtcNow.ToString("yyyyMMddTHHmmssfff", System.Globalization.CultureInfo.InvariantCulture) + "Z_" + Guid.NewGuid().ToString("N"));
++        Directory.CreateDirectory(backup);
++        try
++        {
++            var entries = new List<string>();
++            var originals = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
++            foreach (string file in files.Concat(new string[] { Path.GetFullPath(source) }))
++            {
++                string relative = string.Equals(file, Path.GetFullPath(source), StringComparison.OrdinalIgnoreCase) ? "Source.cs.txt" : "Data/" + file.Substring(data.Length).Replace(Path.DirectorySeparatorChar, '/');
++                string hash = PlacementHash(file); originals.Add(file, hash);
++                string destination = Path.Combine(backup, relative.Replace('/', Path.DirectorySeparatorChar));
++                Directory.CreateDirectory(Path.GetDirectoryName(destination)); copy(file, destination);
++                using (var flush = new FileStream(destination, FileMode.Open, FileAccess.ReadWrite, FileShare.Read)) flush.Flush(true);
++                if (PlacementHash(destination) != hash || PlacementHash(file) != hash) throw new IOException("A file changed during the placement backup.");
++                entries.Add(hash + "|" + new FileInfo(destination).Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + "|" + Uri.EscapeDataString(relative));
++            }
++            if (!files.SequenceEqual(PlacementBackupFiles(dataDirectory), StringComparer.OrdinalIgnoreCase) || originals.Any(pair => PlacementHash(pair.Key) != pair.Value))
++                throw new IOException("Business data changed during the placement backup; no reset committed.");
++            string manifest = "GlassHeroesPlacementBackupV1\n" + string.Join("\n", entries) + "\n";
++            using (var output = new FileStream(Path.Combine(backup, "MANIFEST.v1.txt"), FileMode.CreateNew, FileAccess.Write, FileShare.None))
++            { byte[] bytes = new System.Text.UTF8Encoding(false).GetBytes(manifest); output.Write(bytes, 0, bytes.Length); output.Flush(true); }
++            VerifyPlacementBackup(root, backup);
++            return backup;
++        }
++        catch
++        { try { Directory.Delete(backup, true); } catch { } throw; }
++    }
++
++    private static void VerifyPlacementBackup(string root, string backup)
++    {
++        root = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar);
++        backup = Path.GetFullPath(backup).TrimEnd(Path.DirectorySeparatorChar);
++        if (!string.Equals(Path.GetDirectoryName(backup), root, StringComparison.OrdinalIgnoreCase)) throw new IOException("Select only a direct, owned placement-backup folder.");
++        RejectPlacementReparsePath(backup);
++        string manifest = Path.Combine(backup, "MANIFEST.v1.txt");
++        if (new FileInfo(manifest).Length > 256 * 1024) throw new IOException("Placement manifest is too large.");
++        string[] lines = File.ReadAllLines(manifest);
++        if (lines.Length < 3 || lines.Length > 514 || lines[0] != "GlassHeroesPlacementBackupV1") throw new InvalidDataException("Unsupported placement backup manifest.");
++        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase); long total = 0;
++        for (int i = 1; i < lines.Length; i++)
++        {
++            string[] parts = lines[i].Split('|'); long length;
++            if (parts.Length != 3 || !System.Text.RegularExpressions.Regex.IsMatch(parts[0], "^[a-f0-9]{64}$") ||
++                !long.TryParse(parts[1], out length) || length < 0) throw new InvalidDataException("Invalid placement manifest entry.");
++            string relative = Uri.UnescapeDataString(parts[2]);
++            if ((relative != "Source.cs.txt" && !relative.StartsWith("Data/", StringComparison.Ordinal)) ||
++                relative.Contains("\\") || relative.Contains(":") || relative.Split('/').Any(piece => piece == ".." || piece == "." || piece.Length == 0) || !paths.Add(relative))
++                throw new InvalidDataException("Unsafe or duplicate placement-backup path.");
++            total += length; if (total > 68L * 1024 * 1024) throw new IOException("Placement backup exceeds supported size.");
++            string file = Path.Combine(backup, relative.Replace('/', Path.DirectorySeparatorChar));
++            RejectPlacementReparsePath(file);
++            if (!File.Exists(file) || new FileInfo(file).Length != length || PlacementHash(file) != parts[0]) throw new IOException("Placement backup checksum mismatch.");
++        }
++        if (!paths.Contains("Data/Save.ini") || !paths.Contains("Source.cs.txt")) throw new InvalidDataException("Incomplete placement backup.");
++        // Refuse unmanifested files as well as corrupt/missing files.
++        var actual = PlacementBackupFiles(backup).Select(file => file.Substring(backup.Length + 1).Replace(Path.DirectorySeparatorChar, '/')).Where(file => file != "MANIFEST.v1.txt");
++        if (!paths.SetEquals(actual)) throw new InvalidDataException("Unmanifested placement-backup contents.");
++    }
++
++    private static Dictionary<string, string> ReadPlacementIni(string text)
++    {
++        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); string section = "";
++        foreach (string line in text.Split('\n'))
++        {
++            string value = line.Trim();
++            if (value.Length == 0 || value.StartsWith(";") || value.StartsWith("#")) continue;
++            if (value.StartsWith("["))
++            {
++                int close = value.IndexOf(']');
++                if (close <= 1) throw new InvalidDataException("Malformed placement INI section.");
++                section = value.Substring(1, close - 1).Trim(); continue;
++            }
++            int equals = value.IndexOf('='); if (equals < 0) continue;
++            string key = section + "\0" + value.Substring(0, equals).Trim();
++            if (values.ContainsKey(key)) throw new InvalidDataException("Duplicate INI key; preserve the save for review.");
++            values.Add(key, value.Substring(equals + 1).Trim());
++        }
++        return values;
++    }
++
++    private static string PatchPlacementIni(string text, Dictionary<string, string> overrides)
++    {
++        // Only explicitly selected spatial keys are replaced; all other text stays literal.
++        var remaining = new Dictionary<string, string>(overrides, StringComparer.OrdinalIgnoreCase);
++        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++        var output = new System.Text.StringBuilder(); string section = "";
++        string newline = text.Contains("\r\n") ? "\r\n" : "\n";
++        Action flush = () =>
++        {
++            foreach (string key in remaining.Keys.Where(key => key.StartsWith(section + "\0", StringComparison.OrdinalIgnoreCase)).ToArray())
++            {
++                if (output.Length > 0 && output[output.Length - 1] != '\n') output.Append(newline);
++                output.Append(key.Substring(section.Length + 1)).Append('=').Append(remaining[key]).Append(newline); remaining.Remove(key);
++            }
++        };
++        foreach (string line in System.Text.RegularExpressions.Regex.Split(text, "(?<=\\n)"))
++        {
++            string body = line.TrimEnd('\r', '\n'), trimmed = body.Trim();
++            if (trimmed.StartsWith("["))
++            {
++                flush(); int close = trimmed.IndexOf(']');
++                if (close <= 1) throw new InvalidDataException("Malformed placement INI section.");
++                section = trimmed.Substring(1, close - 1).Trim(); output.Append(line); continue;
++            }
++            int equals = body.IndexOf('=');
++            string key = equals < 0 ? "" : section + "\0" + body.Substring(0, equals).Trim();
++            if (!trimmed.StartsWith(";") && !trimmed.StartsWith("#") && overrides.ContainsKey(key))
++            {
++                if (!seen.Add(key)) throw new InvalidDataException("Duplicate geometry key; no placement change committed.");
++                output.Append(body.Substring(0, equals + 1)).Append(overrides[key]).Append(line.Substring(body.Length)); remaining.Remove(key);
++            }
++            else output.Append(line);
++        }
++        flush();
++        foreach (string group in remaining.Keys.Select(key => key.Split('\0')[0]).Distinct(StringComparer.OrdinalIgnoreCase).ToArray())
++        { section = group; if (output.Length > 0 && output[output.Length - 1] != '\n') output.Append(newline); output.Append('[').Append(section).Append(']').Append(newline); flush(); }
++        return output.ToString();
++    }
++
++    private static byte[] EncodePlacementPatch(byte[] original, Dictionary<string, string> overrides)
++    {
++        if (original.Length > 4 * 1024 * 1024) throw new IOException("Save exceeds placement-edit size limit.");
++        System.Text.Encoding encoding; int prefix;
++        if (original.Length >= 2 && original[0] == 255 && original[1] == 254) { encoding = new System.Text.UnicodeEncoding(false, true, true); prefix = 2; }
++        else if (original.Length >= 2 && original[0] == 254 && original[1] == 255) { encoding = new System.Text.UnicodeEncoding(true, true, true); prefix = 2; }
++        else { prefix = original.Length >= 3 && original[0] == 239 && original[1] == 187 && original[2] == 191 ? 3 : 0; encoding = new System.Text.UTF8Encoding(false, true); }
++        string text = encoding.GetString(original, prefix, original.Length - prefix);
++        ReadPlacementIni(text); // Fail closed for ambiguous duplicated keys.
++        byte[] body = encoding.GetBytes(PatchPlacementIni(text, overrides));
++        var output = new byte[prefix + body.Length]; Array.Copy(original, output, prefix); Array.Copy(body, 0, output, prefix, body.Length);
++        return output;
++    }
++
++    private static bool TryCommitPlacementBytes(string path, string expectedHash, byte[] candidate, Action<string, string> replace, Action<Exception> report)
++    {
++        string temporary = null;
++        try
++        {
++            path = Path.GetFullPath(path); RejectPlacementReparsePath(path);
++            temporary = Path.Combine(Path.GetDirectoryName(path), ".gh-placement-" + Guid.NewGuid().ToString("N") + ".ini");
++            using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
++            { output.Write(candidate, 0, candidate.Length); output.Flush(true); }
++            if (!File.ReadAllBytes(temporary).SequenceEqual(candidate) || PlacementHash(path) != expectedHash) throw new IOException("Save changed while preparing placements; operation aborted.");
++            replace(temporary, path); temporary = null; return true;
++        }
++        catch (Exception error) { try { report(error); } catch { } return false; }
++        finally { if (temporary != null) try { File.Delete(temporary); } catch (Exception error) { try { report(error); } catch { } } }
++    }
++
++    private static float PlacementFloat(Dictionary<string, string> values, string section, string key)
++    {
++        string value; float number;
++        if (!values.TryGetValue(section + "\0" + key, out value)) return 0;
++        if (!float.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number) || float.IsNaN(number) || float.IsInfinity(number))
++            throw new InvalidDataException("Nonfinite or malformed placement in backup.");
++        return number;
++    }
++
++    private static bool PlacementBool(Dictionary<string, string> values, string section, string key)
++    {
++        string value; bool flag;
++        if (!values.TryGetValue(section + "\0" + key, out value)) return false;
++        if (!bool.TryParse(value, out flag)) throw new InvalidDataException("Malformed placement flag in backup.");
++        return flag;
++    }
++
++    private PlacementChange BuildPlacementChange(int group, bool anchor, string restoreSave)
++    {
++        var change = new PlacementChange { Points = PlacementScope(group), IncludeAnchor = anchor && group == 6, Equipment = group == 5 || group == 6 };
++        Dictionary<string, string> saved = restoreSave == null ? null : ReadPlacementIni(File.ReadAllText(restoreSave));
++        foreach (PlacementValue point in change.Points)
++        {
++            point.Set = saved != null && PlacementBool(saved, point.Section, "Set");
++            point.Position = saved == null ? new Vector3() : new Vector3(PlacementFloat(saved, point.Section, "X"), PlacementFloat(saved, point.Section, "Y"), PlacementFloat(saved, point.Section, "Z"));
++            point.Heading = saved == null ? 0 : PlacementFloat(saved, point.Section, "Heading");
++        }
++        if (change.IncludeAnchor && saved != null)
++        { change.ShopPlaced = PlacementBool(saved, "Shop", "Placed"); change.Location = new Vector3(PlacementFloat(saved, "Shop", "X"), PlacementFloat(saved, "Shop", "Y"), PlacementFloat(saved, "Shop", "Z")); }
++        if (change.Equipment && saved != null)
++        {
++            change.Office = _officeDeskPurchased && PlacementBool(saved, "Equipment", "OfficeDeskPlaced") && change.Points.Find(point => point.Section == "OfficeDesk").Set;
++            change.Tools = _toolSetPurchased && PlacementBool(saved, "Equipment", "ToolSetPlaced") && change.Points.Find(point => point.Section == "ToolSetPlacement").Set;
++            change.Scanner = _diagnosticScannerPurchased && PlacementBool(saved, "Equipment", "ScannerPlaced") && change.Points.Find(point => point.Section == "ScannerPlacement").Set;
++        }
++        return change;
++    }
++
++    private static Dictionary<string, string> PlacementOverrides(PlacementChange change)
++    {
++        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
++        Action<string, string, string> add = (section, key, value) => values.Add(section + "\0" + key, value);
++        Func<float, string> number = value => value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
++        foreach (PlacementValue point in change.Points)
++        {
++            add(point.Section, "Set", point.Set.ToString()); add(point.Section, "X", number(point.Position.X)); add(point.Section, "Y", number(point.Position.Y));
++            add(point.Section, "Z", number(point.Position.Z)); add(point.Section, "Heading", number(point.Heading));
++        }
++        if (change.IncludeAnchor)
++        { add("Shop", "Placed", change.ShopPlaced.ToString()); add("Shop", "X", number(change.Location.X)); add("Shop", "Y", number(change.Location.Y)); add("Shop", "Z", number(change.Location.Z)); }
++        if (change.Equipment)
++        { add("Equipment", "OfficeDeskPlaced", change.Office.ToString()); add("Equipment", "ToolSetPlaced", change.Tools.ToString()); add("Equipment", "ScannerPlaced", change.Scanner.ToString()); }
++        return values;
++    }
++
++    private bool PlacementChangeFitsStorage(PlacementChange change)
++    {
++        bool palletChange = change.Points.Exists(value => Object.ReferenceEquals(value.Target, _supplierPartsPallet) || Array.IndexOf(_extraStoragePallets, value.Target) >= 0);
++        if (!palletChange) return true;
++        int capacity = 0;
++        for (int i = 0; i < _ownedStoragePallets; i++)
++        {
++            WorkBay point = StoragePalletPoint(i); PlacementValue replacement = change.Points.Find(value => Object.ReferenceEquals(value.Target, point));
++            if (replacement == null ? point.IsSet : replacement.Set) capacity += PartsPerPallet;
++        }
++        return StoredPartsTotal() <= capacity;
++    }
++
++    private bool PlacementChangeWithinShop(PlacementChange change)
++    {
++        bool placed = change.IncludeAnchor ? change.ShopPlaced : _placed;
++        Vector3 location = change.IncludeAnchor ? change.Location : _location;
++        bool valid = placed && !float.IsNaN(location.X) && !float.IsNaN(location.Y) && !float.IsNaN(location.Z) &&
++            !float.IsInfinity(location.X) && !float.IsInfinity(location.Y) && !float.IsInfinity(location.Z);
++        foreach (PlacementValue point in change.Points)
++            if (point.Set && (!valid || DistanceSquared(location, point.Position) > 6400f)) return false;
++        return true;
++    }
++
++    private void ApplyPlacementChange(PlacementChange change)
++    {
++        foreach (PlacementValue point in change.Points)
++        { point.Target.IsSet = point.Set; point.Target.Position = point.Position; point.Target.Heading = point.Heading; }
++        if (change.IncludeAnchor) { _placed = change.ShopPlaced; _location = change.Location; }
++        if (change.Equipment) { _officeDeskPlaced = change.Office; _toolSetPlaced = change.Tools; _scannerPlaced = change.Scanner; }
++        _markerFocusPoint = null; _editingPoint = null; _placementVisuals = null;
++        Array.Clear(_computedBayInputs, 0, _computedBayInputs.Length); Array.Clear(_computedBayVisuals, 0, _computedBayVisuals.Length);
++        _visualRefreshClock = 1;
++    }
++
++    private string PlacementInstalledSource() { return @"scripts\GlassHeroesBusiness.3.cs"; }
++
++    private string PlacementBackupRoot()
++    {
++        string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
++        if (string.IsNullOrWhiteSpace(documents) || !Path.IsPathRooted(documents)) throw new IOException("A writable absolute Documents folder is required for placement backups.");
++        string root = Path.Combine(documents, "GlassHeroes", "PlacementBackups");
++        string scripts = Path.GetFullPath("scripts").TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
++        if (Path.GetFullPath(root).StartsWith(scripts, StringComparison.OrdinalIgnoreCase)) throw new IOException("Backups must be outside all script-loading paths.");
++        return root;
++    }
++
++    private string LatestPlacementBackup()
++    {
++        string root = PlacementBackupRoot(); RejectPlacementReparsePath(root);
++        if (!Directory.Exists(root)) return null;
++        string[] directories = Directory.GetDirectories(root);
++        if (directories.Length > 256) throw new IOException("Archive older placement backups manually before browsing more than 256 folders.");
++        return directories.Where(path => File.Exists(Path.Combine(path, "MANIFEST.v1.txt"))).OrderByDescending(path => Path.GetFileName(path), StringComparer.Ordinal).FirstOrDefault();
++    }
++
++    private void DropPlacementConfirmation() { _placementRequest = null; }
++
++    private void CancelPlacementConfirmation()
++    {
++        PlacementRequest request = _placementRequest; _placementRequest = null;
++        _menuPage = request != null && request.Restore ? MenuPage.PlacementRestore : MenuPage.PlacementReset;
++        _selection = request == null ? 0 : request.ReturnRow;
++    }
++
++    private bool ValidatePlacementRequest()
++    {
++        PlacementRequest request = _placementRequest;
++        string blocked = PlacementOperationBlock();
++        if (request == null || !_showMenu || (_menuPage != MenuPage.PlacementResetReview && _menuPage != MenuPage.PlacementResetConfirm) || DateTime.UtcNow >= request.Expires || blocked != null)
++        { Notify(blocked ?? "Placement confirmation expired or was cancelled. Start the review again."); CancelPlacementConfirmation(); return false; }
++        try
+         {
+-            Vector3 location = _editingPoint.Position;
+-            World.DrawMarker((MarkerType)1,
+-                new Vector3(location.X, location.Y, location.Z - 0.025f),
+-                new Vector3(), new Vector3(), new Vector3(0.70f, 0.70f, 0.045f),
+-                Color.FromArgb(150, 255, 255, 255));
++            if (!File.Exists(SaveFile) || PlacementHash(SaveFile) != request.SaveHash) throw new IOException("Business save changed since review; start a fresh placement review.");
++            if (request.Restore && PlacementHash(Path.Combine(request.Backup, "MANIFEST.v1.txt")) != request.ManifestHash) throw new IOException("Selected backup changed since review.");
++        }
++        catch (Exception error) { Notify(error.Message); CancelPlacementConfirmation(); return false; }
++        return true;
++    }
++
++    private void StartPlacementRequest(int group, bool restore, int returnRow)
++    {
++        string blocked = PlacementOperationBlock(); if (blocked != null) { Notify(blocked); return; }
++        try
++        {
++            if (!File.Exists(SaveFile)) throw new IOException("Save the business before reviewing a placement operation.");
++            string backup = null;
++            if (restore)
++            {
++                backup = _lastPlacementBackup ?? LatestPlacementBackup();
++                if (backup == null) throw new IOException("No placement backup is available.");
++                VerifyPlacementBackup(PlacementBackupRoot(), backup);
++            }
++            bool anchor = group == 6 && (restore ? _restoreIncludeAnchor : _resetIncludeAnchor);
++            PlacementChange change = BuildPlacementChange(group, anchor, restore ? Path.Combine(backup, "Data", "Save.ini") : null);
++            if (!PlacementChangeWithinShop(change)) throw new IOException("Restore points must be within 80m of the current shop. Restore All with its shop anchor, or use a matching layout.");
++            if (!PlacementChangeFitsStorage(change)) throw new IOException("This placement change would leave stored parts without capacity. Empty stock before resetting pallets, or restore a layout with enough owned pallet positions.");
++            _placementRequest = new PlacementRequest { Group = group, Restore = restore, Anchor = anchor, Backup = backup,
++                SaveHash = PlacementHash(SaveFile), ManifestHash = restore ? PlacementHash(Path.Combine(backup, "MANIFEST.v1.txt")) : null,
++                Expires = DateTime.UtcNow.AddSeconds(30), Count = change.Points.Count + (anchor ? 1 : 0), ReturnRow = returnRow };
++            _menuPage = MenuPage.PlacementResetReview; _selection = 0;
++        }
++        catch (Exception error) { Notify("Placement review blocked: " + error.Message); }
++    }
++
++    private bool CommitPlacementRequest()
++    {
++        if (_placementRequest == null || !_placementRequest.Reviewed || _menuPage != MenuPage.PlacementResetConfirm)
++        { Notify("Complete both placement confirmation stages first."); return false; }
++        if (!ValidatePlacementRequest()) return false;
++        PlacementRequest request = _placementRequest; bool committed = false;
++        _placementTransactionActive = true;
++        try
++        {
++            // Flush the normal consistent ledger first; geometry is still untouched.
++            if (!Save()) throw new IOException("Business snapshot failed; no reset attempted.");
++            string expected = PlacementHash(SaveFile);
++            string root = PlacementBackupRoot();
++            _lastPlacementBackup = CreatePlacementBackup(DataDirectory, PlacementInstalledSource(), root, (source, target) => File.Copy(source, target, false));
++            string blocked = PlacementOperationBlock(true); if (blocked != null) throw new IOException(blocked);
++            if (request.Restore)
++            {
++                VerifyPlacementBackup(root, request.Backup);
++                if (PlacementHash(Path.Combine(request.Backup, "MANIFEST.v1.txt")) != request.ManifestHash) throw new IOException("Selected backup changed while preparing restore.");
++            }
++            PlacementChange change = BuildPlacementChange(request.Group, request.Anchor, request.Restore ? Path.Combine(request.Backup, "Data", "Save.ini") : null);
++            if (!PlacementChangeWithinShop(change)) throw new IOException("Restore layout does not match the current shop location.");
++            if (!PlacementChangeFitsStorage(change)) throw new IOException("Insufficient owned pallet capacity for this placement operation.");
++            byte[] candidate = EncodePlacementPatch(File.ReadAllBytes(SaveFile), PlacementOverrides(change));
++            if (!TryCommitPlacementBytes(SaveFile, expected, candidate, (temporary, target) => File.Replace(temporary, target, null), error => Log("Placement save commit", error)))
++                throw new IOException("Placement commit failed; existing geometry retained. Verified backup is available.");
++            committed = true; _placementRecoveryRequired = true;
++            ApplyPlacementChange(change);
++            if (request.Group == 1 || request.Group == 6) foreach (Mechanic mechanic in _mechanics) DismissWorker(mechanic);
++            if (request.Group == 3 || request.Group == 6) { DismissReceptionist(); DismissVisualManager(); }
++            if (request.Group == 4 || request.Group == 6) { DeleteStoragePalletVisuals(); DeleteSupplierVisuals(); }
++            if (request.Group == 5 || request.Group == 6) { DeleteOfficeDeskProps(); DeleteEquipmentProps(); }
++            _placementRecoveryRequired = false;
++            Notify((request.Restore ? "Placements restored" : "Placements reset") + "; current finances, stock, staff, ownership and route selections preserved. Backup: " + _lastPlacementBackup);
++            return true;
++        }
++        catch (Exception error)
++        {
++            Log("Placement reset/restore", error);
++            Notify(committed ? "Placement save committed, but cleanup was interrupted. Reload before reopening the shop; preserve the backup." :
++                "No placement change committed: " + error.Message);
++            return false;
++        }
++        finally { _placementTransactionActive = false; CancelPlacementConfirmation(); }
++    }
++
++    private string PlacementRequestDescription()
++    {
++        PlacementRequest request = _placementRequest;
++        if (request == null || DateTime.UtcNow >= request.Expires) return "Review expired. Nothing changed; go Back and start again.";
++        return (request.Restore ? "RESTORE " : "RESET ") + _placementGroups[request.Group] + ": " + request.Count +
++            " geometry entries. Shop anchor " + (request.Anchor ? "INCLUDED" : "KEPT") + ". Masks, money, stock and ownership stay unchanged. NO is the default.";
++    }
++
++    private void ExecutePlacementResetSelection()
++    {
++        if (_menuPage == MenuPage.PlacementReset)
++        {
++            if (_selection >= 0 && _selection < 6) StartPlacementRequest(_selection, false, _selection);
++            else if (_selection == 6) _resetIncludeAnchor = !_resetIncludeAnchor;
++            else if (_selection == 7) StartPlacementRequest(6, false, 7);
++            else if (_selection == 8)
++            {
++                try { _lastPlacementBackup = LatestPlacementBackup(); OpenPlacementMenu(MenuPage.PlacementRestore); }
++                catch (Exception error) { Notify(error.Message); }
++            }
++            else NavigateBack();
++        }
++        else if (_menuPage == MenuPage.PlacementRestore)
++        {
++            if (_selection == 0) _placementRestoreGroup = (_placementRestoreGroup + 1) % 7;
++            else if (_selection == 1)
++            {
++                if (_placementRestoreGroup == 6) _restoreIncludeAnchor = !_restoreIncludeAnchor;
++                else Notify("Shop anchor restore is available only with All Placements scope.");
++            }
++            else if (_selection == 2) Notify(_lastPlacementBackup == null ? "No verified placement backup selected yet." : "Latest candidate backup: " + _lastPlacementBackup + ". Checksums are verified before restore review.");
++            else if (_selection == 3) StartPlacementRequest(_placementRestoreGroup, true, 3);
++            else NavigateBack();
++        }
++        else if (_menuPage == MenuPage.PlacementResetReview)
++        {
++            if (_selection == 0) CancelPlacementConfirmation();
++            else if (_selection == 1 && ValidatePlacementRequest()) { _placementRequest.Reviewed = true; _menuPage = MenuPage.PlacementResetConfirm; _selection = 0; }
++            else if (_selection == 2) Notify(PlacementRequestDescription());
++        }
++        else if (_menuPage == MenuPage.PlacementResetConfirm)
++        {
++            if (_selection == 0) CancelPlacementConfirmation();
++            else if (_selection == 1) CommitPlacementRequest();
++            else if (_selection == 2) Notify(PlacementRequestDescription());
++        }
++    }
++
++    private enum PlacementDisplayMode { Hidden, Focused, Custom, All }
++    private const string PlacementDisplayFile = @"scripts\GlassHeroesBusiness\PlacementDisplay.v1.ini";
++    private PlacementDisplayMode _placementDisplayMode;
++    private int _activeMarkerCategories = 31, _customMarkerCategories = 31, _markerFocusCategory = -1;
++    private bool _placementDisplayWritable = true;
++    private WorkBay _markerFocusPoint;
++    private List<PlacementVisual> _placementVisuals;
++    private static readonly Color[] _placementColors = { Color.FromArgb(190, 87, 210, 245), Color.FromArgb(190, 255, 185, 70),
++        Color.FromArgb(190, 26, 225, 191), Color.FromArgb(190, 215, 130, 235), Color.FromArgb(190, 110, 235, 120) };
++    private readonly PlacementVisual[] _computedBayVisuals = new PlacementVisual[3];
++    private readonly WorkBay[] _computedBayInputs = new WorkBay[3];
++
++    private sealed class PlacementVisual
++    {
++        public WorkBay Point;
++        public string Section, Label;
++        public int Category, Group, Shape;
++        public Vector3 CachedPosition;
++        public float CachedHeading;
++        public Vector3[] Outline;
++        public float ComputedOffset;
++        public bool ComputedRight;
++    }
++
++    private List<PlacementVisual> PlacementVisuals()
++    {
++        if (_placementVisuals != null) return _placementVisuals;
++        var list = new List<PlacementVisual>();
++        Action<WorkBay, string, string, int, int, int> add = (point, section, label, category, group, shape) =>
++            list.Add(new PlacementVisual { Point = point, Section = section, Label = label, Category = category, Group = group, Shape = shape });
++        add(_customerDriveSpawn, "CustomerDriveSpawn", "Customer road spawn", 0, 0, 0);
++        add(_customerDropoff, "CustomerDropoff", "Direction-free customer handoff", 0, 0, 2);
++        add(_customerApproach, "CustomerApproach", "Customer reception approach", 0, 0, 0);
++        add(_customerQueue, "CustomerQueue", "Customer reception queue", 0, 0, 0);
++        add(_queueCar2, "CustomerQueueCar2", "Waiting car 2", 0, 0, 1);
++        add(_queueCar3, "CustomerQueueCar3", "Waiting car 3", 0, 0, 1);
++        add(_employeeEntrance, "EmployeeEntrance", "Staff spawn", 1, 1, 0);
++        add(_breakArea, "EmployeeBreakArea", "Mechanic break area", 1, 1, 0);
++        add(_walkCheckpoint, "WalkCheckpoint", "Legacy checkpoint", 1, 1, 0);
++        add(_receptionDesk, "ReceptionDesk", "Receptionist desk", 3, 3, 0);
++        add(_receptionApproach, "ReceptionApproach", "Receptionist approach", 3, 3, 0);
++        add(_managerWorkstation, "ManagerWorkstation", "Manager workstation", 3, 3, 0);
++        add(_managerApproach, "ManagerApproach", "Manager approach", 3, 3, 0);
++        add(_supplierTruckSpawn, "SupplierTruckSpawn", "Supplier road spawn", 4, 4, 0);
++        add(_supplierTruckPark, "SupplierTruckPark", "Supplier unloading", 4, 4, 0);
++        add(_supplierHandoff, "SupplierDriverHandoff", "Supplier handoff", 4, 4, 0);
++        add(_supplierPartsPallet, "SupplierPartsPallet", "Stockroom pallet 1", 4, 4, 0);
++        add(_officeDeskLocation, "OfficeDesk", "Office desk position", 3, 5, 0);
++        add(_toolSetLocation, "ToolSetPlacement", "Tool position", 3, 5, 0);
++        add(_scannerLocation, "ScannerPlacement", "Scanner position", 3, 5, 0);
++        for (int i = 0; i < 3; i++)
++        {
++            add(_bays[i], "WorkBay" + (i + 1), "Mechanic work position " + (i + 1), 1, 1, 0);
++            add(_vehicleParkingBays[i], "VehicleParkingBay" + (i + 1), "Service car bay " + (i + 1), 2, 2, 1);
++            add(_bayApproaches[i], "BayApproach" + (i + 1), "Final walking approach " + (i + 1), 1, 1, 0);
++            add(_customerWalkingRoute[i], "CustomerWalkingPoint" + (i + 1), "Customer walk stop " + (i + 1), 0, 0, 0);
++            add(_supplierDriverWaypoints[i], "SupplierDriverWaypoint" + (i + 1), "Supplier walk stop " + (i + 1), 4, 4, 0);
++            add(_extraStoragePallets[i], "SupplierStoragePallet" + (i + 2), "Stockroom pallet " + (i + 2), 4, 4, 0);
++        }
++        for (int i = 0; i < 5; i++)
++        {
++            add(_arrivalRoute[i], "ArrivalWaypoint" + (i + 1), "Staff Spawn -> Break stop " + (i + 1), 1, 1, 0);
++            add(_serviceRoute[i], "ServiceWaypoint" + (i + 1), "Break <-> Bay physical stop " + (i + 1), 1, 1, 0);
++            add(_receptionRoute[i], "ReceptionWaypoint" + (i + 1), "Receptionist stop " + (i + 1), 3, 3, 0);
++            add(_managerRoute[i], "ManagerWaypoint" + (i + 1), "Manager stop " + (i + 1), 3, 3, 0);
++        }
++        _placementVisuals = list;
++        return list;
++    }
++
++    private void LoadPlacementDisplayPreferences()
++    {
++        try
++        {
++            if (!File.Exists(PlacementDisplayFile)) return;
++            if (new FileInfo(PlacementDisplayFile).Length > 16384) throw new InvalidDataException("Placement display preferences exceed supported size.");
++            ScriptSettings data = ScriptSettings.Load(PlacementDisplayFile);
++            if (data.GetValue("Display", "Version", 1) != 1) throw new InvalidDataException("Unsupported placement display preferences; file preserved.");
++            int mode = data.GetValue("Display", "Mode", 0);
++            _placementDisplayMode = mode >= 0 && mode <= 3 ? (PlacementDisplayMode)mode : PlacementDisplayMode.Hidden;
++            _activeMarkerCategories = data.GetValue("Display", "ActiveMask", 31) & 31;
++            _customMarkerCategories = data.GetValue("Display", "CustomMask", 31) & 31;
++            _showPlacementMarkers = _placementDisplayMode != PlacementDisplayMode.Hidden;
++        }
++        catch (Exception error)
++        { _placementDisplayWritable = false; _placementDisplayMode = PlacementDisplayMode.Hidden; _showPlacementMarkers = false; Log("Placement display preferences", error); }
++    }
++
++    private bool SetPlacementDisplay(PlacementDisplayMode mode, int active, int custom)
++    {
++        if (!_placementDisplayWritable) { Notify("Placement display preferences could not be read. Preserve the file and review Errors.log."); return false; }
++        active &= 31; custom &= 31;
++        bool saved = TryCommitBusinessSave(PlacementDisplayFile, path =>
++        {
++            ScriptSettings data = ScriptSettings.Load(path);
++            data.SetValue("Display", "Version", 1); data.SetValue("Display", "Mode", (int)mode);
++            data.SetValue("Display", "ActiveMask", active); data.SetValue("Display", "CustomMask", custom);
++            if (!data.Save()) throw new IOException("Placement display preference save failed.");
++        }, error => Log("Placement display preferences", error));
++        if (!saved) { Notify("Display preference not saved; previous selection retained."); return false; }
++        _placementDisplayMode = mode; _activeMarkerCategories = active; _customMarkerCategories = custom;
++        _showPlacementMarkers = mode != PlacementDisplayMode.Hidden;
++        return true;
++    }
++
++    private int PlacementCategoryFor(WorkBay point)
++    {
++        if (point == null) return -1;
++        foreach (PlacementVisual visual in PlacementVisuals()) if (Object.ReferenceEquals(visual.Point, point)) return visual.Category;
++        return -1;
++    }
++
++    private void OpenMarkerDisplay()
++    {
++        _markerFocusPoint = FocusedPlacementPoint();
++        _markerFocusCategory = PlacementCategoryFor(_markerFocusPoint);
++        if (_markerFocusCategory < 0)
++        {
++            if (_menuPage == MenuPage.Customers || _menuPage == MenuPage.CustomerPlacements) _markerFocusCategory = 0;
++            else if (_menuPage == MenuPage.MechanicBays || _menuPage == MenuPage.ServiceVehicleBays || _menuPage == MenuPage.ServiceBayProfile) _markerFocusCategory = 2;
++            else if (_menuPage == MenuPage.EmployeeSettings || _menuPage == MenuPage.EmployeePlacements) _markerFocusCategory = 1;
++            else if (_menuPage == MenuPage.DeliveryPlacements || _menuPage == MenuPage.SupplierPalletStorage) _markerFocusCategory = 4;
++        }
++        OpenPlacementMenu(MenuPage.PlacementMarkers);
++    }
++
++    private static bool PlacementCategoryVisible(PlacementDisplayMode mode, int mask, int category, bool focused)
++    {
++        if (mode == PlacementDisplayMode.Hidden) return false;
++        if (mode == PlacementDisplayMode.Focused) return focused;
++        return mode == PlacementDisplayMode.All || (category >= 0 && category < 5 && (mask & (1 << category)) != 0);
++    }
++
++    private static bool PlacementPointFinite(WorkBay point, bool facing)
++    {
++        if (point == null || !point.IsSet) return false;
++        Vector3 p = point.Position;
++        return !float.IsNaN(p.X) && !float.IsNaN(p.Y) && !float.IsNaN(p.Z) &&
++            !float.IsInfinity(p.X) && !float.IsInfinity(p.Y) && !float.IsInfinity(p.Z) &&
++            (!facing || (!float.IsNaN(point.Heading) && !float.IsInfinity(point.Heading)));
++    }
++
++    private void DrawPlacementVisual(PlacementVisual visual, Color color)
++    {
++        WorkBay point = visual.Point;
++        if (!PlacementPointFinite(point, visual.Shape == 1)) return;
++        if (visual.Shape == 2) { MarkCustomerHandoffZone(point, color); return; }
++        if (visual.Shape != 1) { MarkPoint(point, color); return; }
++        if (visual.Outline == null || DistanceSquared(visual.CachedPosition, point.Position) > 0.000001f || visual.CachedHeading != point.Heading)
++        {
++            visual.CachedPosition = point.Position; visual.CachedHeading = point.Heading;
++            visual.Outline = ParkingOutlineVertices(point.Position, point.Heading);
++        }
++        for (int i = 0; i < 6; i++)
++        {
++            Vector3 a = i < 4 ? visual.Outline[i] : visual.Outline[4];
++            Vector3 b = i < 4 ? visual.Outline[(i + 1) % 4] : visual.Outline[i + 1];
++            GTA.Native.Function.Call(GTA.Native.Hash.DRAW_LINE, a.X, a.Y, a.Z, b.X, b.Y, b.Z,
++                (int)color.R, (int)color.G, (int)color.B, (int)color.A);
+         }
+     }
+ 
++    private void DrawComputedBayPreviews(Vector3 playerPosition, WorkBay focus)
++    {
++        if (!_autoLotPreview || !_automaticLotMode) return;
++        for (int i = 0; i < VisualBayCount; i++)
++        {
++            WorkBay bay = _bays[i];
++            bool focused = Object.ReferenceEquals(focus, bay) || Object.ReferenceEquals(focus, _vehicleParkingBays[i]);
++            if (!PlacementPointFinite(bay, true) || !PlacementCategoryVisible(_placementDisplayMode, _activeMarkerCategories, 2, focused)) continue;
++            WorkBay input = _computedBayInputs[i];
++            if (input == null || DistanceSquared(input.Position, bay.Position) > 0.000001f || input.Heading != bay.Heading ||
++                _computedBayVisuals[i].ComputedOffset != _autoLotOffsetMeters || _computedBayVisuals[i].ComputedRight != _autoLotRightSide)
++            {
++                _computedBayInputs[i] = new WorkBay { Position = bay.Position, Heading = bay.Heading };
++                _computedBayVisuals[i] = new PlacementVisual { Point = ComputeAutomaticBay(i), Shape = 1, ComputedOffset = _autoLotOffsetMeters, ComputedRight = _autoLotRightSide };
++            }
++            if (DistanceSquared(playerPosition, _computedBayVisuals[i].Point.Position) <= 6400f)
++                DrawPlacementVisual(_computedBayVisuals[i], Color.FromArgb(210, 110, 250, 180));
++        }
++    }
++
++    private WorkBay FocusedPlacementPoint()
++    {
++        if (!_showMenu) return null;
++        if (_menuPage == MenuPage.PointEditor) return _editingPoint;
++        if (_selection < 0) return null;
++        if (_menuPage == MenuPage.ServiceBayProfile && _serviceBaySlot >= 0 && _serviceBaySlot < 3)
++            return _selection == 0 ? _vehicleParkingBays[_serviceBaySlot] : _selection == 1 ? _bays[_serviceBaySlot] : null;
++        if (_menuPage == MenuPage.CustomerPlacements)
++        {
++            switch (_selection)
++            {
++                case 0: return _customerDropoff;
++                case 1: return _customerDriveSpawn;
++                case 2: return _customerApproach;
++                case 3: return _customerQueue;
++                case 4: return _queueCar2;
++                case 5: return _queueCar3;
++                default: return null;
++            }
++        }
++        WorkBay[] points = null;
++        switch (_menuPage)
++        {
++            case MenuPage.ArrivalWaypoints: points = _arrivalRoute; break;
++            case MenuPage.ServiceWaypoints:
++            case MenuPage.MechanicRoutePoints: points = _serviceRoute; break;
++            case MenuPage.BayApproaches: points = _bayApproaches; break;
++            case MenuPage.ReceptionWaypoints: points = _receptionRoute; break;
++            case MenuPage.ManagerWaypoints: points = _managerRoute; break;
++            case MenuPage.CustomerWalkingRoutes: points = _customerWalkingRoute; break;
++            case MenuPage.SupplierDriverWaypoints: points = _supplierDriverWaypoints; break;
++        }
++        return points != null && _selection < points.Length ? points[_selection] : null;
++    }
++
++    private void DrawPlacementMarkers()
++    {
++        if (_placementDisplayMode == PlacementDisplayMode.Hidden) return; // Includes explicit auto-bay previews.
++        if (!_placed || Game.IsPaused || Game.Player.Character == null) return;
++        Vector3 playerPosition = Game.Player.Character.Position;
++        if (DistanceSquared(playerPosition, _location) > 6400f) return;
++        WorkBay focus = FocusedPlacementPoint();
++        if (focus == null && _showMenu && _menuPage == MenuPage.PlacementMarkers) focus = _markerFocusPoint;
++        foreach (PlacementVisual visual in PlacementVisuals())
++        {
++            WorkBay point = visual.Point;
++            bool focused = Object.ReferenceEquals(point, focus);
++            if (!PlacementPointFinite(point, visual.Shape == 1) || !PlacementCategoryVisible(_placementDisplayMode, _activeMarkerCategories, visual.Category, focused) ||
++                DistanceSquared(playerPosition, point.Position) > 6400f) continue;
++            DrawPlacementVisual(visual, _placementColors[visual.Category]);
++            if (focused)
++                World.DrawMarker((MarkerType)1, new Vector3(point.Position.X, point.Position.Y, point.Position.Z - 0.025f),
++                    new Vector3(), new Vector3(), new Vector3(0.70f, 0.70f, 0.045f), Color.FromArgb(150, 255, 255, 255));
++        }
++        DrawComputedBayPreviews(playerPosition, focus);
++    }
++
+     private static Vector3[] ParkingOutlineVertices(Vector3 position, float heading)
+     {
+         // SHVDN/GTA: forward at 0 degrees is +Y, at 90 degrees is -X.
+@@ -5897,42 +6623,13 @@ public class GlassHeroesBusinessV3Experimental : Script
+         switch (order.Stage)
+         {
+             case CustomerStage.DrivingToDropoff:
+-                // The original code told customers to exit within 7m even while rolling.
+-                // Approach a wider radius first, then let GTA perform a parking maneuver.
+-                if (_fineParkingEnabled &&
+-                    DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 196f)
+-                {
+-                    GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK,
+-                        order.Customer.Handle, order.Vehicle.Handle,
+-                        _customerDropoff.Position.X, _customerDropoff.Position.Y,
+-                        _customerDropoff.Position.Z, _customerDropoff.Heading,
+-                        1, _parkingRadius, false);
+-                    order.ParkingTaskIssued = true;
+-                    order.Stage = CustomerStage.ParkingAtDropoff;
+-                    order.SecondsInStage = 0;
+-                }
+-                else if (!_fineParkingEnabled &&
+-                    DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 49f)
+-                    BeginCustomerExit(order);
++                if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < (_fineParkingEnabled ? 196f : 49f))
++                    BeginDirectionFreeHandoff(order, order.Customer, false);
+                 else if (order.SecondsInStage >= _driveArrivalTimeout)
+                     CancelCustomerOrder("Road navigation failed; adjust road-side spawn/drop-off", true);
+                 break;
+             case CustomerStage.ParkingAtDropoff:
+-                // Require proximity AND low speed for a natural parked exit.
+-                if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 16f &&
+-                    order.Vehicle.Speed < 1.5f)
+-                    BeginCustomerExit(order);
+-                else if (order.SecondsInStage >= _parkingTimeoutSeconds)
+-                {
+-                    // Conservative fallback: the original 7m arrival window.
+-                    // Never warp a vehicle through props or MLO walls.
+-                    if (DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 49f)
+-                    {
+-                        Notify("Customer parking imperfect; continuing check-in from nearby.");
+-                        BeginCustomerExit(order);
+-                    }
+-                    else CancelCustomerOrder("Parking timed out; adjust drop-off heading/position", true);
+-                }
++                UpdateDirectionFreeHandoff(order, false);
+                 break;
+             case CustomerStage.ExitingVehicle:
+                 if (!GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_ANY_VEHICLE,
+@@ -6499,6 +7196,98 @@ public class GlassHeroesBusinessV3Experimental : Script
+         if (count == 0) Notify("No paid physical return to recover. OFF-mode pickup retries automatically when safe.");
+     }
+ 
++    private sealed class HandoffProgress
++    {
++        public bool Issued;
++        public int Retries, StableSamples;
++        public double NoProgress;
++        public Vector3 LastPosition;
++    }
++
++    private bool HandoffZoneAvailable(CustomerOrder order)
++    {
++        Vector3 p = _customerDropoff.Position;
++        return _customerDropoff.IsSet && !float.IsNaN(p.X) && !float.IsNaN(p.Y) && !float.IsNaN(p.Z) &&
++            !float.IsInfinity(p.X) && !float.IsInfinity(p.Y) && !float.IsInfinity(p.Z) &&
++            !DropoffOccupied(order.Vehicle);
++    }
++
++    private void IssueDirectionFreeHandoff(CustomerOrder order, Ped driver)
++    {
++        Vector3 p = _customerDropoff.Position;
++        // Position-only, slow, traffic-aware task. No saved-facing parameter.
++        GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,
++            driver.Handle, order.Vehicle.Handle, p.X, p.Y, p.Z, 2.4f, CarefulDrivingStyle, 1.75f);
++        order.Handoff.Issued = true;
++        order.ParkingTaskIssued = true;
++        order.Handoff.LastPosition = order.Vehicle.Position;
++        order.Handoff.NoProgress = 0;
++    }
++
++    private void BeginDirectionFreeHandoff(CustomerOrder order, Ped driver, bool returning)
++    {
++        order.Handoff = new HandoffProgress { LastPosition = order.Vehicle.Position };
++        order.Stage = returning ? CustomerStage.MechanicParkingAtDropoff : CustomerStage.ParkingAtDropoff;
++        order.SecondsInStage = 0;
++        if (HandoffZoneAvailable(order)) IssueDirectionFreeHandoff(order, driver);
++    }
++
++    private void UpdateDirectionFreeHandoff(CustomerOrder order, bool returning)
++    {
++        Ped driver = returning ? AssignedWorker(order) : order.Customer;
++        if (driver == null)
++        {
++            if (returning) FailVehicleTransfer(order, false, "Mechanic missing at customer handoff");
++            else CancelCustomerOrder("Customer missing at handoff", true);
++            return;
++        }
++        if (order.Handoff == null) order.Handoff = new HandoffProgress { LastPosition = order.Vehicle.Position };
++        HandoffProgress progress = order.Handoff;
++        bool clear = HandoffZoneAvailable(order);
++        float speed = order.Vehicle.Speed;
++        bool stopped = clear && DistanceSquared(order.Vehicle.Position, _customerDropoff.Position) < 16f &&
++            !float.IsNaN(speed) && !float.IsInfinity(speed) && speed >= 0 && speed < 1.5f;
++        progress.StableSamples = stopped ? Math.Min(2, progress.StableSamples + 1) : 0;
++        if (progress.StableSamples >= 2)
++        {
++            if (returning)
++            {
++                GTA.Native.Function.Call(GTA.Native.Hash.TASK_LEAVE_VEHICLE, driver.Handle, order.Vehicle.Handle, 0);
++                order.Stage = CustomerStage.MechanicExitingAtDropoff;
++                order.SecondsInStage = 0;
++            }
++            else BeginCustomerExit(order);
++            return;
++        }
++        double timeout = _parkingTimeoutSeconds + (returning ? 15 : 0);
++        if (order.SecondsInStage >= timeout)
++        {
++            if (returning) FailVehicleTransfer(order, false, "Customer handoff timed out; order held for existing recovery");
++            else CancelCustomerOrder("Customer handoff timed out; check clear road access", true);
++            return;
++        }
++        if (!progress.Issued)
++        {
++            if (clear) IssueDirectionFreeHandoff(order, driver);
++            return;
++        }
++        if (DistanceSquared(order.Vehicle.Position, progress.LastPosition) >= 2.25f)
++        { progress.LastPosition = order.Vehicle.Position; progress.NoProgress = 0; }
++        else progress.NoProgress += 1;
++        if (progress.NoProgress >= 14 && progress.Retries == 0 && clear)
++        {
++            progress.Retries++;
++            IssueDirectionFreeHandoff(order, driver); // One bounded position-only retry.
++        }
++    }
++
++    private static void MarkCustomerHandoffZone(WorkBay point, Color color)
++    {
++        if (point == null || !point.IsSet) return;
++        World.DrawMarker((MarkerType)1, new Vector3(point.Position.X, point.Position.Y, point.Position.Z + 0.025f),
++            new Vector3(), new Vector3(), new Vector3(8f, 8f, 0.025f), color);
++    }
++
+     private void UpdateVehicleApproach(CustomerOrder order, bool toBay)
+     {
+         Ped worker = AssignedWorker(order);
+@@ -6506,6 +7295,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+         { FailVehicleTransfer(order, toBay, "Mechanic lost vehicle during transfer"); return; }
+         WorkBay dest = VehicleDestination(order, toBay);
+         float parkingDistanceSquared = order.AutomaticLot ? 81f : 196f;
++        if (!toBay && DistanceSquared(order.Vehicle.Position, dest.Position) < parkingDistanceSquared)
++        { BeginDirectionFreeHandoff(order, worker, true); return; }
+         if (DistanceSquared(order.Vehicle.Position, dest.Position) < parkingDistanceSquared)
+         {
+             GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK,
+@@ -6544,6 +7335,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void UpdateVehicleParking(CustomerOrder order, bool atBay)
+     {
++        if (!atBay) { UpdateDirectionFreeHandoff(order, true); return; }
+         WorkBay dest = VehicleDestination(order, atBay);
+         if (DistanceSquared(order.Vehicle.Position, dest.Position) < 16f && order.Vehicle.Speed < 1.5f)
+         {
+@@ -7059,7 +7851,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+             Vector3 p = target.Position;
+             if (float.IsNaN(p.X) || float.IsNaN(p.Y) || float.IsNaN(p.Z) ||
+                 float.IsInfinity(p.X) || float.IsInfinity(p.Y) || float.IsInfinity(p.Z) ||
+-                float.IsNaN(target.Heading) || float.IsInfinity(target.Heading)) return false;
++                (!pickup && (float.IsNaN(target.Heading) || float.IsInfinity(target.Heading)))) return false;
+             Ped player = Game.Player.Character;
+             if (player == null || !player.Exists() ||
+                 GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_VEHICLE, player.Handle, order.Vehicle.Handle, false) ||
+@@ -7116,7 +7908,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+                     order.Vehicle.Position = target.Position;
+                     order.TeleportPositionApplied = true;
+                 }
+-                order.Vehicle.Heading = target.Heading;
++                if (!pickup) order.Vehicle.Heading = target.Heading;
+             }
+             catch (Exception ex) { Log("Deferred customer vehicle transfer #" + order.Id, ex); return true; }
+             order.TeleportPositionApplied = false;
+@@ -8448,6 +9240,7 @@ public class GlassHeroesBusinessV3Experimental : Script
+ 
+     private void HideBusinessMenuForPause()
+     {
++        DropPlacementConfirmation();
+         _showMenu = false;
+         _heldKeys.Clear();
+         _menuInput.Reset();
+@@ -8504,7 +9297,8 @@ public class GlassHeroesBusinessV3Experimental : Script
+         {
+             _lastPadDetected = "OPEN COMBO";
+             _lastPadDetectedAt = now;
+-            _showMenu = !_showMenu;
++            DropPlacementConfirmation();
++                _showMenu = !_showMenu;
+             if (_showMenu) { _menuPage = MenuPage.Business; _selection = 0; }
+             _lastControllerAction = now;
+             return;
