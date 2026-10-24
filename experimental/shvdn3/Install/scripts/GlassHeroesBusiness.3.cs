@@ -1965,7 +1965,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return "Edit " + label.TrimEnd(' ', '>') + ": " + GetMenuItemValue(_selection) + ". Walk to the point, face the intended direction, then Save Position + Facing.";
             case MenuPage.VehicleDriveOptions:
                 if (_selection == 6) return "Inspect pickup walking, valet drive/parking, workstation and return stages on demand.";
-                if (_selection == 7) return "Explicitly retry held PAID returns: exit driver first, then only an empty stopped car to a clear pickup. Never pays again.";
+                if (_selection == 7) return "Retry held PAID physical returns: exit driver first, then only an empty stopped car to clear pickup. OFF-mode pickup retries automatically.";
                 break;
         }
         string context = GetPageDescription();
@@ -6373,10 +6373,10 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (!_bootGameplayActivated || Game.IsPaused) return;
         int count = 0;
         foreach (CustomerOrder order in _activeCustomerOrders)
-            if (order.Paid && NeedsDropoffSoon(order) && order.Stage != CustomerStage.ToExitApproach &&
+            if (order.Paid && order.VehicleHandoff && NeedsDropoffSoon(order) && order.Stage != CustomerStage.ToExitApproach &&
                 order.Stage != CustomerStage.ReturningToVehicle && order.Stage != CustomerStage.DrivingAway)
             { FailVehicleTransfer(order, false, "Manual safe return recovery requested"); count++; }
-        if (count == 0) Notify("No paid vehicle waiting for return recovery.");
+        if (count == 0) Notify("No paid physical return to recover. OFF-mode pickup retries automatically when safe.");
     }
 
     private void UpdateVehicleApproach(CustomerOrder order, bool toBay)

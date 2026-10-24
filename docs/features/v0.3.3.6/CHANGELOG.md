@@ -17,3 +17,5 @@ Demand (#34), independent commit: automatic requests use active sampled gameplay
 Final paid-recovery hardening (#33): target clearance explicitly checks NPCs as well as vehicles/player; non-finite/negative/moving speed cannot qualify as stopped. Normal OFF-mode destination flags remain identical. Recovery suite now 20/20 including NPC target holds/clearance and invalid-speed variants. No new drive tasks or changes to paid settlement.
 
 Final business/UI guards (#34): retain the one-unit policy's rejection of negative unit estimates even in a positive mixed batch; retail suite now 15/15. Rename legacy workstation-access entries/title so masks are not confused with car-pickup arrival routes, and label demand ETA explicitly as active gameplay seconds. Footer review keeps route-state terminology precise.
+
+Manual recovery boundary (#33): the driver-exit override is restricted to paid physical handoff orders. OFF-mode safe pickup keeps its existing automatic retry path and is not converted by a manual action. Recovery suite now 21/21; paid cars already departing remain excluded.
