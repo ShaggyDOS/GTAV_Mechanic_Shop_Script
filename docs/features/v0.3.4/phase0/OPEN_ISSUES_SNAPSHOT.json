@@ -1,0 +1,97 @@
+[
+  {
+    "number": 35,
+    "title": "[v0.3.4] Inventory visibility, procurement integrity, stockroom and manager receipt",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 34,
+    "title": "[Scope][v0.3.3.6] Owner transfer amounts, parts sales UI, employee status, descriptions and time-of-day demand",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 33,
+    "title": "[P0][v0.3.3.6] GTA QA: mechanic waypoint-mask mismatch, stalled service and return parking failures",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 31,
+    "title": "v0.3.3.5: Customer/repair workflow polish + RC2 mechanic placement menu refinements",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 30,
+    "title": "SHVDN3: Central Placement Settings hub and eliminate duplicate Expenses menu entry",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 29,
+    "title": "v0.3.3.4: Service bay teleport fallback and unified bay configuration",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 28,
+    "title": "[P0][SHVDN3] FS1 ~30-minute idle CTD \u2014 controlled isolation and source forensics",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 27,
+    "title": "SHVDN3 repair pricing: guarantee parts + allocated mechanic labor cost coverage",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 25,
+    "title": "SHVDN3 roadmap: parts resale \u2014 1:1 manual stock sales now, delivery missions later",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 24,
+    "title": "[Scope][SHVDN3] Manager offsite supplier receipt and unattended nearby driver drop-off",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 23,
+    "title": "[MLO][QA] Glass Heroes Strawberry collision disappears in MP map mode; isolate RPH and map streaming",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 20,
+    "title": "[P1][QA R2] Prepare true SHVDN2 \u2192 SHVDN3 migration with parity and rollback",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 7,
+    "title": "[P2][v0.3.3.1] Simplify mechanic Break \u2192 Bay routing and preserve save compatibility",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 6,
+    "title": "[P1][v0.3.3.1] Remove floating legacy stockroom pallet-box visuals; preserve new deliveries",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 5,
+    "title": "[P1][v0.3.3.1] Distinguish direct-to-player supplier handoff from regular drop-off",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 4,
+    "title": "[P1][v0.3.3.1] Keyboard-aligned car-bay rectangular markers with forward arrow",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 3,
+    "title": "[P1][v0.3.3.1] Warehouse wholesale pickup pallet, package visibility, and map marker",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 2,
+    "title": "[P0][v0.3.3.1] Keyboard Enter double-activation and Back submenu navigation",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  },
+  {
+    "number": 1,
+    "title": "[P0][v0.3.3.1] Investigate 0xC00000FD stack-overflow during shop idle",
+    "state": "REPO_ISSUE_STATE_OPEN"
+  }
+]

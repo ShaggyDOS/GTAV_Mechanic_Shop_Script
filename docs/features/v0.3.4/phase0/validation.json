@@ -1,0 +1,57 @@
+{
+  "tested_source_commit": "9ef7befac9822c722eb488b7d6683433ce80f9b3",
+  "source_sha256": "6b366ad7fe28a9bdd2418bbe48b7dd6f3b175a86a6e5f15bf0b31b31991e6b8f",
+  "build": {
+    "target": "net48 / C# 7.3 / SHVDN3 3.6.0",
+    "errors": 0,
+    "warnings": [
+      "CS0169",
+      "CS0649"
+    ]
+  },
+  "behavior_tests": 762,
+  "feature_counts": {
+    "repair": 32,
+    "sales": 29,
+    "pallets": 25,
+    "wages": 22,
+    "reload": 41,
+    "supplier": 37,
+    "range": 40,
+    "menu": 13,
+    "cart": 32,
+    "pause": 9,
+    "focus": 8,
+    "finance": 33,
+    "startup": 18,
+    "hardening": 9,
+    "bays": 34,
+    "workflow335": 38,
+    "recovery336": 21,
+    "owner336": 13,
+    "retail336": 15,
+    "status336": 15,
+    "demand336": 13
+  },
+  "static_checks": 21,
+  "inventory_structural_checks": 13,
+  "inventory_new_behavior_tests": "NOT ADDED / deferred to approved Phase A",
+  "gta_testing": "NOT RUN",
+  "unchanged_members_vs_rc1": {
+    "Save": true,
+    "TryCommitBusinessSave": true,
+    "PrepareFinanceCommit": true,
+    "UnreservedRepairStock": true,
+    "TrySettleRepair": true,
+    "TrySellParts": true,
+    "TryPlaceSupplierOrder": true,
+    "CommitSupplierDelivery": true,
+    "TryCancelSupplierOrder": true,
+    "ProcessSupplierDelivery": true,
+    "ManagerSupplierEligible": true,
+    "LoadSupplierOrderLines": true,
+    "WriteSupplierOrderLines": true,
+    "OnTick": true
+  },
+  "phase0_gameplay_edits": false
+}

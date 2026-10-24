@@ -1,0 +1,110 @@
+{
+  "build": {
+    "exit_code": 0,
+    "command": [
+      "dotnet",
+      "build",
+      "/workspace/GlassHeroes-340/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj",
+      "-c",
+      "Release",
+      "--property:BaseIntermediateOutputPath=/tmp/gh340phase0/obj/",
+      "--property:OutputPath=/tmp/gh340phase0/bin/",
+      "--verbosity",
+      "minimal"
+    ],
+    "tail": "Business.V3.Experimental.csproj]\n/workspace/GlassHeroes-340/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs(157,21): warning CS0649: Field 'GlassHeroesBusinessV3Experimental.CustomerOrder.VehicleTaskIssued' is never assigned to, and will always have its default value false [/workspace/GlassHeroes-340/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]\n    2 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:04.12\n"
+  },
+  "inherited": {
+    "exit_code": 0,
+    "command": [
+      "python",
+      "verification/run_issue_tests.py",
+      "--source",
+      "/workspace/GlassHeroes-340/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs",
+      "--v3-stubs",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7"
+    ],
+    "tail": "opt-in restores sparse outbound and reverse masked routes\nPASS #7 arrival remains custom without duplicating legacy checkpoint at unset gaps\nPASS #7 direct job leg uses navmesh even with custom arrival mode\nPASS #7 mechanic moves break to working and back with finite transitions\nPASS #7 blocked direct route stops after bounded retries without losing job\nPASS #7 advanced job opt-in is independent from arrival mode\n#7 7/7 PASS; GTA testing NOT RUN\n"
+  },
+  "logger": {
+    "exit_code": 0,
+    "command": [
+      "python",
+      "verification/run_diagnostics_tests.py",
+      "--source",
+      "/workspace/GlassHeroes-340/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs"
+    ],
+    "tail": " repeated or alternating errors produce one write per 10 seconds\nPASS startup and teardown checkpoints remain available during error throttle\nPASS disk failures back off for 30 seconds and unchanged state retries\nPASS reentrant writer cannot recurse through logger\nPASS clock failures cannot escape and writer guard recovers\nPASS UTC timestamp and tick context survive exception formatting\n9/9 diagnostic behavior tests passed; GTA gameplay NOT RUN.\n"
+  },
+  "migration": {
+    "exit_code": 0,
+    "command": [
+      "python",
+      "verification/migration/run_tests.py"
+    ],
+    "tail": "ets clocks after days closed without offline accrual\nPASS migration paused gameplay advances no wages income ETA or remote jobs\nPASS migration active game seconds advance ETA and remote jobs together\nPASS migration large game-clock jump never catches up ETA or remote jobs\nPASS migration long active sample retains R2 two-second cap\nPASS migration ETA persists only after fifteen active seconds or readiness\nMigration 22/22 PASS; GTA testing NOT RUN\n"
+  },
+  "features": {
+    "exit_code": 0,
+    "command": [
+      "python",
+      "verification/economy/run_feature_tests.py",
+      "repair",
+      "sales",
+      "pallets",
+      "wages",
+      "reload",
+      "supplier",
+      "range",
+      "menu",
+      "cart",
+      "pause",
+      "focus",
+      "finance",
+      "startup",
+      "hardening",
+      "bays",
+      "workflow335",
+      "recovery336",
+      "owner336",
+      "retail336",
+      "status336",
+      "demand336"
+    ],
+    "tail": "d and existing requests remain\nPASS demand GTA time change alone does not add demand without active progress\nPASS demand manual night request bypasses demand delay but obeys capacity\nPASS demand paused manual scheduling is rejected\nPASS demand large or invalid sample cannot synthesize offline progress\nPASS demand clock read is one per active visual update\ndemand336 13/13 PASS; production GTA-hour weighting and active-time scheduling, GTA NOT RUN\n"
+  },
+  "navigation": {
+    "exit_code": 0,
+    "command": [
+      "python",
+      "verification/placement_settings/run_navigation.py"
+    ],
+    "tail": "mode route-mask path 2/0/1\nPASS each mechanic direction/mode route-mask path 2/1/0\nPASS each mechanic direction/mode route-mask path 2/1/1\nPASS management has no cash or controller menu shortcuts\nPASS owner transfer review does not move cash before confirmation\nPASS retail keyboard/controller quantity adjustments edit draft only\nPASS native pause hides placement overlay without writes\nplacement 180/180 PASS; production menu routing, GTA NOT RUN\n\n"
+  },
+  "static": {
+    "exit_code": 0,
+    "command": [
+      "python",
+      "verification/run_static_checks.py",
+      "/workspace/review-notes/v0.3.4-phase0",
+      "--source",
+      "/workspace/GlassHeroes-340/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs",
+      "--class-name",
+      "GlassHeroesBusinessV3Experimental"
+    ],
+    "tail": "tep\": true,\n    \"warehouse_pallet_grounded\": true,\n    \"shop_box_grounded\": true,\n    \"no_full_game_compile_claim\": true,\n    \"no_duplicate_case_labels\": true,\n    \"no_change_constructor_game_native_count\": true\n  },\n  \"passed\": 21,\n  \"total\": 21,\n  \"failures\": [],\n  \"duplicate_cases\": [],\n  \"added_lines\": 2829,\n  \"source_sha256\": \"6b366ad7fe28a9bdd2418bbe48b7dd6f3b175a86a6e5f15bf0b31b31991e6b8f\",\n  \"in_game_tested\": false,\n  \"compiled\": false\n}\n"
+  },
+  "inventory-structure": {
+    "exit_code": 0,
+    "command": [
+      "python",
+      "verification/inventory340/verify.py"
+    ],
+    "tail": "tual existing reservation logic\n[PASS] summary uses actual existing reservation logic\n[PASS] incoming counted only for display\n[PASS] existing selected supplier order logic stays separate\n[PASS] existing inventory view remains on demand\n[PASS] inventory edit does not write saves\n[PASS] inventory edit avoids per-frame natives\n[PASS] incoming is explicitly nonusable in UI\nPASS: 13/13 v0.3.4 Phase A STRUCTURAL checks; compile and GTA tests NOT RUN.\n"
+  }
+}
