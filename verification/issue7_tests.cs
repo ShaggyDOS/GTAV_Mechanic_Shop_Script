@@ -12,6 +12,7 @@ class Harness{
     }
     const int PhaseToCheckpoint=1,PhaseToBreak=2,PhaseAtBreak=3,PhaseToBay=4,PhaseWorking=5,PhaseReturningToBreak=6,PhaseRouteBlocked=7;
     /*<source:BuildRoute>*/
+    void WarnEmptyWorkRoute(int slot,bool returning){}
     /*<source:StartRouteLeg>*/
     /*<source:WalkCurrentNode>*/
     /*<source:IssueEmployeeWalkTask>*/

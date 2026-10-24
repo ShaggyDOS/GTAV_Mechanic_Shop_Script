@@ -117,7 +117,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         MechanicDrivingToBay, MechanicParkingAtBay, MechanicExitingAtBay, Repairing,
         MechanicWalkingToReturnCar, MechanicEnteringForReturn, MechanicReversingFromBay, MechanicDrivingToDropoff,
         MechanicParkingAtDropoff, MechanicExitingAtDropoff, MechanicWaitingToReturn,
-        ToExitApproach, ReturningToVehicle, DrivingAway, WaitingAtRoadside, DrivingToQueueSpace, ParkingAtQueueSpace, ToWalkWaypoint, ToPickupWaypoint, TeleportWaitingBay, TeleportWaitingPickup }
+        ToExitApproach, ReturningToVehicle, DrivingAway, WaitingAtRoadside, DrivingToQueueSpace, ParkingAtQueueSpace, ToWalkWaypoint, ToPickupWaypoint, TeleportWaitingBay, TeleportWaitingPickup, PaidReturnRecovery }
     private sealed class CustomerOrder
     {
         public bool RestoredPromise;
@@ -147,6 +147,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         public Vector3 LastDrivePosition;
         public double DriveNoProgressSeconds;
         public int DriveRetryCount;
+        public int ParkingRetries, QueueParkingRetries, RecoveryExitAttempts;
+        public bool PaidReturnRecovery, RecoveryWorkerReleased;
         public List<Vector3> VehicleWalkPath = new List<Vector3>();
         public int VehicleWalkIndex;
         public int VehicleWalkRecoveries;
@@ -1344,7 +1346,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.PlacementWalkingRoutes:
                 return new string[] { "Mechanics >", "Receptionist >", "Manager >", "Customers >", "Supplier Driver >", "< Back to Placement Settings" };
             case MenuPage.MechanicPlacementRoutes:
-                return new string[] { "Spawn -> Mechanic Break Area >", "Mechanic Break -> Service Bays >", "Final Bay Approaches >",
+                return new string[] { "Spawn -> Mechanic Break Area >", "Workstation Access Stops >", "Final Bay Approaches >",
                     "Job Waypoint Selection by Mechanic >", "Legacy Mechanic Checkpoint >", "Walking Mode & Recovery >", "< Back to Roles" };
             case MenuPage.ReceptionPlacementRoutes:
                 return new string[] { "Spawn -> Desk Stops >", "Final Desk Approach >", "Walking Mode >", "< Back to Roles" };
@@ -1426,7 +1428,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.VehicleDriveOptions:
                 return new string[] { "Drive-in Customer Cars", "Mechanic Vehicle Transfers",
                     "Service Parking Mode", "Auto Lot Settings >", "Custom MLO Parking Bays >",
-                    "Reverse Before Driving", "Driving Status / Diagnostics", "< Back to Customers" };
+                    "Reverse Before Driving", "Driving Status / Diagnostics", "Retry Held Paid Car Return", "< Back to Customers" };
             case MenuPage.VehicleAutoLotOptions:
                 return new string[] { "Car Parking Side", "Car Offset from Mechanic Bay",
                     "Auto Parking Preview", "< Back to Driving" };
@@ -1675,7 +1677,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 {
                     Mechanic routeOwner = _mechanics[_routeConfigSlot];
                     int mask = _routeConfigReturning ? routeOwner.JobReturnMask : routeOwner.JobOutboundMask;
-                    return (mask & (1 << index)) != 0 ? "USE" : "SKIP";
+                    return ((mask & (1 << index)) != 0 ? "USE" : "SKIP") + (_serviceRoute[index].IsSet ? " / SET" : " / UNSET");
                 }
                 return ">";
             case MenuPage.BusinessManagement:
@@ -1884,7 +1886,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (_menuPage == MenuPage.PlacementSettings) return "Existing saved points and separate vehicle/work positions. Walk to the point, face the heading, then Save Position + Facing.";
         if (_menuPage == MenuPage.DeliveryPlacements) return "Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.";
         if (_menuPage == MenuPage.PlacementWalkingRoutes) return "Choose a role; edit existing saved routes and approaches without changing operating modes.";
-        if (_menuPage == MenuPage.MechanicPlacementRoutes) return "Five shared work waypoints; each mechanic selects independent outbound/return masks. Car and work positions remain separate.";
+        if (_menuPage == MenuPage.MechanicPlacementRoutes) return "Pickup walks reverse Arrival stops to car; car drives to bay, mechanic walks to workstation, then drives back. Work masks select shared walking stops only.";
         if (_menuPage == MenuPage.ReceptionPlacementRoutes || _menuPage == MenuPage.ManagerPlacementRoutes) return "Existing optional walking stops, final approach and walking-mode settings.";
         if (_menuPage == MenuPage.CustomerPlacementRoutes || _menuPage == MenuPage.SupplierPlacementRoutes) return "Existing saved walking stops and final approach/handoff point. Walk, face, then Save Position + Facing.";
         switch (_menuPage)
@@ -3061,6 +3063,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     ". Requires clear space behind the car; disabled if blocked.");
                 break;
             case 6: ShowVehicleDrivingStatus(); break;
+            case 7: RetryPaidCustomerReturns(); break;
             default: NavigateBack(); break;
         }
     }
@@ -3651,21 +3654,45 @@ public class GlassHeroesBusinessV3Experimental : Script
                 (DropoffOccupied(null) ? "OCCUPIED" : "CLEAR"));
     }
 
+    private string MechanicServiceStatus(int slot)
+    {
+        if (slot < 0 || slot >= _mechanics.Count) return "VACANT";
+        Mechanic employee = _mechanics[slot];
+        CustomerOrder job = _activeCustomerOrders.Find(o => o.MechanicSlot == slot);
+        if (Game.IsPaused) return "PAUSED";
+        if (!_bootGameplayActivated || !_clockedIn) return "CLOSED / STARTUP HOLD";
+        if (_remoteMode) return employee.HasJob ? "REMOTE JOB" : "REMOTE AVAILABLE";
+        if (employee.Worker == null || !employee.Worker.Exists() || employee.Worker.IsDead)
+            return "WORKER UNAVAILABLE" + (job == null ? " / SPAWN WAIT" : " | #" + job.Id + " " + job.Stage);
+        if (job != null)
+        {
+            if (job.Paid) return "PAID #" + job.Id + " | " + job.Stage;
+            if (job.Stage == CustomerStage.Repairing)
+                return employee.HasJob && employee.ArrivalPhase == PhaseWorking && job.Vehicle != null &&
+                    job.Vehicle.Exists() && !job.Vehicle.IsDead ? "REPAIRING #" + job.Id : "WAIT WORKSTATION #" + job.Id;
+            return "#" + job.Id + " | " + job.Stage;
+        }
+        if (employee.ArrivalPhase == PhaseRouteBlocked) return "WALK ROUTE BLOCKED";
+        if (!employee.HasJob) return employee.ArrivalPhase == PhaseAtBreak ? "AVAILABLE AT BREAK" : "WALKING / RETURNING TO BREAK";
+        return employee.ArrivalPhase == PhaseWorking ? "AUTONOMOUS JOB" : "WAIT WORKSTATION";
+    }
+
     private void ShowEmployeeStatus()
     {
-        int waiting = 0, assigned = 0, working = 0, visible = 0;
-        foreach (Mechanic employee in _mechanics)
-        {
-            if (employee.HasJob) assigned++; else waiting++;
-            if (employee.ArrivalPhase == PhaseWorking) working++;
-            if (employee.Worker != null && employee.Worker.Exists()) visible++;
-        }
         ShowStatusNotice("EMPLOYEE STATUS",
-            "Mechanics " + _mechanics.Count + " | Visible " + visible + " | Idle " + waiting,
-            "Assigned " + assigned + " | Working " + working,
-            "Reception " + (_receptionistHired ? (_receptionist.AtDesk ? "AT DESK" : "ON DUTY / EN ROUTE") : "NOT HIRED"),
-            "Walk " + (_customEmployeeWalkingPaths ? "CUSTOM MLO" : "DIRECT") +
-                " | Return via entrance " + (_pickupUsesArrivalExit ? "ON" : "OFF"));
+            "Business " + (_clockedIn ? "OPEN" : "CLOSED") + " | " + (_remoteMode ? "REMOTE" : "ONSITE"),
+            "Reception " + (_receptionistHired ? (_receptionist.AtDesk ? "AT DESK" : "EN ROUTE / UNAVAILABLE") : "NOT HIRED"),
+            "Pickup walks reverse Arrival stops; work masks do not control collection.",
+            "Manager " + (_managerTier < 0 ? "NOT HIRED" : _managerName) + " | wages $" + _managerWagesDue.ToString("N0"));
+        for (int i = 0; i < _mechanics.Count && i < VisualBayCount; i++)
+        {
+            Mechanic m = _mechanics[i];
+            ShowStatusNotice(m.Name + " / BAY " + (i + 1), MechanicServiceStatus(i),
+                SpecialtyName(m.Specialty) + " | wage due $" + m.UnpaidWages.ToString("N0"),
+                "OUT " + WorkRouteStatus(i, false), "BACK " + WorkRouteStatus(i, true),
+                _vehicleParkingBays[i].IsSet && DistanceSquared(_vehicleParkingBays[i].Position, _bays[i].Position) < 1f ?
+                    "WARNING: work point is near car center; review placement (unchanged)." : "Work/car points remain separate.");
+        }
     }
 
     private void ShowShopStatus()
@@ -4124,6 +4151,33 @@ public class GlassHeroesBusinessV3Experimental : Script
     // CUSTOM MLO: zero to five optional arrival or work-route points, in numeric order.
     // Unset gaps are skipped, so 0/5, 1/5, or 2/5 are all valid configurations.
     // The old single checkpoint is used only if no new arrival points are configured.
+    private readonly HashSet<int> _warnedEmptyWorkRoutes = new HashSet<int>();
+
+    private int EffectiveWorkRouteMask(int mask)
+    {
+        int effective = 0;
+        for (int i = 0; i < _serviceRoute.Length; i++) if (_serviceRoute[i].IsSet) effective |= mask & (1 << i);
+        return effective & 31;
+    }
+
+    private string WorkRouteStatus(int slot, bool returning)
+    {
+        if (slot < 0 || slot >= _mechanics.Count) return "NO MECHANIC";
+        int selected = (returning ? _mechanics[slot].JobReturnMask : _mechanics[slot].JobOutboundMask) & 31;
+        int effective = EffectiveWorkRouteMask(selected);
+        return "selected=" + selected + " effective=" + effective + " unset=" + (selected & ~effective) +
+            (selected != 0 && effective == 0 ? " WARNING: selected stops unsaved; final approach/target only" : "");
+    }
+
+    private void WarnEmptyWorkRoute(int slot, bool returning)
+    {
+        int selected = (returning ? _mechanics[slot].JobReturnMask : _mechanics[slot].JobOutboundMask) & 31;
+        if (selected == 0 || EffectiveWorkRouteMask(selected) != 0 ||
+            !_warnedEmptyWorkRoutes.Add((slot * 2 + (returning ? 1 : 0)) * 32 + selected)) return;
+        string message = "Mechanic " + (slot + 1) + " " + (returning ? "RETURN" : "WORK") + " " + WorkRouteStatus(slot, returning);
+        Log(message, null); Notify(message + ". Save the selected stop or edit the mask; no setting changed.");
+    }
+
     private List<Vector3> BuildRoute(int slot, int phase)
     {
         List<Vector3> result = new List<Vector3>();
@@ -4144,6 +4198,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             if (_customMechanicJobRoutes)
             {
+                if (slot < _mechanics.Count) WarnEmptyWorkRoute(slot, false);
                 int routeMask = slot < _mechanics.Count ? _mechanics[slot].JobOutboundMask : 31;
                 for (int i = 0; i < _serviceRoute.Length; i++)
                     if (_serviceRoute[i].IsSet && (routeMask & (1 << i)) != 0)
@@ -4157,6 +4212,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             if (_customMechanicJobRoutes)
             {
                 if (_bayApproaches[slot].IsSet) result.Add(_bayApproaches[slot].Position);
+                if (slot < _mechanics.Count) WarnEmptyWorkRoute(slot, true);
                 int routeMask = slot < _mechanics.Count ? _mechanics[slot].JobReturnMask : 31;
                 for (int i = _serviceRoute.Length - 1; i >= 0; i--)
                     if (_serviceRoute[i].IsSet && (routeMask & (1 << i)) != 0)
@@ -4865,6 +4921,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case CustomerStage.MechanicWalkingToReturnCar:
             case CustomerStage.MechanicEnteringForReturn:
             case CustomerStage.MechanicReversingFromBay:
+            case CustomerStage.PaidReturnRecovery:
             case CustomerStage.TeleportWaitingPickup:
             case CustomerStage.MechanicWaitingToReturn:
             case CustomerStage.MechanicDrivingToDropoff:
@@ -5566,6 +5623,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             CancelCustomerOrder("Missing customer entity", true);
             return;
         }
+        if (order.Stage == CustomerStage.PaidReturnRecovery) { ProcessPaidReturnRecovery(order); return; }
         if (order.VehicleTeleport && ProcessTeleportOrder(order)) return;
         order.SecondsInStage += 1.0;
         // Customer walk nodes are optional, independent of mechanic/receptionist routes.
@@ -5701,7 +5759,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     if (CanReturnCustomerCar(order)) StartValetDeparture(order, false);
                     else { order.Stage = CustomerStage.MechanicWaitingToReturn; order.ReturnDriverInCar = true; order.SecondsInStage = 0; }
                 }
-                else if (order.SecondsInStage > 22) CancelCustomerOrder("Mechanic could not re-enter serviced car", true);
+                else if (order.SecondsInStage > 22) FailVehicleTransfer(order, false, "Mechanic could not re-enter serviced car");
                 break;
             case CustomerStage.MechanicWaitingToReturn:
                 if (CanReturnCustomerCar(order))
@@ -5736,7 +5794,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     ReleaseCustomerForPickup(order);
                 }
                 else if (order.SecondsInStage > 20)
-                    CancelCustomerOrder("Mechanic could not exit after returning car", true);
+                    FailVehicleTransfer(order, false, "Mechanic could not exit after returning car");
                 break;
             case CustomerStage.Repairing:
                 // Repair clock and financial settlement run in ProcessEconomy.
@@ -5782,6 +5840,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         foreach (CustomerOrder order in _activeCustomerOrders)
         {
             if (!order.VehicleHandoff || order.MechanicSlot != slot) continue;
+            if (order.PaidReturnRecovery && !order.RecoveryWorkerReleased) return true;
             switch (order.Stage)
             {
                 case CustomerStage.MechanicWalkingToPickup:
@@ -5880,7 +5939,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     private bool ProgressVehicleWalk(CustomerOrder order)
     {
         Ped worker = AssignedWorker(order);
-        if (worker == null) { CancelCustomerOrder("Mechanic entity lost during vehicle collection", true); return false; }
+        if (worker == null) { FailVehicleTransfer(order, !order.Paid, "Mechanic entity lost during collection/return walk"); return false; }
         if (order.VehicleWalkIndex >= order.VehicleWalkPath.Count) return true;
         Vector3 target = order.VehicleWalkPath[order.VehicleWalkIndex];
         float acceptanceSq = _smoothMechanicWaypoints &&
@@ -5980,7 +6039,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         Ped worker = AssignedWorker(order);
         if (worker == null || order.Vehicle == null || !order.Vehicle.Exists())
-        { CancelCustomerOrder("Mechanic or customer vehicle missing", true); return; }
+        { FailVehicleTransfer(order, !returning, "Mechanic or customer vehicle missing"); return; }
         GTA.Native.Function.Call(GTA.Native.Hash.CLEAR_PED_TASKS, worker.Handle);
         GTA.Native.Function.Call(GTA.Native.Hash.TASK_ENTER_VEHICLE,
             worker.Handle, order.Vehicle.Handle, 18000, -1, 1.0f, 1, 0);
@@ -6070,8 +6129,9 @@ public class GlassHeroesBusinessV3Experimental : Script
     private void BeginVehicleDrive(CustomerOrder order, bool toBay)
     {
         Ped worker = AssignedWorker(order);
-        if (worker == null) { CancelCustomerOrder("Mechanic disappeared while driving", true); return; }
+        if (worker == null) { FailVehicleTransfer(order, toBay, "Mechanic disappeared while driving"); return; }
         WorkBay destination = VehicleDestination(order, toBay);
+        order.ParkingRetries = 0;
         float speed = order.AutomaticLot ? 3.0f : _vehicleTransferSpeed;
         float stopRange = order.AutomaticLot ? 3.0f : 6.0f;
         // Best available native driver skill is set in BOTH parking modes;
@@ -6098,11 +6158,84 @@ public class GlassHeroesBusinessV3Experimental : Script
         Notify(_mechanics[order.MechanicSlot].Name + (toBay ? " driving car into service." : " returning car to drop-off."));
     }
 
+    private void FailVehicleTransfer(CustomerOrder order, bool toBay, string reason)
+    {
+        string context = "";
+        try
+        {
+            WorkBay target = VehicleDestination(order, toBay);
+            context = " target=" + (target == null ? "UNSET" : FormatPosition(target.Position));
+            if (target != null && order.Vehicle != null && order.Vehicle.Exists())
+                context += " actual=" + FormatPosition(order.Vehicle.Position) + " distanceSq=" +
+                    DistanceSquared(order.Vehicle.Position, target.Position).ToString("0.0") + " speed=" + order.Vehicle.Speed.ToString("0.0");
+        }
+        catch { context += " entity diagnostics unavailable"; }
+        Log("Transfer failure #" + order.Id + " direction=" + (toBay ? "BAY" : "PICKUP") +
+            " paid=" + order.Paid + " stage=" + order.Stage + " slot=" + order.MechanicSlot +
+            " elapsed=" + order.SecondsInStage.ToString("0") + context + " : " + reason, null);
+        if (order.Paid && !toBay)
+        {
+            order.PaidReturnRecovery = true;
+            order.Stage = CustomerStage.PaidReturnRecovery;
+            order.SecondsInStage = 0; order.RecoveryExitAttempts = 0;
+            order.TeleportAttempted = false;
+            Notify("Paid order #" + order.Id + " held for safe empty-car pickup recovery. No new charge.");
+        }
+        else CancelCustomerOrder(reason, true);
+    }
+
+    private void ProcessPaidReturnRecovery(CustomerOrder order)
+    {
+        if (!order.Paid || !TeleportAttemptDue(order)) return;
+        if (order.Vehicle == null || !order.Vehicle.Exists() || order.Vehicle.IsDead)
+        { CancelCustomerOrder("Paid recovery vehicle unavailable; payment remains recorded", true); return; }
+        if (order.Vehicle.Speed >= 1.5f) return; // Never reposition a moving car.
+        Ped worker = AssignedWorker(order);
+        if (worker != null && MechanicInCustomerCar(order))
+        {
+            if (order.RecoveryExitAttempts < 2)
+            {
+                order.RecoveryExitAttempts++;
+                GTA.Native.Function.Call(GTA.Native.Hash.TASK_LEAVE_VEHICLE, worker.Handle, order.Vehicle.Handle, 0);
+                Log("Paid recovery exit #" + order.Id + " attempt=" + order.RecoveryExitAttempts, null);
+            }
+            return; // Subsequent update must prove the driver has exited.
+        }
+        if (worker != null && GTA.Native.Function.Call<bool>(GTA.Native.Hash.IS_PED_IN_ANY_VEHICLE, worker.Handle, false)) return;
+        if (!CanReturnCustomerCar(order) || !TeleportTargetAvailable(order, _customerDropoff, true)) return;
+        order.VehicleTeleport = true; // Paid recovery only; physical intake/repair is unchanged.
+        order.Stage = CustomerStage.TeleportWaitingPickup;
+        order.TeleportPositionApplied = false;
+        order.TeleportAttempted = false;
+        ProcessTeleportOrder(order); // Revalidates all player/occupant/destination checks.
+    }
+
+    private void ReleaseRecoveredMechanic(CustomerOrder order)
+    {
+        if (!order.PaidReturnRecovery || order.RecoveryWorkerReleased || !order.TeleportedToPickup) return;
+        Mechanic worker = _mechanics[order.MechanicSlot];
+        worker.HasJob = false; worker.WorkSeconds = 0; worker.IdleSeconds = 0;
+        if (worker.Worker != null && worker.Worker.Exists()) StartRouteLeg(worker, order.MechanicSlot, PhaseReturningToBreak);
+        order.RecoveryWorkerReleased = true;
+        Log("Paid empty-car return complete #" + order.Id + "; payment unchanged", null);
+    }
+
+    private void RetryPaidCustomerReturns()
+    {
+        if (!_bootGameplayActivated || Game.IsPaused) return;
+        int count = 0;
+        foreach (CustomerOrder order in _activeCustomerOrders)
+            if (order.Paid && NeedsDropoffSoon(order) && order.Stage != CustomerStage.ToExitApproach &&
+                order.Stage != CustomerStage.ReturningToVehicle && order.Stage != CustomerStage.DrivingAway)
+            { FailVehicleTransfer(order, false, "Manual safe return recovery requested"); count++; }
+        if (count == 0) Notify("No paid vehicle waiting for return recovery.");
+    }
+
     private void UpdateVehicleApproach(CustomerOrder order, bool toBay)
     {
         Ped worker = AssignedWorker(order);
         if (worker == null || !MechanicInCustomerCar(order))
-        { CancelCustomerOrder("Mechanic lost vehicle during transfer", true); return; }
+        { FailVehicleTransfer(order, toBay, "Mechanic lost vehicle during transfer"); return; }
         WorkBay dest = VehicleDestination(order, toBay);
         float parkingDistanceSquared = order.AutomaticLot ? 81f : 196f;
         if (DistanceSquared(order.Vehicle.Position, dest.Position) < parkingDistanceSquared)
@@ -6135,11 +6268,10 @@ public class GlassHeroesBusinessV3Experimental : Script
                 Notify("Valet rerouting around parking-lot obstruction (one retry).");
             }
             else if (order.DriveNoProgressSeconds >= 14 && order.DriveRetryCount > 0)
-                CancelCustomerOrder("Valet stuck; try opposite auto side or CUSTOM MLO", true);
+                FailVehicleTransfer(order, toBay, "Valet stuck; review saved drive route/parking mode");
         }
         if (_activeCustomerOrders.Contains(order) && order.SecondsInStage > _vehicleTransferTimeout)
-            CancelCustomerOrder("Vehicle could not reach " + (toBay ? "service bay" : "drop-off") +
-                "; check driveable route or switch vehicle mode", true);
+            FailVehicleTransfer(order, toBay, "Vehicle could not reach saved destination; review driveable route");
     }
 
     private void UpdateVehicleParking(CustomerOrder order, bool atBay)
@@ -6148,14 +6280,24 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (DistanceSquared(order.Vehicle.Position, dest.Position) < 16f && order.Vehicle.Speed < 1.5f)
         {
             Ped worker = AssignedWorker(order);
-            if (worker == null) { CancelCustomerOrder("Mechanic missing at parking", true); return; }
+            if (worker == null) { FailVehicleTransfer(order, atBay, "Mechanic missing at parking"); return; }
             GTA.Native.Function.Call(GTA.Native.Hash.TASK_LEAVE_VEHICLE,
                 worker.Handle, order.Vehicle.Handle, 0);
             order.Stage = atBay ? CustomerStage.MechanicExitingAtBay : CustomerStage.MechanicExitingAtDropoff;
             order.SecondsInStage = 0;
         }
         else if (order.SecondsInStage > _parkingTimeoutSeconds + 15)
-            CancelCustomerOrder("Mechanic failed to park at saved point; revise heading", true);
+        {
+            Ped worker = AssignedWorker(order);
+            if (order.ParkingRetries == 0 && worker != null && MechanicInCustomerCar(order))
+            {
+                order.ParkingRetries++; order.SecondsInStage = 0;
+                GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK, worker.Handle, order.Vehicle.Handle,
+                    dest.Position.X, dest.Position.Y, dest.Position.Z, dest.Heading, 1, 2.8f, false);
+                Log("Parking retry #" + order.Id + " direction=" + (atBay ? "BAY" : "PICKUP") + " paid=" + order.Paid, null);
+            }
+            else FailVehicleTransfer(order, atBay, "Parking failed at saved point; review heading/clearance");
+        }
     }
 
     private void ReleaseCustomerForPickup(CustomerOrder order)
@@ -6311,9 +6453,18 @@ public class GlassHeroesBusinessV3Experimental : Script
                 }
                 else
                 {
-                    Log("Queued car unable to park; retaining pending customer", null);
-                    CancelCreatedCustomer(staged);
-                    staged = null;
+                    if (staged.QueueParkingRetries < 1)
+                    {
+                        staged.QueueParkingRetries++; staged.SecondsInStage = 0;
+                        GTA.Native.Function.Call(GTA.Native.Hash.TASK_VEHICLE_PARK, staged.Customer.Handle, staged.Vehicle.Handle,
+                            target.Position.X, target.Position.Y, target.Position.Z, target.Heading, 1, 2.5f, false);
+                        Log("Queue parking retry #" + staged.Id + "; FIFO reservation retained", null);
+                    }
+                    else
+                    {
+                        Log("Queue parking failed #" + staged.Id + "; retaining pending request", null);
+                        CancelCreatedCustomer(staged); staged = null;
+                    }
                 }
             }
         }
@@ -6676,7 +6827,8 @@ public class GlassHeroesBusinessV3Experimental : Script
             if ((pickup && !order.Paid) || (!pickup && order.Paid) || order.MechanicSlot < 0 || order.MechanicSlot >= _mechanics.Count)
                 return true;
             if (!pickup && order.TeleportedToBay) { order.Stage = CustomerStage.Repairing; return true; }
-            if (pickup && order.TeleportedToPickup) { ReleaseCustomerForPickup(order); return true; }
+            if (pickup && order.TeleportedToPickup) { ReleaseRecoveredMechanic(order); ReleaseCustomerForPickup(order); return true; }
+            if (pickup && order.PaidReturnRecovery && order.Vehicle.Speed >= 1.5f) return true;
             WorkBay target = pickup ? _customerDropoff : order.ResolvedParkingBay;
             // Existing return ownership prevents intake/another return claiming drop-off.
             if ((pickup && !CanReturnCustomerCar(order)) || !TeleportTargetAvailable(order, target, pickup))
@@ -6709,6 +6861,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             else
             {
                 order.TeleportedToPickup = true;
+                ReleaseRecoveredMechanic(order);
                 ReleaseCustomerForPickup(order);
             }
             return true;

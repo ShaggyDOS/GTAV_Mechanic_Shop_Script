@@ -9,7 +9,7 @@ namespace GTA.Native {
 
 struct Vector3 {internal float X,Y,Z;internal Vector3(float x,float y,float z){X=x;Y=y;Z=z;}}
 class Ped {internal int Handle=9;internal float Heading;internal bool IsDead;internal bool alive=true;internal Vector3 Position;internal bool Exists()=>alive;}
-class Vehicle {internal int Handle=4,moves;internal bool alive=true,IsDead,failHeading;internal Vector3 backing,Velocity;internal Vector3 Position{get=>backing;set{backing=value;moves++;}}internal float heading;internal float Heading{get=>heading;set{if(failHeading)throw new IOException("heading failure");heading=value;}}internal bool Exists()=>alive;}
+class Vehicle {internal float Speed;internal int Handle=4,moves;internal bool alive=true,IsDead,failHeading;internal Vector3 backing,Velocity;internal Vector3 Position{get=>backing;set{backing=value;moves++;}}internal float heading;internal float Heading{get=>heading;set{if(failHeading)throw new IOException("heading failure");heading=value;}}internal bool Exists()=>alive;}
 class Blip {}
 class ScriptSettings {
  internal Dictionary<string,string> values=new Dictionary<string,string>();string file;
@@ -33,6 +33,7 @@ class Harness {
     /*<source:TeleportAttemptDue>*/
     /*<source:TeleportTargetAvailable>*/
     /*<source:ProcessTeleportOrder>*/
+    /*<source:ReleaseRecoveredMechanic>*/
     /*<source:CanReturnCustomerCar>*/
     /*<source:NeedsDropoffSoon>*/
     /*<source:IntakeInProgress>*/

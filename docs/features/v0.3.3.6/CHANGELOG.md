@@ -1,0 +1,7 @@
+# Glass Heroes v0.3.3.6 — experimental development, Issues #33 / #34
+
+Baseline: authorization branch 52749f7, product exactly approved .5 22bff0990bdc771215ebcb587e8426059df14336, SHA256 741c97730856adad11cd98d985e41d4eb325c9788af5ceebeee965a0eb64125f. Actual private log/save are not in this workspace; embedded owner observations in handoff/issues are evidence, not files inspected here. .5 PR32 is protected.
+
+Phase 1: distinguish paid pickup failures from unpaid bay failures; one parking retry, retained paid recovery, at most two driver-exit requests, empty/stopped/player/NPC/collision-safe use of existing pickup placement and exactly-once ledger. Unsafe conditions HOLD; manual safe retry available. Queue parking retries once on same entity/FIFO. Direction-specific failure snapshots include order, slot, target, actual position, distance, speed, elapsed and Paid. Selected-but-unsaved work-mask warning is bounded; USE/SET vs USE/UNSET is visible, masks/points never rewritten. Arrival pickup routes remain independent. On-demand employee status reports actual live job/stage and route masks, not stale phase alone.
+
+P1 actual Release 0 errors/two inherited warnings; initial full 701/701 behaviors (683 inherited + 18 recovery), 21/21 static; new recovery cases 18/18. The final USE/UNSET presentation change is included in the later full milestone rerun. GTA execution NOT RUN. Coordinates, masks, finances and original live installation/saves untouched; no crash claim, release or merge.

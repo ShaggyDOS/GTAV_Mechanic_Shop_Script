@@ -1,0 +1,42 @@
+{
+  "parent": "22bff0990bdc771215ebcb587e8426059df14336",
+  "fixture": "workflow336-parent.cs.txt",
+  "parent_sha256": "741c97730856adad11cd98d985e41d4eb325c9788af5ceebeee965a0eb64125f",
+  "changed": [
+    "BeginEnterVehicle",
+    "BeginVehicleDrive",
+    "BuildRoute",
+    "ExecuteVehicleDriveOptionSelection",
+    "GetMenuItems",
+    "GetSelectedDescription",
+    "MechanicOnVehicleTask",
+    "NeedsDropoffSoon",
+    "ProcessTeleportOrder",
+    "ProgressVehicleWalk",
+    "ShowEmployeeStatus",
+    "UpdateOneCustomerOrder",
+    "UpdateStagedQueueTravel",
+    "UpdateVehicleApproach",
+    "UpdateVehicleParking"
+  ],
+  "added": [
+    "EffectiveWorkRouteMask",
+    "FailVehicleTransfer",
+    "MechanicServiceStatus",
+    "ProcessPaidReturnRecovery",
+    "ReleaseRecoveredMechanic",
+    "RetryPaidCustomerReturns",
+    "WarnEmptyWorkRoute",
+    "WorkRouteStatus"
+  ],
+  "added_keys": {
+    "GetValue": [],
+    "SetValue": []
+  },
+  "protected_v2": {
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  }
+}

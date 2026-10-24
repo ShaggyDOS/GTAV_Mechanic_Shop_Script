@@ -1,0 +1,19 @@
+PASS reload mask eight selecting unset fourth point is explicit and unchanged
+PASS reload valid shared mask selects only saved points in direction order
+PASS reload pickup uses reversed arrival points independently from work mask
+PASS reload parking retries once then holds paid car instead of cancel
+PASS reload unpaid parking failure never pays and preserves accepted quote
+PASS reload paid recovery asks driver exit before any car position write
+PASS reload after confirmed empty safe recovery returns once and frees worker
+PASS reload unsafe paid recovery holds without moving 0
+PASS reload unsafe paid recovery holds without moving 1
+PASS reload unsafe paid recovery holds without moving 2
+PASS reload unsafe paid recovery holds without moving 3
+PASS reload unsafe paid recovery holds without moving 4
+PASS reload pause performs no recovery natives or move
+PASS reload paid recovery prevents intake and preserves worker transport ownership
+PASS reload manual override resets bounded exits but never an unpaid order
+PASS reload manual override ignores completed departing customers
+PASS reload staged parking one retry retains entity and FIFO until bounded failure
+PASS reload recovery clearance later clears without another payment
+recovery336 18/18 PASS; production intake/staging/spawn with deterministic entities and temporary-file quote adapters; GTA NOT RUN

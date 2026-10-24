@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 namespace GTA.Native {
- enum Hash { IS_PED_IN_ANY_VEHICLE,TASK_ENTER_VEHICLE,TASK_VEHICLE_DRIVE_WANDER,IS_SPHERE_VISIBLE,SET_PED_INTO_VEHICLE,TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,TASK_VEHICLE_PARK,IS_PED_IN_VEHICLE,IS_VEHICLE_SEAT_FREE,GET_VEHICLE_NUMBER_OF_PASSENGERS,IS_POSITION_OCCUPIED,CLEAR_PED_TASKS,TASK_START_SCENARIO_IN_PLACE,TASK_STAND_STILL }
+ enum Hash { IS_PED_IN_ANY_VEHICLE,TASK_ENTER_VEHICLE,TASK_VEHICLE_DRIVE_WANDER,TASK_LEAVE_VEHICLE,IS_SPHERE_VISIBLE,SET_PED_INTO_VEHICLE,TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE,TASK_VEHICLE_PARK,IS_PED_IN_VEHICLE,IS_VEHICLE_SEAT_FREE,GET_VEHICLE_NUMBER_OF_PASSENGERS,IS_POSITION_OCCUPIED,CLEAR_PED_TASKS,TASK_START_SCENARIO_IN_PLACE,TASK_STAND_STILL }
  static class Function {internal static bool playerInside,driverFree=true,obstacle,throwQuery;internal static int passengers,calls,animations;internal static T Call<T>(Hash h,params object[] args){calls++;if(throwQuery)throw new IOException("query failure");object v=h==Hash.GET_VEHICLE_NUMBER_OF_PASSENGERS?(object)passengers:h==Hash.IS_PED_IN_VEHICLE?playerInside:h==Hash.IS_VEHICLE_SEAT_FREE?driverFree:obstacle;return (T)v;}internal static void Call(Hash h,params object[] args){calls++;if(h==Hash.TASK_START_SCENARIO_IN_PLACE)animations++;}}
 }
 
@@ -30,6 +30,10 @@ class Harness {
  /*<source:ShowCustomerOrderStatus>*/
  int _customerQueueCapacity=3;int EffectiveQueueCapacity()=>3;int StagedCount()=>(_stagedCustomerOrder==null?0:1)+(_stagedThirdCustomerOrder==null?0:1);bool _waitingForDropoff;
  /*<source:UpdateOneCustomerOrder>*/
+ /*<source:FailVehicleTransfer>*/
+ /*<source:ProcessPaidReturnRecovery>*/
+ /*<source:VehicleDestination>*/
+ Ped AssignedWorker(CustomerOrder o)=>o.MechanicSlot>=0&&o.MechanicSlot<_mechanics.Count?_mechanics[o.MechanicSlot].Worker:null;
  WorkBay[] _bayApproaches={new WorkBay(),new WorkBay(),new WorkBay()};
  bool _customEmployeeWalkingPaths;bool _fineParkingEnabled=true;int _parkingTimeoutSeconds=30,_driveArrivalTimeout=90;float _parkingRadius=2;
  WorkBay _customerApproach=new WorkBay(),_customerQueue=new WorkBay();
@@ -71,6 +75,7 @@ class Harness {
     /*<source:TeleportAttemptDue>*/
     /*<source:TeleportTargetAvailable>*/
     /*<source:ProcessTeleportOrder>*/
+    /*<source:ReleaseRecoveredMechanic>*/
     /*<source:CanReturnCustomerCar>*/
     /*<source:NeedsDropoffSoon>*/
     /*<source:IntakeInProgress>*/
