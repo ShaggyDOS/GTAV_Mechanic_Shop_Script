@@ -1,0 +1,39 @@
+{
+  "profile": "workflow335",
+  "parent": "53205ad36aa398ebf6c9cb6626ea0d21ad135c0b",
+  "parent_source_sha256": "4aba9e70bdc6c29a551cd4feb257c03d5bec7bf7218eedf7b32a1e3888a28e71",
+  "candidate_source_sha256": "741c97730856adad11cd98d985e41d4eb325c9788af5ceebeee965a0eb64125f",
+  "changed_methods": [
+    "AssignCustomerMechanic",
+    "CanStartNextIntake",
+    "ExecuteEmployeePlacementsSelection",
+    "ExecuteMarkerSelection",
+    "ExecutePlacementSelection",
+    "ExecuteSelection",
+    "ExecuteSupplierDeliverySetup",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetSelectedDescription",
+    "GlassHeroesBusinessV3Experimental",
+    "NavigateBack",
+    "ProcessEconomy",
+    "ProcessOneCustomerRepair",
+    "ShowCustomerOrderStatus",
+    "SpawnCustomerOrder",
+    "SpawnRoadsideWaitingCustomer",
+    "UpdateOneCustomerOrder",
+    "ValidateStagedCustomer"
+  ],
+  "new_helpers": [
+    "CustomerBayAvailable",
+    "CustomerSpawnRetryReady",
+    "DeferCustomerSpawn"
+  ],
+  "unchanged_methods": 346,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": true,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}

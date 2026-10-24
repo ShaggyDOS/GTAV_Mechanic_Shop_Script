@@ -1,0 +1,42 @@
+{
+  "parent": "53205ad36aa398ebf6c9cb6626ea0d21ad135c0b",
+  "fixture": "workflow335-parent.cs.txt",
+  "parent_sha256": "4aba9e70bdc6c29a551cd4feb257c03d5bec7bf7218eedf7b32a1e3888a28e71",
+  "changed": [
+    "AssignCustomerMechanic",
+    "CanStartNextIntake",
+    "ExecuteEmployeePlacementsSelection",
+    "ExecuteMarkerSelection",
+    "ExecutePlacementSelection",
+    "ExecuteSelection",
+    "ExecuteSupplierDeliverySetup",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetSelectedDescription",
+    "GlassHeroesBusinessV3Experimental",
+    "NavigateBack",
+    "ProcessEconomy",
+    "ProcessOneCustomerRepair",
+    "ShowCustomerOrderStatus",
+    "SpawnCustomerOrder",
+    "SpawnRoadsideWaitingCustomer",
+    "UpdateOneCustomerOrder",
+    "ValidateStagedCustomer"
+  ],
+  "added": [
+    "CustomerBayAvailable",
+    "CustomerSpawnRetryReady",
+    "DeferCustomerSpawn"
+  ],
+  "added_keys": {
+    "GetValue": [],
+    "SetValue": []
+  },
+  "protected_v2": {
+    "Install/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/scripts/GlassHeroesBusiness.2.cs": "72f9e58d51a54584a1141a67740a2c4154647f65624c5107b39fdb8530315445",
+    "VisualStudio/GlassHeroesBusiness.csproj": "a87f76136747fe390d1750b778af318bc8fc584d9c9bd45cd59ef320c7b612a4",
+    "VisualStudio/GlassHeroesBusiness.sln": "d8d4eb22a2138b6e1ccadcc4957472aba7095561b5ac775ecbfd1579d4706f6b"
+  }
+}
