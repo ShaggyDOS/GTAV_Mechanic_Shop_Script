@@ -1,0 +1,17 @@
+PASS reload second intake while first repairing with separate staffed bay
+PASS reload configured staffed capacity 1
+PASS reload configured staffed capacity 2
+PASS reload configured staffed capacity 3
+PASS reload free worker without configured work/car bay cannot admit next car
+PASS reload same saved physical target cannot admit another car
+PASS reload intake and paid pickup priorities hold dropoff
+PASS reload staged FIFO keeps original entities and counts one reservation once
+PASS reload lost older slot cannot let a replacement jump ahead of surviving third
+PASS reload spawn failure cooldown prevents pending-request native churn
+PASS reload staged creation failure retains request and shares bounded retry
+PASS reload ped creation failure cleans owned car and preserves request
+PASS reload pause, boot and reload cannot trigger spawn or intake
+PASS reload destroyed staged car retains request without dispatch
+PASS reload failed pending quote save retains fixed promise and no vehicle transfer
+PASS reload reserved parts block additional customer intake
+workflow335 16/16 PASS; production intake/staging/spawn with deterministic entities and temporary-file quote adapters; GTA NOT RUN

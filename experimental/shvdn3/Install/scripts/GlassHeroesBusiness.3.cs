@@ -5376,8 +5376,52 @@ public class GlassHeroesBusinessV3Experimental : Script
         return TryConsumeQuotedSupplies(order.Pricing);
     }
 
+    // Logical bay ownership is bounded by the three live customer slots. No world scan.
+    private bool CustomerBayAvailable(int slot, CustomerOrder except)
+    {
+        if (slot < 0 || slot >= VisualBayCount || slot >= _mechanics.Count || !_bays[slot].IsSet) return false;
+        WorkBay target = _automaticLotMode ? ComputeAutomaticBay(slot) : _vehicleParkingBays[slot];
+        if (!target.IsSet)
+        {
+            if (!_vehicleTransfersEnabled) return false;
+            // Preserve ON's legacy all-custom-car-bays-unset fallback.
+            for (int i = 0; i < _mechanics.Count && i < VisualBayCount; i++)
+                if (_vehicleParkingBays[i].IsSet) return false;
+        }
+        foreach (CustomerOrder other in _activeCustomerOrders)
+        {
+            if (other == except || other.MechanicSlot < 0) continue;
+            bool holdsBay = !other.Paid || ((other.VehicleHandoff || other.VehicleTeleport) &&
+                other.Stage != CustomerStage.ToExitApproach && other.Stage != CustomerStage.ReturningToVehicle &&
+                other.Stage != CustomerStage.DrivingAway);
+            if (!holdsBay) continue;
+            if (other.MechanicSlot == slot) return false;
+            if (target.IsSet && other.ResolvedParkingBay != null && other.ResolvedParkingBay.IsSet &&
+                DistanceSquared(target.Position, other.ResolvedParkingBay.Position) < 16f) return false;
+        }
+        return true;
+    }
+
+    // Entity-creation failure backoff is session-only active GTA time; pending requests survive.
+    private bool CustomerSpawnRetryReady()
+    {
+        return _bootGameplayActivated && !Game.IsPaused && (!_customerSpawnRetryPending ||
+            unchecked((uint)(Game.GameTime - _customerSpawnFailedAt)) >= (uint)_customerSpawnRetryDelayMs);
+    }
+
+    private void DeferCustomerSpawn(int delayMs = 30000)
+    {
+        _customerSpawnRetryPending = true;
+        _customerSpawnFailedAt = Game.GameTime;
+        _customerSpawnRetryDelayMs = delayMs;
+    }
+
+    private bool _customerSpawnRetryPending;
+    private int _customerSpawnFailedAt, _customerSpawnRetryDelayMs;
+
     private bool CanStartNextIntake()
     {
+        if (!_bootGameplayActivated || Game.IsPaused) return false;
         if (_remoteJobs.Count > 0 || _remoteMode) return false;
         if (_activeCustomerOrders.Count >= Math.Min(3, _mechanics.Count)) return false;
         // Reserve stock for every assigned job to avoid two repairs consuming
@@ -5391,9 +5435,12 @@ public class GlassHeroesBusinessV3Experimental : Script
             if (NeedsDropoffSoon(order) || IntakeInProgress(order)) return false;
         // Do not bring in a second car if no other staffed bay can accept it.
         // This also avoids deadlock when only one mechanic is hired.
-        foreach (Mechanic employee in _mechanics)
+        for (int i = 0; i < _mechanics.Count && i < VisualBayCount; i++)
+        {
+            Mechanic employee = _mechanics[i];
             if (!employee.HasJob && employee.Worker != null && employee.Worker.Exists() &&
-                employee.ArrivalPhase == PhaseAtBreak) return true;
+                employee.ArrivalPhase == PhaseAtBreak && CustomerBayAvailable(i, null)) return true;
+        }
         return false;
     }
 
@@ -6211,7 +6258,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         if (staged != null &&
             (staged.Customer == null || !staged.Customer.Exists() || staged.Customer.IsDead ||
-             staged.Vehicle == null || !staged.Vehicle.Exists()))
+             staged.Vehicle == null || !staged.Vehicle.Exists() || staged.Vehicle.IsDead))
         {
             CancelCreatedCustomer(staged);
             staged = null; // Retain request; stage a replacement when possible.
@@ -6283,6 +6330,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     // Both are parked reservations; only the oldest can receive a live work order.
     private void SpawnRoadsideWaitingCustomer(DateTime now, bool third)
     {
+        if (!CustomerSpawnRetryReady() || (!third && _stagedThirdCustomerOrder != null)) return; // Never insert a new car ahead of the surviving older reservation.
         if (_activeCustomerOrders.Count == 0 || !_driveInEnabled || _waitingCustomerRequests <= (third ? 1 : 0) ||
             (third ? _stagedThirdCustomerOrder != null : _stagedCustomerOrder != null)) return;
         WorkBay spawn = GetQueueWaitingSpot(third);
@@ -6322,7 +6370,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             next.Vehicle = World.CreateVehicle(_customerVehicleModel, entry.Position, entry.Heading);
             if (next.Vehicle == null || !next.Vehicle.Exists())
-            { CancelCreatedCustomer(next); return; }
+            { CancelCreatedCustomer(next); DeferCustomerSpawn(); return; }
             next.Vehicle.IsPersistent = true;
             float radians = entry.Heading * (float)Math.PI / 180f;
             Vector3 roadsidePed = new Vector3(
@@ -6331,7 +6379,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 entry.Position.Z + 0.1f);
             next.Customer = World.CreatePed(_customerPedModel, roadsidePed, entry.Heading);
             if (next.Customer == null || !next.Customer.Exists())
-            { CancelCreatedCustomer(next); return; }
+            { CancelCreatedCustomer(next); DeferCustomerSpawn(); return; }
             next.Customer.IsPersistent = true;
             next.Customer.BlockPermanentEvents = true;
             next.Customer.AlwaysKeepTask = true;
@@ -6339,6 +6387,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 next.Customer.Handle, next.Vehicle.Handle, -1);
             if (third) _stagedThirdCustomerOrder = next;
             else _stagedCustomerOrder = next;
+            _customerSpawnRetryPending = false;
             SyncCustomerBlip(next);
             if (driveToWaiting)
             {
@@ -6355,6 +6404,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             Log("Stage customer in queue lane", ex);
             CancelCreatedCustomer(next);
+            DeferCustomerSpawn();
             if (third) _stagedThirdCustomerOrder = null;
             else _stagedCustomerOrder = null;
         }
@@ -6446,10 +6496,12 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void SpawnCustomerOrder(DateTime now)
     {
+        if (!CustomerSpawnRetryReady()) return;
         if (!_customerPedModel.IsInCdImage || !_customerPedModel.IsPed ||
             !_customerVehicleModel.IsInCdImage || !_customerVehicleModel.IsVehicle)
         {
             Log("CustomerService: invalid ped/vehicle model", null);
+            DeferCustomerSpawn(120000);
             _nextCustomerAt = now.AddMinutes(2);
             return;
         }
@@ -6479,6 +6531,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             if (order.Vehicle == null || !order.Vehicle.Exists())
             {
                 CancelCreatedCustomer(order);
+                DeferCustomerSpawn();
                 _nextCustomerAt = now.AddSeconds(30);
                 return;
             }
@@ -6491,12 +6544,14 @@ public class GlassHeroesBusinessV3Experimental : Script
             if (order.Customer == null || !order.Customer.Exists())
             {
                 CancelCreatedCustomer(order);
+                DeferCustomerSpawn();
                 _nextCustomerAt = now.AddSeconds(30);
                 return;
             }
             order.Customer.IsPersistent = true;
             order.Customer.BlockPermanentEvents = true;
             order.Customer.AlwaysKeepTask = true;
+            _customerSpawnRetryPending = false;
             AddActiveOrder(order);
             if (recovered != null) _pendingRepairPromises.Remove(recovered);
             SyncCustomerBlip(order);
@@ -6526,6 +6581,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _pendingRepairPromises.Add(recovered);
             _activeCustomerOrders.Remove(order);
             RestoreCurrentOrder();
+            DeferCustomerSpawn();
             _nextCustomerAt = now.AddSeconds(30);
         }
     }
