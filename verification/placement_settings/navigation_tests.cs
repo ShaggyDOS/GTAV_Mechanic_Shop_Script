@@ -119,6 +119,12 @@ int saves,transfers,shop,payments,notices; bool deposit;long _receptionWagesDue,
 void TransferPlayerMoney(bool d){transfers++;deposit=d;}void SetShopLocationFromPlayer(){shop++;}
 void ShowExpenseStatus(){notices++;}void PayInvoice(ref long d,bool wage,string label){payments++;}void TryPayBusinessBills(int mode){payments++;}
 /*<source:GetMenuItems>*/
+bool _customMechanicJobRoutes;
+/*<source:MechanicRouteHeading>*/
+/*<source:MechanicRouteCounts>*/
+/*<source:MechanicRoutePreview>*/
+/*<source:EffectiveWorkRouteMask>*/
+static string FitMenuText(string text,float width,float scale)=>text;
 /*<source:GetMenuTitle>*/
 string[] FinanceHistoryItems()=>new[]{"#1 test history","Older Transactions >","Newer Transactions >","< Back to Accounting"};
 string GetMenuItemValue(int index){switch(_menuPage){

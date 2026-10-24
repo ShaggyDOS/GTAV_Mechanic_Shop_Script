@@ -1,0 +1,36 @@
+{
+  "base_commit": "c8617aed5cda492214bbbe1907042bcafbfa0dc1",
+  "source_sha256": "d2037c2f9e750703d9a7967594fcab43520f2d2c9b59a0d4790907a617dcb4ad",
+  "changed_methods": [
+    "DrawMenu",
+    "EditingPointPurpose",
+    "ExecuteMechanicWalkingSelection",
+    "ExecutePointListSelection",
+    "ExecuteRouteDirectionSelection",
+    "ExecuteRoutePointSelection",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetPageDescription",
+    "GetSelectedDescription",
+    "WrapMenuDescription"
+  ],
+  "new_members": [
+    "FittingMenuWords",
+    "LayoutMenuDescription",
+    "MechanicRouteCounts",
+    "MechanicRouteHeading",
+    "MechanicRoutePreview"
+  ],
+  "unchanged_members": 391,
+  "all_other_methods_and_existing_declarations_unchanged": true,
+  "route_ai_geometry_and_bay_assignment_unchanged": true,
+  "save_settings_expressions_and_schema_unchanged": true,
+  "input_arbitration_and_controller_precedence_unchanged": true,
+  "financial_transactions_and_active_clocks_unchanged": true,
+  "protected_sources_projects_unchanged": true,
+  "approval_gate_1": "YES \u2014 owner chat",
+  "approval_gate_2": "PENDING YES/NO",
+  "gta_testing": "NOT RUN"
+}
+PASS Issue #36 approved source boundary

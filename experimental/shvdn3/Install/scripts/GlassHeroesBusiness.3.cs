@@ -1357,8 +1357,8 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.PlacementWalkingRoutes:
                 return new string[] { "Mechanics >", "Receptionist >", "Manager >", "Customers >", "Supplier Driver >", "< Back to Placement Settings" };
             case MenuPage.MechanicPlacementRoutes:
-                return new string[] { "Spawn -> Mechanic Break Area >", "Workstation Access Stops >", "Final Bay Approaches >",
-                    "Job Waypoint Selection by Mechanic >", "Legacy Mechanic Checkpoint >", "Walking Mode & Recovery >", "< Back to Roles" };
+                return new string[] { "Shared Entry Corridor >", "Shared Work Stops >", "Workstation Approaches >",
+                    "Selections by Mechanic >", "Legacy Mechanic Checkpoint >", "Walking Mode & Recovery >", "< Back to Roles" };
             case MenuPage.ReceptionPlacementRoutes:
                 return new string[] { "Spawn -> Desk Stops >", "Final Desk Approach >", "Walking Mode >", "< Back to Roles" };
             case MenuPage.ManagerPlacementRoutes:
@@ -1396,7 +1396,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "< Back to Management" };
             case MenuPage.MechanicManagement:
                 return new string[] { "Mechanic Roster >", "Hire Mechanic >",
-                    "Mechanic Job Waypoints >", "Mechanic Walking Paths >", "< Back to Employees" };
+                    "Work Stop Selections >", "Mechanic Walking Paths >", "< Back to Employees" };
             case MenuPage.ReceptionistManagement:
                 return new string[] { "Receptionist Profile >", "Hire Receptionist >",
                     "Receptionist Walking Paths >", "< Back to Employees" };
@@ -1414,11 +1414,11 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return new string[] { "Mechanic Walking Paths >", "Receptionist Walking Paths >",
                     "Manager Walking Paths >", "< Back" };
             case MenuPage.MechanicWalkingPaths:
-                return new string[] { "Mechanic Walking Mode", "Pickup + Return Exit Route",
-                    "Spawn -> Break Waypoints >", "Workstation Access Stops >",
-                    "Final Bay Approaches >", "Legacy Staff Checkpoint (MLO) >",
-                    "Choose Job Waypoints by Mechanic >", "Smooth Through-Waypoints",
-                    "Teleport Stuck Pedestrians", "Advanced Break <-> Bay Routes", "< Back" };
+                return new string[] { "Mechanic Walking Mode", "Car Walks: Entry Corridor",
+                    "Shared Entry Corridor >", "Shared Work Stops >",
+                    "Workstation Approaches >", "Legacy Staff Checkpoint (MLO) >",
+                    "Selections by Mechanic >", "Smooth Through-Waypoints",
+                    "Teleport Stuck Pedestrians", "Custom Work Stop Routes", "< Back" };
             case MenuPage.ReceptionWalkingPaths:
                 return new string[] { "Receptionist Walking Mode", "Spawn -> Desk Waypoints >",
                     "Final Desk Approach >", "< Back" };
@@ -1427,9 +1427,9 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Reception Stop 3 / 5 >", "Reception Stop 4 / 5 >",
                     "Reception Stop 5 / 5 >", "< Back" };
             case MenuPage.ArrivalWaypoints:
-                return new string[] { "Arrival Point 1 / 5 >", "Arrival Point 2 / 5 >",
-                    "Arrival Point 3 / 5 >", "Arrival Point 4 / 5 >",
-                    "Arrival Point 5 / 5 >", "< Back" };
+                return new string[] { "Entry Corridor Stop 1 >", "Entry Corridor Stop 2 >",
+                    "Entry Corridor Stop 3 >", "Entry Corridor Stop 4 >",
+                    "Entry Corridor Stop 5 >", "< Back" };
             case MenuPage.MechanicBays:
                 return new string[] { "Service Bay 1 >", "Service Bay 2 >",
                     "Service Bay 3 >", "< Back" };
@@ -1446,12 +1446,12 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return new string[] { "Car Parking Side", "Car Offset from Mechanic Bay",
                     "Auto Parking Preview", "< Back to Driving" };
             case MenuPage.ServiceWaypoints:
-                return new string[] { "Work Route 1 / 5 >", "Work Route 2 / 5 >",
-                    "Work Route 3 / 5 >", "Work Route 4 / 5 >",
-                    "Work Route 5 / 5 >", "< Back" };
+                return new string[] { "Shared Work Stop 1 >", "Shared Work Stop 2 >",
+                    "Shared Work Stop 3 >", "Shared Work Stop 4 >",
+                    "Shared Work Stop 5 >", "< Back" };
             case MenuPage.BayApproaches:
-                return new string[] { "Bay 1 Final Turn >", "Bay 2 Final Turn >",
-                    "Bay 3 Final Turn >", "< Back" };
+                return new string[] { "Workstation 1 Approach >", "Workstation 2 Approach >",
+                    "Workstation 3 Approach >", "< Back" };
             case MenuPage.PointEditor:
                 return new string[] { "Set / Save Position + Facing", "Clear Saved Position",
                     "Marker Preview", "Show Saved Coordinates", "< Back" };
@@ -1488,15 +1488,15 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Place Diagnostic Trolley", "Remove Diagnostic Trolley",
                     "Place Desk in Front", "Remove Placed Desk", "Office PC Status", "< Back" };
             case MenuPage.MechanicRouteRoster:
-                return new string[] { "Mechanic 1 Job Route >", "Mechanic 2 Job Route >",
-                    "Mechanic 3 Job Route >", "< Back to Mechanic Paths" };
+                return new string[] { "Mechanic 1 Work Stops >", "Mechanic 2 Work Stops >",
+                    "Mechanic 3 Work Stops >", "< Back to Mechanic Paths" };
             case MenuPage.MechanicRouteDirection:
-                return new string[] { "Break -> Job Waypoint Selection >", "Job -> Break Waypoint Selection >",
-                    "Route Summary", "< Back to Mechanic List" };
+                return new string[] { "To Workstation >", "From Workstation >",
+                    "View Selected Routes", "< Back to Mechanic List" };
             case MenuPage.MechanicRoutePoints:
-                return new string[] { "Use Work Waypoint 1", "Use Work Waypoint 2",
-                    "Use Work Waypoint 3", "Use Work Waypoint 4", "Use Work Waypoint 5",
-                    "All Waypoints ON", "All Waypoints OFF", "< Back to Route Direction" };
+                return new string[] { "Shared Work Stop 1", "Shared Work Stop 2",
+                    "Shared Work Stop 3", "Shared Work Stop 4", "Shared Work Stop 5",
+                    "Select All Shared Stops", "Deselect All Shared Stops", "< Back to Route Direction" };
             case MenuPage.MechanicInvoices:
                 return new string[] { "Mechanic 1 Wage Invoice", "Mechanic 2 Wage Invoice",
                     "Mechanic 3 Wage Invoice", "Pay Former Employee Wages", "Pay All Mechanic Wages",
@@ -1685,8 +1685,8 @@ public class GlassHeroesBusinessV3Experimental : Script
                 if (_routeConfigSlot < _mechanics.Count)
                 {
                     Mechanic routeOwner = _mechanics[_routeConfigSlot];
-                    if (index == 0) return CountMask(routeOwner.JobOutboundMask) + "/5";
-                    if (index == 1) return CountMask(routeOwner.JobReturnMask) + "/5";
+                    if (index == 0) return CountMask(EffectiveWorkRouteMask(routeOwner.JobOutboundMask)) + "/" + CountMask(routeOwner.JobOutboundMask) + " SET";
+                    if (index == 1) return CountMask(EffectiveWorkRouteMask(routeOwner.JobReturnMask)) + "/" + CountMask(routeOwner.JobReturnMask) + " SET";
                 }
                 return ">";
             case MenuPage.MechanicRoutePoints:
@@ -1749,7 +1749,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 switch (index)
                 {
                     case 0: return _customEmployeeWalkingPaths ? "CUSTOM MLO" : "AUTO DIRECT";
-                    case 1: return _pickupUsesArrivalExit ? "REVERSE PATH" : "DIRECT";
+                    case 1: return _pickupUsesArrivalExit ? "REUSE ON" : "DIRECT";
                     case 2: return CountSet(_arrivalRoute) + "/5";
                     case 3: return CountSet(_serviceRoute) + "/5";
                     case 4: return CountSet(_bayApproaches) + "/3";
@@ -1887,13 +1887,13 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return "OPTIONAL receptionist spawn -> desk stop; CUSTOM MLO only.";
         foreach (WorkBay point in _arrivalRoute)
             if (Object.ReferenceEquals(point, _editingPoint))
-                return "OPTIONAL staff entry -> break path; CUSTOM MLO only.";
+                return "Shared entry corridor; enabled car walks reuse it in reverse for pickup and forward for return.";
         foreach (WorkBay point in _serviceRoute)
             if (Object.ReferenceEquals(point, _editingPoint))
-                return "OPTIONAL break -> mechanic bay path; CUSTOM MLO only.";
+                return "Shared work stop; each mechanic selects its use for walking to/from their workstation.";
         foreach (WorkBay point in _bayApproaches)
             if (Object.ReferenceEquals(point, _editingPoint))
-                return "OPTIONAL final turn before work bay; CUSTOM MLO only.";
+                return "Bay-specific workstation approach, separate from shared stops and vehicle parking.";
         foreach (WorkBay point in _bays)
             if (Object.ReferenceEquals(point, _editingPoint))
                 return "Mechanic repair animation location, NOT the car's spot.";
@@ -1945,9 +1945,9 @@ public class GlassHeroesBusinessV3Experimental : Script
                 "Choose Mechanics, Receptionist, Manager, Customers or Supplier Driver route editors.", "Toggle visual previews or inspect marker colors; no coordinate changes.", "Return to caller.");
             case MenuPage.PlacementWalkingRoutes: return FooterRow("Mechanic pickup arrival route, workstation access and individual shared-stop masks.",
                 "Receptionist-only stops and final desk approach.", "Manager-only stops and final workstation approach.", "Customer-only stops and reception approach, reversed on pickup.", "Supplier driver stops and handoff point.", "Return to placement settings.");
-            case MenuPage.MechanicPlacementRoutes: return FooterRow("Edit Arrival stops: forward for arrival/return to break, reversed when walking from break to a customer car.",
-                "Edit FIVE shared work-access walking points; these do not drive the car or control pickup walking.", "Edit the final walking approach to each separate mechanic work position.",
-                "Choose each mechanic's independent outbound/return masks over the same five shared physical stops; USE / UNSET means selected but unsaved.",
+            case MenuPage.MechanicPlacementRoutes: return FooterRow("Edit shared entry corridor: forward to break; reversed for pickup when car-walk reuse is on.",
+                "Edit five shared work stops; separate from car pickup/return and vehicle driving.", "Edit the final walking approach to each separate mechanic work position.",
+                "Choose shared work-stop use per mechanic/direction. USE / UNSET means selected but unsaved.",
                 "Edit the legacy arrival checkpoint; not silently inserted into car pickup.", "Open existing walking-mode/recovery toggles without duplicating saved settings.", "Return to role list.");
             case MenuPage.ReceptionPlacementRoutes: return FooterRow("Edit five optional receptionist-only spawn-to-desk stops.", "Edit the final receptionist desk approach.", "Choose existing receptionist walking mode.", "Return to roles.");
             case MenuPage.ManagerPlacementRoutes: return FooterRow("Edit five optional manager-only spawn-to-workstation stops.", "Edit the final manager workstation approach.", "Choose existing manager walking mode.", "Return to roles.");
@@ -1962,9 +1962,12 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ServiceBayProfile: return FooterRow("Edit saved CUSTOM car position and heading; AUTO LOT remains computed until mode changes.",
                 "Edit the separate mechanic animation/work position; keep clear of the car center.", "Inspect existing fixed roster-slot assignment; no staff reassignment.", "Show both existing points, headings and active parking mode without saving.", "Return to bay list.");
             case MenuPage.MechanicRoutePoints:
-                if (_selection < 5) return "Toggle shared work stop " + (_selection + 1) + " for this mechanic/direction. " + (_serviceRoute[_selection].IsSet ? "Physical point is saved." : "UNSET: save this point or deselect it; it cannot supply a route node.");
+                if (_selection < 5) return "Toggle Shared Work Stop " + (_selection + 1) + " for this mechanic/direction. " + (_serviceRoute[_selection].IsSet ? "Physical point is saved." : "UNSET: save this point or deselect it; it cannot supply a route node.");
                 return _selection == 5 ? "Enable all five shared stops for this mechanic/direction; unsaved stops still cannot be traversed." : "Disable optional shared stops for this mechanic/direction; final approach/target remain.";
-            case MenuPage.MechanicRouteDirection: return FooterRow("Select this mechanic's outbound walking-stop mask.", "Select this mechanic's independent return walking-stop mask.", "Show masks without changing any route or coordinate.", "Return to roster.");
+            case MenuPage.MechanicRouteDirection:
+                return _selection < 2 ? MechanicRouteCounts(_routeConfigSlot, _selection == 1) +
+                    (_customMechanicJobRoutes ? ". CUSTOM work stops active." : ". DIRECT: selections inactive.") :
+                    "Show selected shared stops in travel order; no route, setting or coordinate changes.";
             case MenuPage.ArrivalWaypoints: case MenuPage.ServiceWaypoints: case MenuPage.BayApproaches:
             case MenuPage.ReceptionWaypoints: case MenuPage.ManagerWaypoints: case MenuPage.CustomerWalkingRoutes: case MenuPage.SupplierDriverWaypoints:
                 return "Edit " + label.TrimEnd(' ', '>') + ": " + GetMenuItemValue(_selection) + ". Walk to the point, face the intended direction, then Save Position + Facing.";
@@ -1983,7 +1986,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (_menuPage == MenuPage.PlacementSettings) return "Existing saved points and separate vehicle/work positions. Walk to the point, face the heading, then Save Position + Facing.";
         if (_menuPage == MenuPage.DeliveryPlacements) return "Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.";
         if (_menuPage == MenuPage.PlacementWalkingRoutes) return "Choose a role; edit existing saved routes and approaches without changing operating modes.";
-        if (_menuPage == MenuPage.MechanicPlacementRoutes) return "Pickup walks reverse Arrival stops to car; car drives to bay, mechanic walks to workstation, then drives back. Work masks select shared walking stops only.";
+        if (_menuPage == MenuPage.MechanicPlacementRoutes) return "Entry corridor: car pickup/return walks. Shared work stops: separate workstation access selected per mechanic.";
         if (_menuPage == MenuPage.ReceptionPlacementRoutes || _menuPage == MenuPage.ManagerPlacementRoutes) return "Existing optional walking stops, final approach and walking-mode settings.";
         if (_menuPage == MenuPage.CustomerPlacementRoutes || _menuPage == MenuPage.SupplierPlacementRoutes) return "Existing saved walking stops and final approach/handoff point. Walk, face, then Save Position + Facing.";
         switch (_menuPage)
@@ -2023,21 +2026,21 @@ public class GlassHeroesBusinessV3Experimental : Script
                 switch (_selection)
                 {
                     case 0: return "DIRECT for outside; CUSTOM MLO for optional paths.";
-                    case 1: return "REVERSE PATH follows saved Spawn -> Break points back to the car.";
-                    case 2: return "0-5 staff spawn to break points; reversed during car pickup.";
-                    case 3: return "Shared workstation-access walking stops; pickup uses reverse Arrival stops, not these masks.";
+                    case 1: return "Reuse entry corridor: pickup walks in reverse; drop-off return walks forward. Does not select work stops.";
+                    case 2: return "Shared entry corridor: spawn to break; optional reuse for car pickup/return walks.";
+                    case 3: return "Edit shared work stops. These serve workstation access, not customer-car pickup or driving.";
                     case 4: return "Optional last turn beside mechanic repair workstations.";
                     case 5: return "Legacy checkpoint, only when arrival points are absent.";
-                    case 6: return "Choose a separate set of existing job-route stops for each mechanic.";
+                    case 6: return "Select existing Shared Work Stops separately for each mechanic and walking direction.";
                     case 7: return "Advance ~1.9m before intermediate waypoints; final target unchanged.";
                     case 8: return "Recover stuck workers beside saved points rather than cancelling jobs.";
-                    case 9: return "Default DIRECT Break <-> Bay; opt in to existing saved job stops and approaches.";
+                    case 9: return "Toggle custom workstation access using selected Shared Work Stops and the bay approach.";
                     default: return "Return to separate employee walking settings.";
                 }
             case MenuPage.MechanicRouteRoster:
-                return "Select a mechanic to configure their individual Break <-> Job route.";
+                return "Choose which shared work stops each mechanic uses to/from the workstation; coordinates remain shared.";
             case MenuPage.MechanicRouteDirection:
-                return "Set outbound and return waypoint use independently.";
+                return "Select shared work-stop use independently to/from the workstation; car pickup uses the entry corridor.";
             case MenuPage.MechanicRoutePoints:
                 return "USE / SKIP saved points; unset points are always skipped.";
             case MenuPage.ReceptionWalkingPaths:
@@ -2050,9 +2053,9 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.CustomerPlacements: return "Road spawn, two waiting-car spaces, drop-off and optional customer path.";
             case MenuPage.CustomerWalkingRoutes: return "Optional 0-3 walking stops in order from drop-off to reception; reverse on pickup.";
             case MenuPage.CustomerQueueSettings: return "Cars 2 and 3 stage roadside. Multiple staffed bays can repair while arrivals take turns at drop-off.";
-            case MenuPage.ArrivalWaypoints: return "Optional in CUSTOM MLO: spawn to Mechanic Break Area.";
-            case MenuPage.ServiceWaypoints: return "Five shared workstation-access walking stops; per-mechanic masks select use. Pickup walking uses Arrival stops.";
-            case MenuPage.BayApproaches: return "Optional last turn before work bay; CUSTOM only.";
+            case MenuPage.ArrivalWaypoints: return "Shared entry corridor for spawn to break, plus car walks when reuse is enabled.";
+            case MenuPage.ServiceWaypoints: return "Five shared physical work stops; each mechanic selects use. Car pickup/return use the entry corridor.";
+            case MenuPage.BayApproaches: return "Bay-specific workstation approach; separate from shared work stops and vehicle parking.";
             case MenuPage.RouteRecovery: return "Stuck employees can recover at saved waypoints.";
             case MenuPage.BusinessManagement:
                 return new string[] {
@@ -2174,6 +2177,40 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
     }
 
+    private string MechanicRouteHeading()
+    {
+        string name = _routeConfigSlot >= 0 && _routeConfigSlot < _mechanics.Count ? _mechanics[_routeConfigSlot].Name : "NO MECHANIC";
+        string direction = _menuPage == MenuPage.MechanicRoutePoints ?
+            (_routeConfigReturning ? "FROM WORKSTATION" : "TO WORKSTATION") : "WORK STOP USE";
+        return FitMenuText(direction + " / " + name, 382, 0.46f);
+    }
+
+    private string MechanicRouteCounts(int slot, bool returning)
+    {
+        if (slot < 0 || slot >= _mechanics.Count) return "No mechanic";
+        int selected = (returning ? _mechanics[slot].JobReturnMask : _mechanics[slot].JobOutboundMask) & 31;
+        int effective = EffectiveWorkRouteMask(selected);
+        return CountMask(selected) + " selected, " + CountMask(effective) + " saved, " + CountMask(selected & ~effective) + " unset";
+    }
+
+    private string MechanicRoutePreview(int slot, bool returning)
+    {
+        if (slot < 0 || slot >= _mechanics.Count) return "No mechanic";
+        string target = returning ? "Break Area" : "Workstation " + (slot + 1);
+        if (!_customMechanicJobRoutes) return (returning ? "From workstation" : "To workstation") + ": DIRECT -> " + target + " (shared selections inactive)";
+        int mask = returning ? _mechanics[slot].JobReturnMask : _mechanics[slot].JobOutboundMask;
+        var steps = new List<string>();
+        if (returning && _bayApproaches[slot].IsSet) steps.Add("Bay " + (slot + 1) + " Approach");
+        for (int index = 0; index < _serviceRoute.Length; index++)
+        {
+            int point = returning ? _serviceRoute.Length - 1 - index : index;
+            if (_serviceRoute[point].IsSet && (mask & (1 << point)) != 0) steps.Add("Work " + (point + 1));
+        }
+        if (!returning && _bayApproaches[slot].IsSet) steps.Add("Bay " + (slot + 1) + " Approach");
+        steps.Add(target);
+        return (returning ? "From workstation: " : "To workstation: ") + string.Join(" -> ", steps);
+    }
+
     private string GetMenuTitle()
     {
         switch (_menuPage)
@@ -2209,11 +2246,11 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.MechanicWalkingPaths: return "MECHANIC WALKING";
             case MenuPage.ReceptionWalkingPaths: return "RECEPTION WALKING";
             case MenuPage.ReceptionWaypoints: return "RECEPTION ROUTE (0-5)";
-            case MenuPage.ArrivalWaypoints: return "SPAWN -> BREAK (0-5)";
+            case MenuPage.ArrivalWaypoints: return "SHARED ENTRY CORRIDOR";
             case MenuPage.MechanicBays: return "SERVICE BAYS";
             case MenuPage.ServiceBayProfile: return "SERVICE BAY " + (_serviceBaySlot + 1);
-            case MenuPage.ServiceWaypoints: return "SHARED WORK ACCESS (0-5)";
-            case MenuPage.BayApproaches: return "BAY APPROACHES";
+            case MenuPage.ServiceWaypoints: return "SHARED WORK STOPS (0-5)";
+            case MenuPage.BayApproaches: return "WORKSTATION APPROACHES";
             case MenuPage.PointEditor: return _editingPointLabel.ToUpperInvariant();
             case MenuPage.RouteRecovery: return "ROUTE RECOVERY";
             case MenuPage.PlacementMarkers: return "PLACEMENT MARKERS";
@@ -2242,9 +2279,9 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.HireMechanicRoster: return "HIRE A MECHANIC";
             case MenuPage.HireReceptionistRoster: return "HIRE RECEPTIONIST";
             case MenuPage.EquipmentManagement: return "SHOP EQUIPMENT";
-            case MenuPage.MechanicRouteRoster: return "MECHANIC JOB ROUTES";
-            case MenuPage.MechanicRouteDirection: return "SELECT WALK DIRECTION";
-            case MenuPage.MechanicRoutePoints: return _routeConfigReturning ? "RETURN WALK WAYPOINTS" : "JOB WALK WAYPOINTS";
+            case MenuPage.MechanicRouteRoster: return "MECHANIC WORK STOP USE";
+            case MenuPage.MechanicRouteDirection: return MechanicRouteHeading();
+            case MenuPage.MechanicRoutePoints: return MechanicRouteHeading();
             case MenuPage.MechanicInvoices: return "MECHANIC WAGES";
             default: return "GLASS HEROES";
         }
@@ -3560,7 +3597,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 Save();
                 Notify("Mechanic walking: " + (_customEmployeeWalkingPaths ?
                     "CUSTOM MLO (0-5 points)" : "AUTO DIRECT") +
-                    ". Car pickup exit routing is separately configurable.");
+                    ". Car walks reuse the entry corridor only when enabled.");
                 break;
             case 1:
                 if (_customerOrder != null && _customerOrder.VehicleHandoff)
@@ -3615,10 +3652,10 @@ public class GlassHeroesBusinessV3Experimental : Script
         Mechanic staff = _mechanics[_routeConfigSlot];
         if (_selection == 2)
         {
-            ShowStatusNotice("MECHANIC JOB ROUTE", staff.Name,
-                "To job: " + CountMask(staff.JobOutboundMask) + "/5 enabled",
-                "From job: " + CountMask(staff.JobReturnMask) + "/5 enabled",
-                "Active only in CUSTOM MLO mode; new routes only.");
+            ShowStatusNotice("MECHANIC WORK STOP USE", staff.Name + (_customMechanicJobRoutes ? " / CUSTOM active" : " / DIRECT mode"),
+                "To: " + MechanicRouteCounts(_routeConfigSlot, false),
+                "From: " + MechanicRouteCounts(_routeConfigSlot, true),
+                MechanicRoutePreview(_routeConfigSlot, false), MechanicRoutePreview(_routeConfigSlot, true));
             return;
         }
         _routeConfigReturning = _selection == 1;
@@ -3638,8 +3675,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (_routeConfigReturning) staff.JobReturnMask = mask;
         else staff.JobOutboundMask = mask;
         Save();
-        GTA.UI.Screen.ShowSubtitle(staff.Name + ": " + (_routeConfigReturning ? "return" : "job") +
-            " route uses " + CountMask(mask) + "/5 points.", 1800);
+        GTA.UI.Screen.ShowSubtitle(staff.Name + ": " + (_routeConfigReturning ? "from workstation" : "to workstation") +
+            " shared stops: " + MechanicRouteCounts(_routeConfigSlot, _routeConfigReturning) + ".", 1800);
     }
 
     private void ExecuteReceptionWalkingSelection()
@@ -3687,15 +3724,15 @@ public class GlassHeroesBusinessV3Experimental : Script
         else if (_menuPage == MenuPage.ServiceVehicleBays)
             OpenPointEditor(_vehicleParkingBays[slot], "Vehicle Parking Bay " + (slot + 1), -1, false);
         else if (_menuPage == MenuPage.ArrivalWaypoints)
-            OpenPointEditor(_arrivalRoute[slot], "Arrival: Stop " + (slot + 1) + "/5 (optional)", -1, true);
+            OpenPointEditor(_arrivalRoute[slot], "Entry Corridor Stop " + (slot + 1) + " (shared)", -1, true);
         else if (_menuPage == MenuPage.ServiceWaypoints)
-            OpenPointEditor(_serviceRoute[slot], "Work Bay: Stop " + (slot + 1) + "/5 (optional)", -1, true);
+            OpenPointEditor(_serviceRoute[slot], "Shared Work Stop " + (slot + 1), -1, true);
         else if (_menuPage == MenuPage.ReceptionWaypoints)
             OpenPointEditor(_receptionRoute[slot], "Reception: Stop " + (slot + 1) + "/5 (optional)", -1, true);
         else if (_menuPage == MenuPage.ManagerWaypoints)
             OpenPointEditor(_managerRoute[slot], "Manager: Stop " + (slot + 1) + "/5 (optional)", -1, true);
         else if (_menuPage == MenuPage.BayApproaches)
-            OpenPointEditor(_bayApproaches[slot], "Bay " + (slot + 1) + " Approach", -1, true);
+            OpenPointEditor(_bayApproaches[slot], "Workstation Approach - Bay " + (slot + 1), -1, true);
     }
 
     private void ExecutePointEditorSelection()

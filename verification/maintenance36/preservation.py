@@ -29,8 +29,25 @@ for name in ['TrySupplierPackageInteraction','RecoverSupplierShipment','CancelSu
  restored=after[name].replace('            DeleteWholesalePickupBlip();\n','').replace('                if (atWarehouse) DeleteWholesalePickupBlip();\n','').replace('        DeleteWholesalePickupBlip();\n','')
  assert restored==before[name],name+' non-locator behavior changed'
 assert after['ExecuteRoutePointSelection'].split('        GTA.UI.Screen.ShowSubtitle')[0]==before['ExecuteRoutePointSelection'].split('        GTA.UI.Screen.ShowSubtitle')[0],'Mask mutation/save changed'
-for name in ['ExecutePointListSelection','ExecuteMechanicWalkingSelection']:
- assert tokens(after[name])==tokens(before[name]),name+' changed beyond labels/notices'
+def point_calls_without_labels(text):
+ clean,_=strip_literals(text);replacements=[]
+ for match in re.finditer(r'OpenPointEditor\(',clean):
+  start=match.end();level=0;commas=[];end=start
+  while True:
+   char=clean[end]
+   if char==')' and level==0:break
+   if char in '([{':level+=1
+   elif char in ')]}':level-=1
+   elif char==',' and level==0:commas.append(end)
+   end+=1
+  assert len(commas)==3
+  label=text[commas[0]+1:commas[1]]
+  assert re.fullmatch(r'[+()a-zA-Z0-9_\s]*',strip_literals(label)[0]),'Non-display expression in point label'
+  replacements.append((commas[0]+1,commas[1]))
+ for start,end in reversed(replacements):text=text[:start]+'"LABEL"'+text[end:]
+ return tokens(text)
+assert point_calls_without_labels(after['ExecutePointListSelection'])==point_calls_without_labels(before['ExecutePointListSelection']),'Point editor changed beyond labels'
+assert tokens(after['ExecuteMechanicWalkingSelection'])==tokens(before['ExecuteMechanicWalkingSelection']),'Walking controls changed beyond notices'
 for path in ['Install/scripts/GlassHeroesBusiness.2.cs','VisualStudio/scripts/GlassHeroesBusiness.2.cs','VisualStudio/GlassHeroesBusiness.csproj','VisualStudio/GlassHeroesBusiness.sln','experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj','experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.sln','AGENTS.md']:
  assert (ROOT/path).read_bytes()==subprocess.check_output(['git','show',BASE+':'+path],cwd=ROOT),path+' changed'
 report={'base_commit':BASE,'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'changed_methods':changed,'new_members':added,'unchanged_members':len(before)-len(changed),'all_other_methods_and_existing_declarations_unchanged':True,'route_ai_geometry_and_bay_assignment_unchanged':True,'save_settings_expressions_and_schema_unchanged':True,'input_arbitration_and_controller_precedence_unchanged':True,'financial_transactions_and_active_clocks_unchanged':True,'protected_sources_projects_unchanged':True,'approval_gate_1':'YES — owner chat','approval_gate_2':'PENDING YES/NO','gta_testing':'NOT RUN'}
