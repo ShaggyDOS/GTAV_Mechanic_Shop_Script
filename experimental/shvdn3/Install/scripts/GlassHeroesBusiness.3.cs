@@ -8471,6 +8471,28 @@ public class GlassHeroesBusinessV3Experimental : Script
                 (AvailableSupplierPallet() < 0 ? " | WAITING FOR PALLET/CAPACITY" : ""),
             "Storage " + StoredPartsTotal() + "/" + TotalStorageCapacity() +
                 " | Supplier bills $" + _supplierInvoicesDue.ToString("N0"));
+        Notify(SupplierReceiptBlocker());
+    }
+
+    private string SupplierReceiptBlocker()
+    {
+        if (_deliveryKind == -2) return "No pending order; use Order / Last Receipt for its saved outcome.";
+        if (_deliveryQuantity <= 0) return "Invalid pending quantity retained; inspect matching save/backup.";
+        if (_deliveryRemainingGameSeconds > 0) return "ETA advances only in active, unpaused GTA gameplay.";
+        if (_supplierPlayerCarrying) return "Player owns the package; deposit it. Manager cannot take over.";
+        if (!CanStoreShipment(_deliveryQuantity)) return "Receipt held: check both unit capacity and free parcel slots.";
+        if (_deliverySupplier == 0) return _wholesaleCargoLoaded ? "Player must return, unload and deposit assigned-vehicle cargo." :
+            _wholesaleCargoUnloaded ? "Player must deposit unloaded cargo; no warehouse automation." : "Player warehouse collection and assigned vehicle required.";
+        if (ManagerSupplierEligible())
+        {
+            if (SupplierPlayerAway()) return "Manager virtual receipt awaits its active simulation/save retry; no cash payment at receipt.";
+            if (!_physicalMuleDeliveries || !MuleRouteConfigured()) return "Nearby manager held: configure physical Mule route for pallet drop.";
+        }
+        else if (SupplierPlayerAway()) return "Player receipt required; return near the shop.";
+        if (_supplierVisualStage == 2) return "Driver exit: one fallback attempt, then original-order recovery after 40 active seconds.";
+        if (_supplierVisualStage == 8) return "Driver must reach the rear; route recovery after 45 active seconds.";
+        if (_supplierVisualStage == 0) return "Waiting for physical streaming/model/route retry; original order retained.";
+        return "Follow the live stage; pallet support, capacity and durable save are checked before receipt.";
     }
 
     private bool MuleRouteConfigured()
@@ -8485,8 +8507,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             case 1: return "DRIVING TO UNLOAD";
             case 2: return "DRIVER EXITING";
-            case 3: return "DRIVER WALKING TO HANDOFF";
-            case 4: return _supplierPartsPallet.IsSet ? "AWAITING PLAYER PICKUP" : "DRIVER UNLOADING";
+            case 3: return _managerSupplierPallet >= 0 ? "DRIVER WALKING TO PALLET" : "DRIVER WALKING TO HANDOFF";
+            case 4: return _managerSupplierPallet >= 0 ? "MANAGER PALLET DROP" : _supplierPartsPallet.IsSet ? "AWAITING PLAYER PICKUP" : "DRIVER UNLOADING";
             case 5: return "DEPARTING";
             case 6: return "PLAYER CARRYING BOX";
             case 7: return "WAREHOUSE BOX READY";
@@ -8803,7 +8825,8 @@ public class GlassHeroesBusinessV3Experimental : Script
     private void TryManagerSupplierDeposit(DateTime now)
     {
         int slot = _managerSupplierPallet;
-        if (!ManagerSupplierEligible() || _supplierPlayerCarrying || slot < 0 ||
+        if (!ManagerSupplierEligible() || _supplierVisualOrderTicks != _deliveryDueUtcTicks ||
+            _supplierPlayerCarrying || slot < 0 ||
             slot >= _ownedStoragePallets || !StoragePalletPoint(slot).IsSet ||
             _supplierDriver == null || !_supplierDriver.Exists() || _supplierDriver.IsDead ||
             _supplierCrate == null || !_supplierCrate.Exists() || !_supplierBoxAttachedToDriver)

@@ -1,0 +1,14 @@
+PASS manager340 offsite mixed order one liability and outcome supplier 1
+PASS manager340 offsite mixed order one liability and outcome supplier 2
+PASS manager340 nearby physical to away virtual preserves order identity
+PASS manager340 stale nearby manager cannot touch accounting
+PASS manager340 manager removed while walking retains pending order
+PASS manager340 closed shop never gets offsite manager receipt
+PASS manager340 nearby manager route configuration hold is explicit
+PASS manager340 capacity hold explains both independent limits
+PASS manager340 player carrying beats automatic receipt even offsite
+PASS manager340 manager live stage distinguishes pallet drop from player handoff
+PASS manager340 wholesale remains manual with hired manager and saved cargo
+PASS manager340 pause prevents new mixed outcome and cleanup
+PASS manager340 offsite failed save retains identity and no terminal outcome
+manager340 13/13 PASS; production nearby/offsite shared transaction and eligibility, GTA NOT RUN.
