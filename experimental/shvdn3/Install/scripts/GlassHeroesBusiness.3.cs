@@ -1,4 +1,4 @@
-// Glass Heroes Business Manager - v0.3.3.4 SHVDN3 SERVICE BAY INTEGRATION / EXPERIMENTAL
+// Glass Heroes Business Manager - v0.3.3.5 SHVDN3 CUSTOMER WORKFLOW + ROLE ROUTES / EXPERIMENTAL
 // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
 // Original project. Does not reference or modify Auto Work or its data.
 // GTA V Story Mode only | ScriptHookVDotNet3 3.6.0 / .NET Framework 4.8
@@ -2857,11 +2857,15 @@ public class GlassHeroesBusinessV3Experimental : Script
                 " | Queued " + _waitingCustomerRequests + "/" + EffectiveQueueCapacity() +
                 " | Roadside " + StagedCount());
         Notify(RepairQuoteBreakdown(order.Pricing));
+        Notify("Assigned: " + (order.MechanicSlot >= 0 && order.MechanicSlot < _mechanics.Count ?
+            _mechanics[order.MechanicSlot].Name + " | Bay " + (order.MechanicSlot + 1) : "waiting for mechanic / configured clear bay"));
         if (_activeCustomerOrders.Count > 1)
             foreach (CustomerOrder other in _activeCustomerOrders)
                 if (other != order)
                     Notify("Live order #" + other.Id + " | " + other.Stage + " | " +
-                        (other.Paid ? "PAID" : "$" + other.Price.ToString("N0")));
+                        (other.Paid ? "PAID" : "$" + other.Price.ToString("N0")) +
+                        " | " + (other.MechanicSlot >= 0 && other.MechanicSlot < _mechanics.Count ?
+                            _mechanics[other.MechanicSlot].Name + " / Bay " + (other.MechanicSlot + 1) : "unassigned"));
         if (_waitingCustomerRequests > 0)
             Notify("Queued: " + _waitingCustomerRequests + "/" + EffectiveQueueCapacity() +
                 " | parked waiting cars " + StagedCount());
@@ -2870,7 +2874,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             int available = FreeStockForService(order.ServiceKind);
             Notify(available < order.PartsNeeded ?
                 "WAITING FOR PARTS: unreserved " + available + ", need " + order.PartsNeeded :
-                "WAITING FOR AVAILABLE MECHANIC at break area.");
+                "WAITING FOR MECHANIC / CONFIGURED CLEAR BAY. Mechanic must be at Mechanic Break Area.");
             return;
         }
         if (order.VehicleHandoff && order.Stage != CustomerStage.Repairing &&

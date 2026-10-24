@@ -27,6 +27,8 @@ class Harness {
  /*<source:OpenServiceBayProfile>*/
  /*<source:CustomerBayAvailable>*/
  /*<source:CanStartNextIntake>*/
+ /*<source:ShowCustomerOrderStatus>*/
+ int _customerQueueCapacity=3;int EffectiveQueueCapacity()=>3;int StagedCount()=>(_stagedCustomerOrder==null?0:1)+(_stagedThirdCustomerOrder==null?0:1);bool _waitingForDropoff;
  /*<source:UpdateOneCustomerOrder>*/
  WorkBay[] _bayApproaches={new WorkBay(),new WorkBay(),new WorkBay()};
  bool _customEmployeeWalkingPaths;bool _fineParkingEnabled=true;int _parkingTimeoutSeconds=30,_driveArrivalTimeout=90;float _parkingRadius=2;
@@ -222,6 +224,8 @@ void StartReturnVehicleWalk(CustomerOrder o){}
  BayTest("pause and closed shop cannot progress repairs",()=>{var h=QueueFixture();var a=Assigned(h);Advance(h,a);h._mechanics[0].ArrivalPhase=PhaseWorking;Game.IsPaused=true;h.ProcessEconomy(1000);Check(!a.Paid&&h._cash==0&&h._mechanics[0].WorkSeconds==0,"pause progress");Game.IsPaused=false;h._clockedIn=false;h.ProcessEconomy(1000);Check(!a.Paid&&h._cash==0,"closed progress");});
  foreach(var stage in new[]{CustomerStage.MechanicEnteringVehicle,CustomerStage.MechanicEnteringForReturn,CustomerStage.MechanicExitingAtBay,CustomerStage.MechanicExitingAtDropoff}){var phase=stage;BayTest("physical transition timeout cancels once without teleport "+phase,()=>{var h=QueueFixture();h._vehicleTransfersEnabled=true;var a=h.Customer(0);h.AssignCustomerMechanic(a);h._customerOrder=a;a.Stage=phase;a.SecondsInStage=23;h.UpdateOneCustomerOrder(a);Check(!h._activeCustomerOrders.Contains(a)&&a.Vehicle.moves==0&&h._cash==0&&h._pendingRepairPromises.Count==1,"bounded transition");});}
  BayTest("paid physical pickup wait cannot rerun payment or teleport",()=>{var h=QueueFixture();h._vehicleTransfersEnabled=true;var a=h.Customer(0);h.AssignCustomerMechanic(a);h._customerOrder=a;a.Stage=CustomerStage.Repairing;a.Vehicle.backing=a.ResolvedParkingBay.Position;h._mechanics[0].ArrivalPhase=PhaseWorking;h.pickupBlocked=true;RunRepair(h,a,120);Check(a.Paid&&a.Stage==CustomerStage.MechanicWaitingToReturn,"hold paid return");long cash=h._cash;for(int i=0;i<10;i++){h.UpdateOneCustomerOrder(a);RunRepair(h,a,10);}Check(h._cash==cash&&h.invoiceWrites==1&&a.Vehicle.moves==0,"repeat charge/move");});
+ BayTest("on-demand status names assigned worker and bay without saving",()=>{var h=QueueFixture();var a=Assigned(h);h._customerOrder=a;int saves=h.saves,natives=GTA.Native.Function.calls;h.ShowCustomerOrderStatus();Check(h.notices.Any(x=>x.Contains("Assigned: Test | Bay 1"))&&h.saves==saves&&GTA.Native.Function.calls==natives,"status side effects");});
+ BayTest("unassigned status explains mechanic and bay wait",()=>{var h=QueueFixture();h._customerOrder=h.Customer(0);h.ShowCustomerOrderStatus();Check(h.notices.Any(x=>x.Contains("CONFIGURED CLEAR BAY"))&&h.saves==0,"wait explanation");});
  World.failVehicle=World.failPed=false;
     }
     static void Main(){DataDirectory=Path.Combine(Path.GetTempPath(),"gh335-"+Guid.NewGuid());Directory.CreateDirectory(DataDirectory);try{
