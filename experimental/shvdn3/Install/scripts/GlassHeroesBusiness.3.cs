@@ -1413,7 +1413,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Manager Walking Paths >", "< Back" };
             case MenuPage.MechanicWalkingPaths:
                 return new string[] { "Mechanic Walking Mode", "Pickup + Return Exit Route",
-                    "Spawn -> Break Waypoints >", "Break -> Bay Waypoints >",
+                    "Spawn -> Break Waypoints >", "Workstation Access Stops >",
                     "Final Bay Approaches >", "Legacy Staff Checkpoint (MLO) >",
                     "Choose Job Waypoints by Mechanic >", "Smooth Through-Waypoints",
                     "Teleport Stuck Pedestrians", "Advanced Break <-> Bay Routes", "< Back" };
@@ -1917,7 +1917,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return _selection < 5 ? "Snapshot: " + _employeeStatusRows[_selection] + ". Select to refresh live details; no continuous entity scans." : "Refresh all staff snapshots and show detailed job/route/wage status; does not pay wages.";
             case MenuPage.Customers: return FooterRow("Show current order stages, assigned workers, bay and wait reasons on demand.",
                 "Inspect or schedule bounded requests; active/paid orders are separate from roadside waiting cars.", "Open central Placement Settings without changing saved coordinates.",
-                "Configure driving/transfer modes, inspect diagnostics or retry a held paid return safely.", "Enable/disable automatic customer arrivals; active orders follow existing cancellation rules.",
+                "Configure driving/transfer modes, inspect diagnostics or retry a held paid return safely.", "Enable/disable GTA-hour customer demand: daytime is busier, overnight quieter; existing cancellation rules remain.",
                 "Manually request one customer within configured queue capacity; bypass automatic demand wait.", "Show/hide script-owned customer blips.", "Show/hide placement preview only; saved points remain intact.", "Return to management.");
             case MenuPage.InventoryManagement: return FooterRow("View available inventory and capacity; pending cargo is not stock on hand.",
                 "Build a mixed-category order with one supplier, ETA and invoice after stocking.", "Inspect saved pending order identity and its current delivery stage.",
@@ -1942,7 +1942,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 "Receptionist-only stops and final desk approach.", "Manager-only stops and final workstation approach.", "Customer-only stops and reception approach, reversed on pickup.", "Supplier driver stops and handoff point.", "Return to placement settings.");
             case MenuPage.MechanicPlacementRoutes: return FooterRow("Edit Arrival stops: forward for arrival/return to break, reversed when walking from break to a customer car.",
                 "Edit FIVE shared work-access walking points; these do not drive the car or control pickup walking.", "Edit the final walking approach to each separate mechanic work position.",
-                "Choose each mechanic's independent outbound/return masks over the same five shared physical stops; USE/UNSET is invalid geometry.",
+                "Choose each mechanic's independent outbound/return masks over the same five shared physical stops; USE / UNSET means selected but unsaved.",
                 "Edit the legacy arrival checkpoint; not silently inserted into car pickup.", "Open existing walking-mode/recovery toggles without duplicating saved settings.", "Return to role list.");
             case MenuPage.ReceptionPlacementRoutes: return FooterRow("Edit five optional receptionist-only spawn-to-desk stops.", "Edit the final receptionist desk approach.", "Choose existing receptionist walking mode.", "Return to roles.");
             case MenuPage.ManagerPlacementRoutes: return FooterRow("Edit five optional manager-only spawn-to-workstation stops.", "Edit the final manager workstation approach.", "Choose existing manager walking mode.", "Return to roles.");
@@ -2020,7 +2020,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     case 0: return "DIRECT for outside; CUSTOM MLO for optional paths.";
                     case 1: return "REVERSE PATH follows saved Spawn -> Break points back to the car.";
                     case 2: return "0-5 staff spawn to break points; reversed during car pickup.";
-                    case 3: return "0-5 mechanic break to repair bay route stops.";
+                    case 3: return "Shared workstation-access walking stops; pickup uses reverse Arrival stops, not these masks.";
                     case 4: return "Optional last turn beside mechanic repair workstations.";
                     case 5: return "Legacy checkpoint, only when arrival points are absent.";
                     case 6: return "Choose a separate set of existing job-route stops for each mechanic.";
@@ -2046,7 +2046,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.CustomerWalkingRoutes: return "Optional 0-3 walking stops in order from drop-off to reception; reverse on pickup.";
             case MenuPage.CustomerQueueSettings: return "Cars 2 and 3 stage roadside. Multiple staffed bays can repair while arrivals take turns at drop-off.";
             case MenuPage.ArrivalWaypoints: return "Optional in CUSTOM MLO: spawn to Mechanic Break Area.";
-            case MenuPage.ServiceWaypoints: return "Optional in CUSTOM MLO: Mechanic Break Area to service bays.";
+            case MenuPage.ServiceWaypoints: return "Five shared workstation-access walking stops; per-mechanic masks select use. Pickup walking uses Arrival stops.";
             case MenuPage.BayApproaches: return "Optional last turn before work bay; CUSTOM only.";
             case MenuPage.RouteRecovery: return "Stuck employees can recover at saved waypoints.";
             case MenuPage.BusinessManagement:
@@ -2207,7 +2207,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ArrivalWaypoints: return "SPAWN -> BREAK (0-5)";
             case MenuPage.MechanicBays: return "SERVICE BAYS";
             case MenuPage.ServiceBayProfile: return "SERVICE BAY " + (_serviceBaySlot + 1);
-            case MenuPage.ServiceWaypoints: return "BREAK -> BAY (0-5)";
+            case MenuPage.ServiceWaypoints: return "SHARED WORK ACCESS (0-5)";
             case MenuPage.BayApproaches: return "BAY APPROACHES";
             case MenuPage.PointEditor: return _editingPointLabel.ToUpperInvariant();
             case MenuPage.RouteRecovery: return "ROUTE RECOVERY";
@@ -6717,7 +6717,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         if (_waitingCustomerRequests == 0)
         {
             int seconds = (int)Math.Max(0, _customerDemandIntervalSeconds - _customerDemandElapsed);
-            return "No pending customers. Next scheduled request ~" + seconds + "s; use Schedule One for testing.";
+            return "No pending customers. Automatic demand interval ~" + seconds + " active seconds remaining; manual Schedule One bypasses demand wait.";
         }
         if (!_driveInEnabled) return "Drive-in OFF: pending customers are virtual.";
         if (!_customerDriveSpawn.IsSet) return "Save Customer Road Spawn for driving arrival.";
@@ -7818,7 +7818,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         int[] free = UnreservedRepairStock(null); int count = 0;
         for (int i = 0; i < 4; i++)
         {
-            if (quantities[i] < 0 || quantities[i] > 100 || quantities[i] > free[i])
+            if (quantities[i] < 0 || quantities[i] > 100 || quantities[i] > free[i] ||
+                (quantities[i] > 0 && EstimatedUnitAcquisitionCost(i - 1) < 0))
             { Notify("Sale exceeds unreserved stock or supported quantity. Review the draft."); return false; }
             count += quantities[i];
         }
