@@ -16,6 +16,11 @@ class ScriptSettings {
 
 static class Game {internal static bool IsPaused;internal static int GameTime=100;internal static PlayerState Player=new PlayerState();internal class PlayerState {internal Ped Character=new Ped();}}
 class Harness {
+    // Issue37 review lifecycle adapters; existing input/economy assertions retained.
+    void DropPlacementConfirmation(){}
+    void CancelPlacementConfirmation(){}
+    bool _placementRecoveryRequired;
+
     bool TeleportAttemptDue(CustomerOrder o)=>true;
     bool TeleportTargetAvailable(CustomerOrder o,WorkBay b,bool pickup)=>true;
     /*<source:TrySellPart>*/

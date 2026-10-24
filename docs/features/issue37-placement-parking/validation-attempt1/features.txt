@@ -1,0 +1,99 @@
+PASS repair conservative source fallback uses express ceiling for all four buckets
+PASS repair explicit estimates are fixed and zero-safe; negative selects fallback
+PASS repair existing total is a floor and is never stacked twice
+PASS repair high wage raises total to parts plus rounded labor
+PASS repair fractional labor rounds up without negative money
+PASS repair quote rejects NaN infinite time invalid buckets and negative counts
+PASS repair monetary overflow fails instead of wrapping quote
+PASS repair brakes use one dedicated and one universal when appropriate
+PASS repair all four stock classes calculate their actual chosen source
+PASS repair negative and zero inventory cannot create a repair quote
+PASS repair assigned physical reservation protects exact dedicated and fallback buckets
+PASS repair unassigned waiting customer does not reserve inventory
+PASS repair background job reserves universal only even while away
+PASS repair remote reserved quote and its mechanic are not counted twice
+PASS repair handoff snapshot shared by physical and remote reserves once
+PASS repair paid vehicle return reserves no additional inventory
+PASS repair multiple simultaneous customer quotes cannot promise the same stock
+PASS repair specialist wage and wage override enter cost floor without payroll charge
+PASS repair equipment speed discounts affect billable time and labor once
+PASS repair duplicate mechanic assignment does not add expertise twice
+PASS repair insufficient or blocked repair never consumes or pays
+PASS repair customer pays and consumes exactly once with no extra expense
+PASS repair customer completion waits when its reserved bucket is missing
+PASS repair payment guard rejects long overflow before consumption
+PASS repair background route uses cost floor and credits once
+PASS repair remote job quotes use actual shortened duration and pay once
+PASS repair zero active time advances no remote work or payment
+PASS repair legacy promised quote is retained rather than silently increased
+PASS repair new audit schema leaves old invoice writer format independent
+PASS repair quote estimate is immutable after procurement selection or configuration changes
+PASS repair saved paid totals restore without re-crediting canceled runtime jobs
+PASS repair no clock catch-up is introduced in quote computation
+repair 32/32 PASS; GTA testing NOT RUN
+PASS sales one unit from each of four buckets and exact separate revenue
+PASS sales duplicate confirmation in same game frame cannot sell twice
+PASS sales fresh manual action later can sell exactly one more
+PASS sales closed business and no manager still permit explicit active sale
+PASS sales paused game cannot mutate ledger or write
+PASS sales startup hold cannot sell
+PASS sales invalid type never indexes inventory
+PASS sales zero stock or negative legacy count cannot create a sale
+PASS sales dedicated physical repair reservation cannot be sold
+PASS sales mixed dedicated and universal fallback reservations protect both buckets
+PASS sales background repair reserves its last universal unit
+PASS sales remote repair reserves dedicated stock once
+PASS sales excess stock beyond repair reservation remains sellable
+PASS sales unassigned requests do not block available stock
+PASS sales paid returning mechanic does not reserve a second part
+PASS sales sale preserves supplier invoice and procurement/payroll costs
+PASS sales failed durable save rolls back inventory and every sales amount
+PASS sales failed commit writes no sales CSV
+PASS sales successful sale writes one versioned six-column audit row
+PASS sales monetary overflow leaves stock and cash unchanged
+PASS sales explicit zero basis is zero-safe without phantom money
+PASS sales preview is pure and reports unreserved quantity and fixed estimate
+PASS sales supplier and employee skills never alter fixed retail estimate
+PASS sales atomic save creates a new synthetic data file
+PASS sales atomic replacement preserves unknown settings in copied snapshot
+PASS sales writer failure leaves prior save bytes identical and removes own temp
+PASS sales missing snapshot is rejected without inventing a save
+PASS sales commit destination failure cleans only owned temp file
+PASS sales reload of a committed sale ledger cannot repeat it without a new manual action
+sales 29/29 PASS; production transaction and atomic file helper, synthetic data only.
+PASS pallets all partial counts one through nine stay inside bounds without overlap
+PASS pallets full nine-box layout is four-four-one
+PASS pallets one visible parcel is centered and two are symmetrically centered
+PASS pallets offset model origins are correctly centered and bottom-supported
+PASS pallets rotate boxes ninety degrees when necessary to fit four per layer
+PASS pallets narrow pallet safely falls back to three aligned boxes per layer
+PASS pallets unsafe oversized or degenerate model dimensions reject layout
+PASS pallets NaN and infinite bounds cannot create native coordinates
+PASS pallets all four saved cardinal headings rotate local boxes exactly
+PASS pallets arbitrary heading retains distance and saved ground height
+PASS pallets legacy holes compact proven parcels onto the bottom instead of floating
+PASS pallets all nine recorded parcels remain visible and no tenth is created
+PASS pallets rebuild repositions existing owned boxes as a partial layer fills
+PASS pallets completed visual layout performs no repeated model dimension queries
+PASS pallets dirty refresh reuses the same cached model layout
+PASS pallets model cache remains bounded even under changed model identities
+PASS pallets deposit transform preflight has no stock invoice or save side effects
+PASS pallets unready layout blocks transform without consuming stock or billing
+PASS pallets existing delivery count mask and capacity ledger are unchanged by visual layout
+PASS pallets stream out and re-entry reconstruct only provenance-backed boxes
+PASS pallets visual refresh never changes original saved pallet position or heading
+PASS pallets out of range box indexes are rejected including tenth parcel
+PASS pallets failed lower box creation never draws unsupported upper parcels
+PASS pallets new deposit rebuilds centered partial layer after prior retries were exhausted
+PASS pallets new deposit grants one bounded retry budget without per-frame model requests
+pallets 25/25 PASS; production geometry and owned-visual helpers; GTA testing NOT RUN
+/workspace/.cloud-setup/tmp/gh-wages-w58m8gpr/Program.cs(129,39): error CS0103: The name '_editingPoint' does not exist in the current context [/workspace/.cloud-setup/tmp/gh-wages-w58m8gpr/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-wages-w58m8gpr/Program.cs(129,56): error CS0103: The name '_customerDropoff' does not exist in the current context [/workspace/.cloud-setup/tmp/gh-wages-w58m8gpr/Tests.csproj]
+
+The build failed. Fix the build errors and run again.
+Traceback (most recent call last):
+  File "/workspace/GTAV_Mechanic_Shop_Script-issue37/verification/economy/run_feature_tests.py", line 26, in <module>
+    subprocess.run(['dotnet','run','--project',str(p/'Tests.csproj'),'-c','Release'],check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['dotnet', 'run', '--project', '/workspace/.cloud-setup/tmp/gh-wages-w58m8gpr/Tests.csproj', '-c', 'Release']' returned non-zero exit status 1.

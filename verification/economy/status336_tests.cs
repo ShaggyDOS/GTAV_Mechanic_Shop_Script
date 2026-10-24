@@ -23,6 +23,11 @@ static class Game {internal static bool IsPaused;internal static int GameTime=10
 class Model {internal bool IsLoaded=true,IsInCdImage=true,IsPed=true,IsVehicle=true;internal int requests;internal void Request(){requests++;}}
 static class World {internal static bool failVehicle,failPed;internal static int vehicles,peds;internal static Vehicle CreateVehicle(Model m,Vector3 p,float h){vehicles++;return failVehicle?null:new Vehicle{Position=p,Heading=h};}internal static Ped CreatePed(Model m,Vector3 p,float h){peds++;return failPed?null:new Ped{Position=p,Heading=h};}}
 class Harness {
+    // Issue37 review lifecycle adapters; existing input/economy assertions retained.
+    void DropPlacementConfirmation(){}
+    void CancelPlacementConfirmation(){}
+    bool _placementRecoveryRequired;
+
  // Direction-free handoff native adapter; focused parking37 tests exercise actual helpers.
  void BeginDirectionFreeHandoff(CustomerOrder o,Ped driver,bool returning){o.Stage=returning?CustomerStage.MechanicParkingAtDropoff:CustomerStage.ParkingAtDropoff;o.SecondsInStage=0;}
  void UpdateDirectionFreeHandoff(CustomerOrder o,bool returning){}

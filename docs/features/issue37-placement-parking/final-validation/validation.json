@@ -1,0 +1,80 @@
+{
+  "created_utc": "2026-10-24T20:44:33.561321+00:00",
+  "source_sha256": "d9e7eb3ed5327acc6d61d368510a50d6d47df52dfab2caba2acd74e438749236",
+  "source_revision": "cb2704601203991981fef612610f5bef70ba4ee0",
+  "baseline": "c8617aed5cda492214bbbe1907042bcafbfa0dc1",
+  "build": {
+    "status": "PASS",
+    "target": "net48 / C# 7.3",
+    "reference": "ScriptHookVDotNet3 3.6.0",
+    "errors": 0,
+    "warnings": [
+      "CS0169",
+      "CS0649"
+    ]
+  },
+  "behavior": {
+    "corrective": 54,
+    "logger": 9,
+    "migration": 22,
+    "suites": {
+      "repair": 32,
+      "sales": 29,
+      "pallets": 25,
+      "wages": 22,
+      "reload": 41,
+      "supplier": 37,
+      "range": 40,
+      "menu": 13,
+      "cart": 32,
+      "pause": 9,
+      "focus": 8,
+      "finance": 33,
+      "startup": 18,
+      "hardening": 9,
+      "bays": 34,
+      "workflow335": 38,
+      "recovery336": 21,
+      "owner336": 13,
+      "retail336": 15,
+      "status336": 15,
+      "demand336": 13,
+      "inventory340": 30,
+      "procurement340": 12,
+      "receipt340": 32,
+      "manager340": 13,
+      "integration340": 9,
+      "footer36": 15,
+      "routes36": 16,
+      "locator36": 33,
+      "parking37": 18,
+      "focus37": 9,
+      "markers37": 24,
+      "reset37": 37
+    },
+    "navigation": 227,
+    "total": 1057
+  },
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "inventory_structural": {
+    "passed": 13,
+    "total": 13
+  },
+  "preservation": "PASS",
+  "issue36_integration": true,
+  "integration_acceptance": "OWNER YES \u2014 integration accepted; GTA NOT RUN",
+  "gta_testing": "NOT RUN",
+  "enhanced_runtime_compatibility": "NOT VERIFIED",
+  "rc1_runtime_acceptance": "OWNER TESTING ONGOING",
+  "crash_cause": "UNATTRIBUTED",
+  "live_installation_or_owner_data_touched": false,
+  "feature_issue": 37,
+  "feature_branch": "feature/shvdn3-37-placement-parking",
+  "rc1_base": "75e3623f608a05d1a2b59d12c243dbcdfc061358",
+  "rc2_diagnostics_included": false,
+  "owner_implementation_approval": "YES \u2014 pre-approved in chat",
+  "owner_final_acceptance": "PENDING YES/NO"
+}

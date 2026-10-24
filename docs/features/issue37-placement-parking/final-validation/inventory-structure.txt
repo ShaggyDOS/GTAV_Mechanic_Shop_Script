@@ -1,0 +1,14 @@
+[PASS] no-pending-order reports zero incoming
+[PASS] mixed pending supplier lines accepted
+[PASS] legacy pending supplier quantity supported
+[PASS] on-hand excludes nonstocked incoming
+[PASS] reserved = on-hand minus free
+[PASS] category snapshot uses actual existing reservation logic
+[PASS] summary uses actual existing reservation logic
+[PASS] incoming counted only for display
+[PASS] existing selected supplier order logic stays separate
+[PASS] existing inventory view remains on demand
+[PASS] inventory edit does not write saves
+[PASS] inventory edit avoids per-frame natives
+[PASS] incoming is explicitly nonusable in UI
+PASS: 13/13 v0.3.4 Phase A STRUCTURAL checks; compile and GTA tests NOT RUN.

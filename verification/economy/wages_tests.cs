@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 static class Game {internal static bool IsPaused;}
 class Harness {
+ // Point-editor caption context only; payroll assertions and production payment bodies are unchanged.
+ object _editingPoint=new object(),_customerDropoff=new object();
  long _financeRebateIncome,_financeRefundIncome;
     /*<source:MenuPage>*/
     /*<source:GetMenuItems>*/

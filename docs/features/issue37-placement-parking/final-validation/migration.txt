@@ -1,0 +1,33 @@
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(287,84): warning CS0649: Field 'Harness.Point.Heading' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(291,112): warning CS0649: Field 'Harness._showPlacementMarkers' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(291,102): warning CS0649: Field 'Harness._showMenu' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(291,134): warning CS0649: Field 'Harness._autoLotPreview' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(292,62): warning CS0649: Field 'Harness._supplierVisualStage' is never assigned to, and will always have its default value 0 [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(291,94): warning CS0649: Field 'Harness._placed' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(291,150): warning CS0649: Field 'Harness._controllerEnabled' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(295,86): warning CS0649: Field 'Harness._workersPreviouslyInRange' is never assigned to, and will always have its default value false [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(293,13): warning CS0649: Field 'Harness._location' is never assigned to, and will always have its default value [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Program.cs(287,60): warning CS0649: Field 'Harness.Point.Position' is never assigned to, and will always have its default value [/workspace/.cloud-setup/tmp/gh-v3-parity-1mmosjdh/Tests.csproj]
+PASS migration both groups and both enabled/disabled press edges retain R2 semantics
+PASS migration both groups and both enabled/disabled held states retain R2 semantics
+PASS migration inactive input reads at most four bounded native calls
+PASS migration canonical v2 source, v2 DLL and old RC1 source block v3 before business load
+PASS migration source plus compiled v3 duplication is rejected
+PASS migration one v3 source or one v3 assembly is accepted without file writes
+PASS migration unloaded prop returns without creation and retains owned model for retry
+PASS migration delayed model availability creates one frozen grounded prop and releases request
+PASS migration repeated failed requests retain bounded per-model ownership
+PASS migration prop creation exception still releases model
+PASS migration abort releases independent requests and retains failed ownership for retry
+PASS migration office requests both models without waits and respects retry clock
+PASS migration office retries create only one desk/laptop pair and releases both models
+PASS migration distance-gated office makes no model request or entity
+PASS migration startup hold and delay make no progress or visual calls
+PASS migration startup requires valid unpaused player
+PASS migration fresh activation resets clocks after days closed without offline accrual
+PASS migration paused gameplay advances no wages income ETA or remote jobs
+PASS migration active game seconds advance ETA and remote jobs together
+PASS migration large game-clock jump never catches up ETA or remote jobs
+PASS migration long active sample retains R2 two-second cap
+PASS migration ETA persists only after fifteen active seconds or readiness
+Migration 22/22 PASS; GTA testing NOT RUN

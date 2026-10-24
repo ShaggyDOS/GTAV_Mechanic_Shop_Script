@@ -1,0 +1,34 @@
+patching file /workspace/.cloud-setup/tmp/glassheroes-static-8sa9rt6l/source.2.cs
+{
+  "checks": {
+    "lexer_final_state_code": true,
+    "balanced_braces": true,
+    "balanced_parens": true,
+    "balanced_brackets": true,
+    "brace_order": true,
+    "paren_order": true,
+    "bracket_order": true,
+    "no_duplicate_method_names": true,
+    "menu_refs_defined": true,
+    "new_manager_pages_wired": true,
+    "settings_serialized_symmetrically": true,
+    "startup_hold_preserved": true,
+    "no_offline_delivery_eta": true,
+    "no_menu_accounting_side_effect": true,
+    "order_recovery_present": true,
+    "order_cancellation_two_step": true,
+    "warehouse_pallet_grounded": true,
+    "shop_box_grounded": true,
+    "no_full_game_compile_claim": true,
+    "no_duplicate_case_labels": true,
+    "no_change_constructor_game_native_count": true
+  },
+  "passed": 21,
+  "total": 21,
+  "failures": [],
+  "duplicate_cases": [],
+  "added_lines": 4162,
+  "source_sha256": "d9e7eb3ed5327acc6d61d368510a50d6d47df52dfab2caba2acd74e438749236",
+  "in_game_tested": false,
+  "compiled": false
+}

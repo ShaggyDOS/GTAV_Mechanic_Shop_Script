@@ -15,6 +15,9 @@ class ScriptSettings {
 }
 partial class Harness {
  /*<source:MenuPage>*/
+ /*<source:PlacementRequest>*/
+ /*<source:DropPlacementConfirmation>*/
+ PlacementRequest _placementRequest;
  /*<source:WorkBay>*/
  /*<source:PlacementVisual>*/
  /*<source:PlacementDisplayMode>*/
@@ -27,6 +30,7 @@ partial class Harness {
  /*<source:OpenMarkerDisplay>*/
  /*<source:OpenPlacementMenu>*/
  /*<source:FocusedPlacementPoint>*/
+ /*<source:PlacementPointFinite>*/
  /*<source:DrawPlacementVisual>*/
  /*<source:DrawComputedBayPreviews>*/
  /*<source:DrawPlacementMarkers>*/
@@ -35,6 +39,7 @@ partial class Harness {
  /*<source:MarkCustomerHandoffZone>*/
  /*<source:ExecuteMarkerSelection>*/
  static string DataDirectory=Path.Combine(Path.GetTempPath(),"gh-issue37-fixture-"+Guid.NewGuid().ToString("N"));
+ static string FixtureRoot=>DataDirectory+"-outside";
  static string PlacementDisplayFile=>Path.Combine(DataDirectory,"PlacementDisplay.v1.ini");
  static string SaveFile=>Path.Combine(DataDirectory,"Save.ini");
  static string SettingsFile=>Path.Combine(DataDirectory,"Settings.ini");
@@ -57,5 +62,5 @@ partial class Harness {
  static float DistanceSquared(Vector3 a,Vector3 b){float x=a.X-b.X,y=a.Y-b.Y,z=a.Z-b.Z;return x*x+y*y+z*z;}
  static int passed;
  static void Check(bool b,string why){if(!b)throw new Exception(why);}
- static void Test(string name,Action action){try{if(Directory.Exists(DataDirectory))Directory.Delete(DataDirectory,true);ScriptSettings.Fail=false;Game.IsPaused=false;Game.Player.Character=new Ped();World.markers.Clear();GTA.Native.Function.lines=0;action();passed++;Console.WriteLine("PASS "+name);}finally{if(Directory.Exists(DataDirectory))Directory.Delete(DataDirectory,true);}}
+ static void Test(string name,Action action){try{if(Directory.Exists(DataDirectory))Directory.Delete(DataDirectory,true);if(Directory.Exists(FixtureRoot))Directory.Delete(FixtureRoot,true);ScriptSettings.Fail=false;Game.IsPaused=false;Game.Player.Character=new Ped();World.markers.Clear();GTA.Native.Function.lines=0;action();passed++;Console.WriteLine("PASS "+name);}finally{if(Directory.Exists(DataDirectory))Directory.Delete(DataDirectory,true);if(Directory.Exists(FixtureRoot))Directory.Delete(FixtureRoot,true);}}
 }

@@ -4,6 +4,11 @@ namespace GTA { enum Control { OpenModifier, OpenButton, Up, Down, Accept, Back,
 static class Game { internal static bool IsPaused; }
 class Harness
 {
+    // Issue37 review lifecycle adapters; existing input/economy assertions retained.
+    void DropPlacementConfirmation(){}
+    void CancelPlacementConfirmation(){}
+    bool _placementRecoveryRequired;
+
     readonly Dictionary<MenuPage,KeyValuePair<MenuPage,int>> _placementMenuReturns=new Dictionary<MenuPage,KeyValuePair<MenuPage,int>>();
     bool _ownerTransferDeposit;MenuPage _serviceBayParent;int _serviceBaySlot;
     enum Keys { None, Up, Down, Left, Right, Enter, Return=Enter, Escape, Back, F2, E }
