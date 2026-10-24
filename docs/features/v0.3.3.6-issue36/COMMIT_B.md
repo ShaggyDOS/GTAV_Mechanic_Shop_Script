@@ -1,0 +1,9 @@
+# B — v0.3.3.6 Issue #36 mechanic route clarity
+
+GetMenuItems/values/titles/descriptions now distinguish Shared Entry Corridor (spawn and optional reused car walks), five Shared Work Stops (physical coordinates shared by mechanics), per-mechanic To/From Workstation selections, and bay-specific Workstation Approaches. Point-editor labels name the shared physical source explicitly. The same mask row retains USE/SKIP and SET/UNSET, now under the corresponding Shared Work Stop N label.
+
+MechanicRouteHeading identifies direction/mechanic within the existing fitted header. MechanicRouteCounts gives selected/saved/selected-but-unset counts, with DIRECT/CUSTOM status separate from configuration. MechanicRoutePreview is a read-only numbered summary: outbound saved selections ascend then approach/target; return puts approach first and reverses selections. The existing summary action calls these formatters, never BuildRoute (which has warning side effects).
+
+Before: Break -> Job / Job -> Break, vague Work Waypoint labels and enabled-only counts. After: To Workstation / From Workstation, named shared physical stops, honest configured/effective/unset counts and travel-order summaries. No point is auto-enabled, moved, created or saved by browsing. Existing explicit XOR/all/none mask edits and Save logic are unchanged. Route builders, mechanic/valet AI, mode controls, bay assignment and Save/Settings schema remain identical to RC1; only the corresponding notification/editor wording changes.
+
+Targeted routes36 tests: 16/16 PASS, including 6144 mask/physical-point/direction/worker combinations, explicit order examples, no-mutation snapshots and fitted/cached direction headings. Actual net48 Release build: PASS, 0 errors / the two inherited warnings. Existing navigation 180/180 PASS with new pure display dependencies only. Full cumulative B-stage results are stored separately. GTA path/UI testing NOT RUN; no installation or acceptance.
