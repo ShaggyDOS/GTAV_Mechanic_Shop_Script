@@ -1216,8 +1216,9 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.VehicleAutoLotOptions: _menuPage = MenuPage.VehicleDriveOptions; _selection = 3; break;
             case MenuPage.Customers: _menuPage = MenuPage.BusinessManagement; _selection = 1; break;
             case MenuPage.Finances:
-                if (_financesFromExpenses) _financesFromExpenses = false;
-                _menuPage = MenuPage.BusinessManagement; _selection = 3; break;
+                _menuPage = _financesFromExpenses ? MenuPage.BusinessExpenses : MenuPage.BusinessManagement;
+                _selection = _financesFromExpenses ? 8 : 3;
+                _financesFromExpenses = false; break;
             case MenuPage.FinancialOverview: _menuPage = MenuPage.Finances; _selection = 0; break;
             case MenuPage.IncomeSales: _menuPage = MenuPage.Finances; _selection = 1; break;
             case MenuPage.BusinessExpenses: _menuPage = MenuPage.Finances; _selection = 2; break;
@@ -6911,7 +6912,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 !_mechanicOverdueNotified.Contains(slot))
             {
                 _mechanicOverdueNotified.Add(slot);
-                Notify(mechanic.Name + " has overdue wages. Check Business Management > Expenses & Bills.");
+                Notify(mechanic.Name + " has overdue wages. Check Business Management > Finances & Accounting > Expenses & Bills.");
             }
         }
         if (_receptionWagesDue > 0)
@@ -8586,7 +8587,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         else if (_selection == 1) OpenPointEditor(_supplierTruckSpawn, "Mule Truck Road Spawn", -1, true);
         else if (_selection == 2) OpenPointEditor(_supplierTruckPark, "Mule Unloading Parking", -1, true);
         else if (_selection == 3) OpenPointEditor(_supplierHandoff, "Driver Box Handoff", -1, true);
-        else if (_selection == 4) { _menuPage = MenuPage.SupplierPalletStorage; _selection = 0; }
+        else if (_selection == 4) OpenPlacementMenu(MenuPage.SupplierPalletStorage);
         else if (_selection == 5) { _menuPage = MenuPage.SupplierDriverWaypoints; _selection = 0; }
         else if (_selection == 6) ShowStatusNotice("FIXED WHOLESALE WAREHOUSE",
             "X -164.2800 | Y -2676.5900 | Z 6.0141",
