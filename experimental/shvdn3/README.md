@@ -1,3 +1,9 @@
+# v0.3.3.5 — Issue #31 development review — EXPERIMENTAL
+
+Role-based walking routes, Mechanic Break Area label, focused menu Back/customer workflow fixes. [Developer report](../../docs/features/v0.3.3.5-issue31/DEVELOPER_GUIDE.md), [65-page menu audit](../../docs/features/v0.3.3.5-issue31/NAVIGATION_MATRIX.md), [GTA checklist](../../docs/features/v0.3.3.5-issue31/GTA_TEST_CHECKLIST.md). Actual build/tests and Word/PDF included. No release or installation; GTA/Enhanced compatibility pending.
+
+Previous milestone context follows.
+
 # v0.3.3.4 — Issue #29 Service Bay Integration — EXPERIMENTAL
 
 Development branch feature/shvdn3-29-service-bay-integration, from FS1 12fbbf7. OFF now uses one-shot customer vehicle placement to a clear assigned bay, existing mechanic repair/payment, then clear pickup placement. ON driving helpers are unchanged. Service Bay profiles group existing distinct car/work positions; roster-slot assignments and all save/settings keys remain.

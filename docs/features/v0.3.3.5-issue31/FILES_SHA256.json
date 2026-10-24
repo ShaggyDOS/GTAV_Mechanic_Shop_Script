@@ -1,0 +1,33 @@
+{
+  "source_sha256": "741c97730856adad11cd98d985e41d4eb325c9788af5ceebeee965a0eb64125f",
+  "files": {
+    "experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs": "741c97730856adad11cd98d985e41d4eb325c9788af5ceebeee965a0eb64125f",
+    "experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj": "f9edbab65dffee88b2fdebcbe7aec1787b2624a086d9ed49877bfea69c6e0a7e",
+    "docs/features/v0.3.3.5-issue31/CHANGELOG.md": "e28a9d514ac400760170b1e5175246945c5125e4272aa3b828d222b8119612ae",
+    "docs/features/v0.3.3.5-issue31/DEVELOPER_GUIDE.md": "6a202d71d334b5d0e0a90eaa103d9cf64ee7ae714ad74b770237fc28777c31e6",
+    "docs/features/v0.3.3.5-issue31/GTA_TEST_CHECKLIST.md": "1f5fd07d2ba800dd56b7fc982c19f05202889b4fa945112fd2f954650adeadf8",
+    "docs/features/v0.3.3.5-issue31/GlassHeroesBusiness_v0.3.3.5_Issue31_Development_Report.docx": "7eeec99da1487fe9fec4a329a2a99d6b34cbacb5c44f34e6e71c38e84da046b7",
+    "docs/features/v0.3.3.5-issue31/GlassHeroesBusiness_v0.3.3.5_Issue31_Development_Report.pdf": "0c50b86954ffe815c295f14f63acefabaab93cf2339260e4a6f78876ce63fc32",
+    "docs/features/v0.3.3.5-issue31/NAVIGATION_MATRIX.md": "966e999ee9ccf914776c976d57b5f392e38f25e30f58c4044c812035db9bfb5b",
+    "docs/features/v0.3.3.5-issue31/PR_BODY.md": "dee4180d870bf6ba71e4e0386b073bf7dcbb45eba28bc29ed295bf1a7f6a6457",
+    "docs/features/v0.3.3.5-issue31/REVIEW_HANDOFF.md": "382b4171ddbfa793f0f0453218ced43a5e493f9e18bb7f32e8d3364d099da2d3",
+    "docs/features/v0.3.3.5-issue31/SOURCE_SHA256.txt": "415e54f8075b356bcc326ffbe2638d8d2109b4b766a9800f8e5757e69dec83f9",
+    "docs/features/v0.3.3.5-issue31/StaticVerification.json": "75189fbabb94a5d97976a3853cbcf65f77c9cf0a04c4de084590d924a7d82601",
+    "docs/features/v0.3.3.5-issue31/build.txt": "78e42d5cdb8ac4180a7c5277ef4ae4b96e9bfcbb18003a41c1671025d9568541",
+    "docs/features/v0.3.3.5-issue31/commit-a-build.txt": "bca8c0b675493c279c25d013001430597f8ea9b94efae18d7f96646eb34defcd",
+    "docs/features/v0.3.3.5-issue31/commit-a-navigation.txt": "e864c2435dcbd288f75dfa28b0017683617e375b9d5c31944f5cb8d8ca9c579a",
+    "docs/features/v0.3.3.5-issue31/commit-b-navigation.txt": "94a10dee8e6e61c0ff3f3ddaa2861357aef214a83cb691c8f00e961feefecb35",
+    "docs/features/v0.3.3.5-issue31/commit-c-tests.txt": "48d7261006cf291b7228784d149a45a1c2856a8c9e6b52786933f86afb497558",
+    "docs/features/v0.3.3.5-issue31/commit-d-tests.txt": "5948b121b9e781662bdbd4ff56bdc545b095f6f70bb72dc57a2f114bb7191ff7",
+    "docs/features/v0.3.3.5-issue31/feature-tests.txt": "d7cc979020df1085329133f4a07621fcfba9cc7ccf1867f4cf514ff8526b11c5",
+    "docs/features/v0.3.3.5-issue31/inherited-behavior.txt": "64c05ccdd59155294c5a711f15200075a683ef95ce2c3a0f2bbef02f6cf83898",
+    "docs/features/v0.3.3.5-issue31/logger-tests.txt": "c51ea511c0922abd65b2d3b65c247beb0032ef7591e5090f9b8f01fd3fac64ab",
+    "docs/features/v0.3.3.5-issue31/migration-tests.txt": "3a74cfc84c89d3b6b1879fe74ff654af4cfb017811dd11c25dc8e7a476a008d7",
+    "docs/features/v0.3.3.5-issue31/navigation-tests.txt": "b71847072d035c95e5ca202ebd5a4bcd7d2fee3accd593d0b27fc5066dbbb0cc",
+    "docs/features/v0.3.3.5-issue31/preservation.json": "179ce620e68ed9f26ab343ec18eaf2eb3bd66a79374904d4179d2953d183790a",
+    "docs/features/v0.3.3.5-issue31/preservation.txt": "65bb3f5b7ec0c0b05bbb1080e57e386a68a8d95220182fe067a5b6c228fbd56b",
+    "docs/features/v0.3.3.5-issue31/source.diff": "61ba2101e68ff3077b0b26d775a9c73fde61874362e1a2d6a075206308cdf869",
+    "docs/features/v0.3.3.5-issue31/static-tests.txt": "203cb578df24f96eb4132d3f90397c0d66c6a6af1aad9c9b1ab25f633926480d",
+    "docs/features/v0.3.3.5-issue31/validation.json": "c0da8c1adab6f8981fcf94317575b624f8c6c9a7fc7e5cfa775f4e874e069e8e"
+  }
+}

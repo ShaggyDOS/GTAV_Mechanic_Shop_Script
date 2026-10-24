@@ -1,0 +1,37 @@
+PASS reload second intake while first repairing with separate staffed bay
+PASS reload configured staffed capacity 1
+PASS reload configured staffed capacity 2
+PASS reload configured staffed capacity 3
+PASS reload free worker without configured work/car bay cannot admit next car
+PASS reload same saved physical target cannot admit another car
+PASS reload intake and paid pickup priorities hold dropoff
+PASS reload staged FIFO keeps original entities and counts one reservation once
+PASS reload lost older slot cannot let a replacement jump ahead of surviving third
+PASS reload spawn failure cooldown prevents pending-request native churn
+PASS reload staged creation failure retains request and shares bounded retry
+PASS reload ped creation failure cleans owned car and preserves request
+PASS reload pause, boot and reload cannot trigger spawn or intake
+PASS reload destroyed staged car retains request without dispatch
+PASS reload failed pending quote save retains fixed promise and no vehicle transfer
+PASS reload reserved parts block additional customer intake
+PASS reload ON overlapping saved bays cannot double assign
+PASS reload paid OFF bay remains reserved until vehicle returns
+PASS reload no ghost repair settlement mode/fault 0/0
+PASS reload no ghost repair settlement mode/fault 0/1
+PASS reload no ghost repair settlement mode/fault 0/2
+PASS reload no ghost repair settlement mode/fault 1/0
+PASS reload no ghost repair settlement mode/fault 1/1
+PASS reload no ghost repair settlement mode/fault 1/2
+PASS reload missing customer prevents completion credit
+PASS reload unpaid cancel releases reservation and retains exact quote
+PASS reload paid cancellation never restores unpaid quote or pays twice
+PASS reload failed settlement retries atomically with one invoice
+PASS reload staged driving timeout cancels owned entities but keeps request
+PASS reload reload during accepted service parks quote not stale transfer
+PASS reload pause and closed shop cannot progress repairs
+PASS reload physical transition timeout cancels once without teleport MechanicEnteringVehicle
+PASS reload physical transition timeout cancels once without teleport MechanicEnteringForReturn
+PASS reload physical transition timeout cancels once without teleport MechanicExitingAtBay
+PASS reload physical transition timeout cancels once without teleport MechanicExitingAtDropoff
+PASS reload paid physical pickup wait cannot rerun payment or teleport
+workflow335 36/36 PASS; production intake/staging/spawn with deterministic entities and temporary-file quote adapters; GTA NOT RUN
