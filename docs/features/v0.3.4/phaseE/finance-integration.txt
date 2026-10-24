@@ -1,0 +1,10 @@
+PASS integration340 supplier receipt accrues liability with no cash or revenue
+PASS integration340 5000 remote sales and receipt without outflows retain full cash increase
+PASS integration340 same remote sales then actual supplier payment reconcile closing cash
+PASS integration340 outcome and finance journal roundtrip together
+PASS integration340 failed receipt never publishes candidate journal or terminal outcome
+PASS integration340 prepaid receipt does not generate another liability or payment
+PASS integration340 unpaid cancel creates neither income nor cash movement
+PASS integration340 prepaid refund is cash inflow separate from business sales
+PASS integration340 actual journal file includes matching outcome and preserves unrelated data
+integration340 9/9 PASS; production finance observation, receipt and journal/outcome serializers, GTA NOT RUN.

@@ -48,7 +48,7 @@ class Harness {
 
     int[] _partsSaleCart=new int[4];
     /*<source:AdjustPartsSaleCart>*/
-    void AdjustSupplierCart(int direction){}
+    /*<source:AdjustSupplierCart>*/
 
     static void Log(string c, Exception e) { throw new Exception(c,e); }
     void Key(Keys k) { OnKeyDown(null,new KeyEventArgs(k)); }
@@ -108,7 +108,7 @@ void Configure(WorkBay p){p.Position=capture;p.Heading=facing;p.IsSet=true;Save(
 void ConfigureVehicleParkingBay(int slot){Configure(_vehicleParkingBays[slot]);}void ConfigureWorkBay(int slot){Configure(_bays[slot]);}
 void ConfigureRoutePoint(WorkBay p,string label){Configure(p);}void ConfigureArrivalPoint(WorkBay p,string label){Configure(p);}
 void ExecuteSelection(){switch(_menuPage){
-/*<cases:ExecuteSelection:BusinessManagement,PlacementSettings,DeliveryPlacements,PlacementWalkingRoutes,MechanicPlacementRoutes,ReceptionPlacementRoutes,ManagerPlacementRoutes,CustomerPlacementRoutes,SupplierPlacementRoutes,Customers,Employees,EmployeeStatus,OwnerTransferReview,PartsSales,PartsSaleReview,EmployeeSettings,EmployeePlacements,CustomerPlacements,CustomerWalkingRoutes,ServiceBayProfile,MechanicBays,ServiceVehicleBays,ArrivalWaypoints,ReceptionWaypoints,ManagerWaypoints,ServiceWaypoints,BayApproaches,PointEditor,PlacementMarkers,SupplierPalletStorage,SupplierDriverWaypoints,MechanicRouteRoster,MechanicRouteDirection,MechanicRoutePoints>*/
+/*<cases:ExecuteSelection:BuildSupplierOrder,SupplierOrderReview,BusinessManagement,PlacementSettings,DeliveryPlacements,PlacementWalkingRoutes,MechanicPlacementRoutes,ReceptionPlacementRoutes,ManagerPlacementRoutes,CustomerPlacementRoutes,SupplierPlacementRoutes,Customers,Employees,EmployeeStatus,OwnerTransferReview,PartsSales,PartsSaleReview,EmployeeSettings,EmployeePlacements,CustomerPlacements,CustomerWalkingRoutes,ServiceBayProfile,MechanicBays,ServiceVehicleBays,ArrivalWaypoints,ReceptionWaypoints,ManagerWaypoints,ServiceWaypoints,BayApproaches,PointEditor,PlacementMarkers,SupplierPalletStorage,SupplierDriverWaypoints,MechanicRouteRoster,MechanicRouteDirection,MechanicRoutePoints>*/
 default:throw new Exception("unadapted dispatch "+_menuPage);}}
 
 int _selection,_serviceBaySlot,_editingStaffSlot,_editorReturnSelection,_routeConfigSlot;
@@ -143,6 +143,19 @@ void RefreshEmployeeStatus(){}void ExecuteEmployeeStatusSelection(){if(_selectio
 string PartsSalePreview(int kind)=>"10 FREE | $100";
 string FinancePeriodLabel()=>"CURRENT SHIFT";
 string EditingPointPurpose()=>"Edit existing point.";string MenuKeyLabel()=>"F2";
+int[] _supplierCart=new int[4],_supplierReviewLines;int _selectedSupplier=1,_supplierReviewSupplier,_deliveryKind=-2,_reorderThreshold=3,_parts;int[] _specialStock=new int[3];long _supplierReviewCost;int supplierOrders;
+/*<source:SupplierLineTotal>*/
+/*<source:SupplierCartCost>*/
+/*<source:PrepareSupplierOrderReview>*/
+/*<source:ShowSupplierPurchaseReview>*/
+/*<source:ExecuteSupplierOrderReview>*/
+/*<source:ExecuteSupplierCart>*/
+/*<source:TryBuyStoragePallet>*/
+long InventoryPurchaseCost(int kind,int quantity)=>quantity*100L;
+string SupplierName(int supplier)=>new[]{"Wholesale","Local","Express"}[supplier];
+int SupplierDeliverySeconds(int supplier)=>new[]{180,75,20}[supplier];
+bool CanStoreShipment(int quantity)=>quantity>0&&quantity<=100;
+bool TryPlaceSupplierOrder(int[] lines){if(Game.IsPaused||_deliveryKind!=-2)return false;supplierOrders++;_deliveryKind=-1;return true;}
 static int passed;static void Check(bool ok,string msg){if(!ok)throw new Exception(msg);}static void Test(string n,Action a){a();passed++;Console.WriteLine("PASS "+n);}
 static void Main(){
 Test("one finance path; expenses and equipment retained",()=>{var h=new Harness{_menuPage=MenuPage.BusinessManagement};Check(!h.GetMenuItems().Contains("Expenses & Bills >"),"duplicate");h._selection=3;h.ExecuteManagementSelection();Check(h._menuPage==MenuPage.Finances,"finance");h._selection=2;h.ExecuteFinancesSelection();Check(h._menuPage==MenuPage.BusinessExpenses,"expenses");h._selection=7;h.ExecuteBusinessExpensesSelection();Check(h._menuPage==MenuPage.EquipmentManagement,"equipment");h.NavigateBack();Check(h._menuPage==MenuPage.BusinessExpenses&&h._selection==7,"equipment back");h.NavigateBack();Check(h._menuPage==MenuPage.Finances&&h._selection==2,"expenses back");h.NavigateBack();Check(h._menuPage==MenuPage.BusinessManagement&&h._selection==3,"finance back");Check(h.transfers+h.shop+h.payments+h.saves==0,"browse side effects");});
@@ -191,6 +204,9 @@ for(int staff=0;staff<3;staff++)for(int direction=0;direction<2;direction++)for(
 Test("management has no cash or controller menu shortcuts",()=>{var h=new Harness{_menuPage=MenuPage.BusinessManagement};Check(h.GetMenuItems().All(x=>!x.Contains("Deposit")&&!x.Contains("Withdraw")&&!x.Contains("Controller")),"obsolete entry");});
 Test("owner transfer review does not move cash before confirmation",()=>{var h=new Harness{_menuPage=MenuPage.OwnerTransfers};h._selection=0;h.ExecuteFinancePageForTest();Check(h._ownerTransferAmount==10000&&h.transfers==0,"amount selector");h._selection=1;h.ExecuteFinancePageForTest();Check(h._menuPage==MenuPage.OwnerTransferReview&&h.transfers==0,"premature transfer");h._selection=2;h.ExecuteSelection();Check(h._menuPage==MenuPage.OwnerTransfers&&h._selection==1&&h.transfers==0,"review back");});
 Test("retail keyboard/controller quantity adjustments edit draft only",()=>{var h=new Harness{_menuPage=MenuPage.PartsSales,_selection=0,_showMenu=true};h.Key(Keys.Right);h.Up(Keys.Right);Check(h._partsSaleCart[0]==1&&h.payments==0,"key quantity");h=new Harness{_menuPage=MenuPage.PartsSales,_selection=1,_showMenu=true};h.Pad(GTA.Control.FrontendRight);Check(h._partsSaleCart[1]==1&&h.payments==0,"controller quantity");h._selection=4;h.ExecuteSelection();Check(h._menuPage==MenuPage.PartsSaleReview&&h.payments==0,"retail review");h.NavigateBack();Check(h._menuPage==MenuPage.PartsSales&&h._selection==4,"retail Back");});
+Test("supplier keyboard review and Back retain cart without placing",()=>{var h=new Harness{_menuPage=MenuPage.BuildSupplierOrder,_selection=6,_showMenu=true};h._supplierCart[0]=2;h.Key(Keys.Enter);h.Up(Keys.Enter);Check(h._menuPage==MenuPage.SupplierOrderReview&&h.supplierOrders==0,"review");h.Key(Keys.Back);h.Up(Keys.Back);Check(h._menuPage==MenuPage.BuildSupplierOrder&&h._selection==6&&h._supplierCart[0]==2&&h.supplierOrders==0,"Back");});
+Test("supplier controller confirmation submits once and preserves navigation",()=>{var h=new Harness{_menuPage=MenuPage.BuildSupplierOrder,_selection=0,_showMenu=true};h.Pad(GTA.Control.FrontendRight);Check(h._supplierCart[0]==1&&h.supplierOrders==0,"quantity");h._selection=6;h.Pad(GTA.Control.Accept);Check(h._menuPage==MenuPage.SupplierOrderReview&&h.supplierOrders==0,"review");h._selection=1;h.Pad(GTA.Control.Accept);Check(h._menuPage==MenuPage.ActiveDeliveries&&h.supplierOrders==1,"confirm");h.NavigateBack();Check(h._menuPage==MenuPage.InventoryManagement&&h._selection==2,"delivery Back");});
+Test("supplier review native pause performs no purchase",()=>{var h=new Harness{_menuPage=MenuPage.SupplierOrderReview,_selection=1,_showMenu=true};h.Key(Keys.Escape);Check(!h._showMenu&&h.supplierOrders==0,"pause");});
 Test("native pause hides placement overlay without writes",()=>{var h=Hub();h.Key(Keys.Escape);Check(!h._showMenu&&h.saves+h.payments==0,"Esc");h._showMenu=true;h.edges.Add(GTA.Control.FrontendPause);Check(h.YieldMenuToNativePause()&&!h._showMenu,"Start");});
 }
 }

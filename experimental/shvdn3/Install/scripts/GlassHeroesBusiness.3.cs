@@ -1,4 +1,4 @@
-// Glass Heroes Business Manager - v0.3.3.6 SHVDN3 SERVICE RECOVERY + BUSINESS POLISH / EXPERIMENTAL
+// Glass Heroes Business Manager - v0.3.4 SHVDN3 INVENTORY + PROCUREMENT DEV / EXPERIMENTAL
 // Idle crash cause unproven; diagnostics are not a stack-overflow fix.
 // Original project. Does not reference or modify Auto Work or its data.
 // GTA V Story Mode only | ScriptHookVDotNet3 3.6.0 / .NET Framework 4.8
@@ -545,7 +545,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             RequireExclusiveBusinessInstallation(File.Exists);
             Directory.CreateDirectory(DataDirectory);
-            Log("BOOT v0.3.3.6 SHVDN3 SERVICE RECOVERY + BUSINESS POLISH EXPERIMENTAL / constructor entered", null);
+            Log("BOOT v0.3.4 SHVDN3 INVENTORY + PROCUREMENT DEV EXPERIMENTAL / constructor entered", null);
             _configuration = ScriptSettings.Load(SettingsFile);
             _diagnosticHoldGameplayTick = _configuration.GetValue("Diagnostics", "HoldGameplayTick", false);
             _diagnosticDelaySeconds = Math.Max(10, Math.Min(180,
