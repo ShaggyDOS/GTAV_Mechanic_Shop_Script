@@ -45,7 +45,7 @@ Coordinates remain distinct. CUSTOM editing does not silently switch AUTO LOT of
 
 ## C. Compatibility and limitations
 
-Zero Save.ini or Settings.ini key additions/removals/renames. Existing mechanic bay, VehicleParkingBay1..3, headings, assignments, finances, inventory, equipment and supplier values load/write unchanged. New wait/one-shot fields are session-only. Existing RepairPromisesV1 preserves unpaid accepted quote identity, pricing and remaining work across reload; fresh entities receive fresh transitions after check-in. No teleport/native handle is serialized. Existing abort cleanup remains unchanged.
+Zero Save.ini or Settings.ini key additions/removals/renames. Existing WorkBay1..3, VehicleParkingBay1..3, headings, assignments, finances, inventory, equipment and supplier values load/write unchanged. New wait/one-shot fields are session-only. Existing RepairPromisesV1 preserves unpaid accepted quote identity, pricing and remaining work across reload; fresh entities receive fresh transitions after check-in. No teleport/native handle is serialized. Existing abort cleanup remains unchanged.
 
 Paid customer/departure vehicles remain transient as before; this issue does not introduce persisted completed-car storage after abort/reload. A paid blocked pickup must not pay again, but abort/reload may clean up that session's already-paid vehicle as in the parent. Test this limitation explicitly in disposable QA. Missing entities can trigger the existing cancel/resume path rather than restoring a particular physical car.
 
