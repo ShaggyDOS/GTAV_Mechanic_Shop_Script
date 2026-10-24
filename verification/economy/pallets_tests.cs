@@ -6,7 +6,7 @@ struct Vector3 { internal float X,Y,Z;internal static Vector3 Zero=>new Vector3(
 struct Model {internal int Hash;internal static int queries;internal static Vector3 boxMin=new Vector3(-.2f,-.2f,0),boxMax=new Vector3(.2f,.2f,.35f);internal Model(string name){Hash=1;}internal Model(int hash){Hash=hash;}internal (Vector3,Vector3) Dimensions { get {queries++;return Hash==1?(boxMin,boxMax):(new Vector3(-.6f,-.5f,0),new Vector3(.6f,.5f,.2f));} } }
 class Prop { internal bool alive=true;internal Vector3 Position;internal int Handle;internal float Heading;internal Model Model=new Model(2);internal bool Exists()=>alive;internal void Delete(){alive=false;} }
 class Ped { internal Vector3 Position;internal bool Exists()=>true; }
-class PlayerState { internal Ped Character=new Ped(); } static class Game { internal static PlayerState Player=new PlayerState(); }
+class PlayerState { internal Ped Character=new Ped(); } static class Game { internal static bool IsPaused; internal static PlayerState Player=new PlayerState(); }
 class Harness {
     class WorkBay { internal bool IsSet=true;internal Vector3 Position;internal float Heading; }
     /*<source:CompatiblePackageVisualMask>*/
@@ -26,6 +26,10 @@ class Harness {
     bool RequestVisualModel(Model model){modelRequests++;return !failModels;}
     void ReleaseVisualModel(Model model){modelReleases++;}
     int modelRequests,modelReleases;
+    /*<source:SupplierOutcome>*/
+    SupplierOutcome _lastSupplierOutcome;long _financeActiveMs;int _deliverySupplier=1;
+    /*<source:CaptureSupplierOutcome>*/
+    /*<source:SupplierLineTotal>*/
     /*<source:CommitSupplierDelivery>*/
     /*<source:ApplySupplierInventory>*/
     int[] _deliveryLines;
@@ -38,7 +42,7 @@ class Harness {
     WorkBay point=new WorkBay{Position=new Vector3(0,0,6)};
     Prop _supplierCrate=new Prop(),_wholesaleWarehousePallet=new Prop();
     int pallets,boxes,saves;bool failModels,failFirstBox;
-    int _deliveryKind=0,_deliveryQuantity=5,_parts,_completedSupplierDeliveries;
+    int _deliveryKind=0,_deliveryQuantity=5,_parts;long _completedSupplierDeliveries;
     int[] _specialStock=new int[3];long _deliveryCost=450,_supplierInvoicesDue,_deliveryDueUtcTicks;
     bool _deliveryPrepaid,_wholesaleCargoLoaded,_wholesaleCargoUnloaded;
     double _deliveryRemainingGameSeconds,_supplierTimerSaveSeconds;

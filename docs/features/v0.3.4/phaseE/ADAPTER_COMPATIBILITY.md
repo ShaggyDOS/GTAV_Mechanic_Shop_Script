@@ -1,0 +1,5 @@
+# Inherited adapter compatibility
+
+The complete run exposed two older pallet test adapters that extract the supplier receipt but did not yet declare its new outcome dependencies or pass the mandatory identity. They now extract the real SupplierOutcome/CaptureSupplierOutcome/SupplierLineTotal, declare the existing paused/supplier/active-time fields, and pass the actual fixture identity. Their original stock/provenance/duplicate-receipt assertions and counts are retained. Production navigation tests similarly include the real new pallet-purchase helper and supplier review paths. No production assertion was relaxed to make these adapters compile.
+
+After these test-only dependency corrections, the complete validator passed 862 behavior checks (including 184 navigation), 21 static checks, 13 inventory structural checks and preservation. Final successful outputs are under ../final-validation. Earlier orchestration failures are test-development history, not Release build failures; genuine full-source builds remained successful.
