@@ -1,0 +1,10 @@
+{
+  "code_commit": "e4860da7accc386ab4b0d36c9c85b0cc4c55f7b7",
+  "source_sha256": "7ba7b6021eead8f1e972b92a382a477045df083ea76b0148b84124e8725ef2ca",
+  "diff_reproduced": true,
+  "word_pdf_text_verified": true,
+  "pdf_pages": 7,
+  "visual_qa": "NOT RUN",
+  "gta_testing": "NOT RUN",
+  "owner_acceptance": "PENDING YES/NO"
+}
