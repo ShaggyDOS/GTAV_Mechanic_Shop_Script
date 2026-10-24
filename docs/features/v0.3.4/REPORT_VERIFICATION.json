@@ -1,0 +1,10 @@
+{
+  "pdf_pages": 8,
+  "word_paragraphs": 149,
+  "word_tables": 2,
+  "content_extraction_checks": "PASS",
+  "first_pdf_page_visual_review": "PASS",
+  "source_sha256": "fbc8f7f963bbffa3e31c097bf34250fef5807d28dd5de3b7d75463146beb3251",
+  "navigation_menu_pages": 68,
+  "gta_testing": "NOT RUN"
+}

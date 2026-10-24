@@ -1,0 +1,65 @@
+{
+  "created_utc": "2026-10-24T07:13:58.574892+00:00",
+  "source_sha256": "fbc8f7f963bbffa3e31c097bf34250fef5807d28dd5de3b7d75463146beb3251",
+  "source_revision": "1ded7ce2d0c35a7d9ddf9b0b652c37fbb7e53573",
+  "baseline": "c8617aed5cda492214bbbe1907042bcafbfa0dc1",
+  "build": {
+    "status": "PASS",
+    "target": "net48 / C# 7.3",
+    "reference": "ScriptHookVDotNet3 3.6.0",
+    "errors": 0,
+    "warnings": [
+      "CS0169",
+      "CS0649"
+    ]
+  },
+  "behavior": {
+    "corrective": 54,
+    "logger": 9,
+    "migration": 22,
+    "suites": {
+      "repair": 32,
+      "sales": 29,
+      "pallets": 25,
+      "wages": 22,
+      "reload": 41,
+      "supplier": 37,
+      "range": 40,
+      "menu": 13,
+      "cart": 32,
+      "pause": 9,
+      "focus": 8,
+      "finance": 33,
+      "startup": 18,
+      "hardening": 9,
+      "bays": 34,
+      "workflow335": 38,
+      "recovery336": 21,
+      "owner336": 13,
+      "retail336": 15,
+      "status336": 15,
+      "demand336": 13,
+      "inventory340": 30,
+      "procurement340": 12,
+      "receipt340": 32,
+      "manager340": 13,
+      "integration340": 9
+    },
+    "navigation": 184,
+    "total": 862
+  },
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "inventory_structural": {
+    "passed": 13,
+    "total": 13
+  },
+  "preservation": "PASS",
+  "gta_testing": "NOT RUN",
+  "enhanced_runtime_compatibility": "NOT VERIFIED",
+  "rc1_runtime_acceptance": "OWNER TESTING ONGOING",
+  "crash_cause": "UNATTRIBUTED",
+  "live_installation_or_owner_data_touched": false
+}

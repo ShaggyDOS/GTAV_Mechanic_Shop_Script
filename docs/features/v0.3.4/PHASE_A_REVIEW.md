@@ -1,3 +1,5 @@
+> Historical initial-slice report. For current build/tests and completed scope see DEVELOPER_GUIDE.md and final-validation/validation.json. Its original NOT RUN statements describe the state when authored, not the current branch.
+
 # Glass Heroes v0.3.4 — Implementation Review (Phase A)
 
 **Status:** Source change committed, NOT compiled or GTA-tested. No RC package or merge.

@@ -1,0 +1,15 @@
+{
+  "inputs": [
+    "DEVELOPER_GUIDE.md",
+    "CHANGELOG.md",
+    "GTA_TEST_CHECKLIST.md",
+    "phaseE/V035_INVENTORY_READINESS.md"
+  ],
+  "outputs": [
+    "GlassHeroesBusiness_v0.3.4_Development_Report.docx",
+    "GlassHeroesBusiness_v0.3.4_Development_Report.pdf"
+  ],
+  "mode": "development documentation only",
+  "pdf_fonts": "embedded DejaVu Sans",
+  "gta_testing": "NOT RUN"
+}
