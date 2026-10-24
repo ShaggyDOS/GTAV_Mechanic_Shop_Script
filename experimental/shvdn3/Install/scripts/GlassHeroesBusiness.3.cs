@@ -1907,7 +1907,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         string[] items = GetMenuItems();
         string label = items[Math.Max(0, Math.Min(_selection, items.Length - 1))];
-        if (label.StartsWith("< Back", StringComparison.Ordinal)) return "Return to the previous menu and restore its selected row; no transaction or placement change.";
+        if (label.StartsWith("< Back", StringComparison.Ordinal)) return "Return to the previous menu and its selected row; nothing is changed.";
         switch (_menuPage)
         {
             case MenuPage.BusinessManagement: return FooterRow(
@@ -2250,20 +2250,82 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
     }
 
-    private static string[] WrapMenuDescription(string input, int maxChars)
+    private static readonly Dictionary<string, string[]> _menuDescriptionCache = new Dictionary<string, string[]>();
+    private static string _lastDescriptionInput;
+    private static int _lastDescriptionWidth;
+    private static string[] _lastDescriptionLines;
+
+    private static int FittingMenuWords(string[] words, int start, float width, string suffix, Func<string, float> measure)
     {
-        if (String.IsNullOrEmpty(input)) return new string[] { "", "" };
-        if (input.Length <= maxChars) return new string[] { input, "" };
-        int split = input.LastIndexOf(' ', Math.Min(maxChars, input.Length - 1));
-        if (split < maxChars / 2) split = maxChars;
-        string first = input.Substring(0, split).Trim();
-        string remainder = input.Substring(split).Trim();
-        if (remainder.Length > maxChars)
+        int low = 0, high = words.Length - start;
+        while (low < high)
         {
-            int lastSpace = remainder.LastIndexOf(' ', Math.Min(maxChars - 3, remainder.Length - 1));
-            remainder = remainder.Substring(0, lastSpace > 20 ? lastSpace : maxChars - 3).Trim() + "...";
+            int mid = (low + high + 1) / 2;
+            if (measure(string.Join(" ", words, start, mid) + suffix) <= width) low = mid;
+            else high = mid - 1;
         }
-        return new string[] { first, remainder };
+        return low;
+    }
+
+    private static string[] LayoutMenuDescription(string input, float width, Func<string, float> measure)
+    {
+        if (string.IsNullOrWhiteSpace(input) || width <= 0) return new string[] { "", "" };
+        bool truncated = input.Length > 1024;
+        if (truncated)
+        {
+            int boundary = input.LastIndexOf(' ', 1023);
+            input = boundary > 0 ? input.Substring(0, boundary) : "";
+        }
+        // GTA's embedded newline token must not create an unmeasured third line.
+        string[] words = input.Replace("~n~", " ").Replace("~N~", " ").Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length > 96) { Array.Resize(ref words, 96); truncated = true; }
+        if (words.Length == 0) return new string[] { truncated && measure("...") <= width ? "..." : "", "" };
+        string text = string.Join(" ", words);
+        if (!truncated && measure(text) <= width) return new string[] { text, "" };
+        int first = FittingMenuWords(words, 0, width, "", measure);
+        if (first == 0) return new string[] { measure("...") <= width ? "..." : "", "" };
+        int remaining = words.Length - first;
+        if (truncated || measure(string.Join(" ", words, first, remaining)) > width)
+        {
+            int second = FittingMenuWords(words, first, width, "...", measure);
+            return new string[] { string.Join(" ", words, 0, first),
+                measure("...") <= width ? string.Join(" ", words, first, second) + "..." : "" };
+        }
+        // Both lines can fit. Binary-search a natural split near equal rendered widths.
+        int best = first, low = 1, high = first;
+        float difference = float.MaxValue;
+        while (low <= high)
+        {
+            int split = (low + high) / 2;
+            float a = measure(string.Join(" ", words, 0, split));
+            float b = measure(string.Join(" ", words, split, words.Length - split));
+            if (a <= width && b <= width && Math.Abs(a - b) < difference)
+            { best = split; difference = Math.Abs(a - b); }
+            if (b > width || a < b) low = split + 1;
+            else high = split - 1;
+        }
+        return new string[] { string.Join(" ", words, 0, best), string.Join(" ", words, best, words.Length - best) };
+    }
+
+    private static string[] WrapMenuDescription(string input, int contentWidth)
+    {
+        input = input ?? "";
+        // Draw() and GetStringWidth share SHVDN's 1280x720 reference space.
+        // Physical 720p/1080p changes need no native resolution query or new layout.
+        string keyInput = input.Length > 1024 ? input.Substring(0, 1024) + "|TRUNCATED" : input;
+        if (_lastDescriptionLines != null && _lastDescriptionWidth == contentWidth && _lastDescriptionInput == keyInput)
+            return _lastDescriptionLines;
+        string key = "1280x720|ChaletLondon|0.30|" + MenuScale + "|" + contentWidth + "|" + keyInput;
+        string[] lines;
+        if (!_menuDescriptionCache.TryGetValue(key, out lines))
+        {
+            lines = LayoutMenuDescription(input, contentWidth * MenuScale,
+                text => GTA.UI.TextElement.GetStringWidth(text, GTA.UI.Font.ChaletLondon, 0.30f * MenuScale));
+            if (_menuDescriptionCache.Count >= 128) _menuDescriptionCache.Clear();
+            _menuDescriptionCache[key] = lines;
+        }
+        _lastDescriptionInput = keyInput; _lastDescriptionWidth = contentWidth; _lastDescriptionLines = lines;
+        return lines;
     }
 
     private void DrawMenu()
@@ -2325,9 +2387,10 @@ public class GlassHeroesBusinessV3Experimental : Script
         Panel(left, footerTop, width, 2, yellow);
         // Two-line descriptions allow the highlighted action to be explained fully.
         string hint = GetSelectedDescription();
-        string[] wrapped = WrapMenuDescription(hint, 53);
-        Label(wrapped[0], left + 13, footerTop + 10, 0.30f, subtle);
-        if (wrapped[1].Length > 0) Label(wrapped[1], left + 13, footerTop + 40, 0.30f, subtle);
+        string[] wrapped = WrapMenuDescription(hint, width - 26);
+        int descriptionY = footerTop + (wrapped[1].Length == 0 ? 28 : 16);
+        Label(wrapped[0], left + 13, descriptionY, 0.30f, subtle);
+        if (wrapped[1].Length > 0) Label(wrapped[1], left + 13, descriptionY + 23, 0.30f, subtle);
         Label("ENTER SELECT  BACKSPACE BACK  ESC PAUSE", left + 13,
             footerTop + 86, 0.27f, white);
         Label((_selection + 1) + "/" + menuCount, left + 367, footerTop + 86, 0.27f, white);
