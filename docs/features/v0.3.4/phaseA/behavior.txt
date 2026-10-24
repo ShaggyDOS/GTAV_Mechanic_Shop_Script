@@ -1,0 +1,31 @@
+PASS inventory340 no pending order ignores stale quantities and mixed lines
+PASS inventory340 legacy single-item incoming in each existing bucket
+PASS inventory340 mixed incoming is copied and cannot mutate pending order
+PASS inventory340 malformed arrays do not invent legacy incoming
+PASS inventory340 negative legacy quantities remain untouched and display zero
+PASS inventory340 negative mixed display quantities never mutate order
+PASS inventory340 invalid legacy kind is display-safe
+PASS inventory340 negative stored values are display-only clamped
+PASS inventory340 unassigned unaccepted job reserves nothing
+PASS inventory340 physical dedicated and universal promises shown separately
+PASS inventory340 paid physical job no longer reserves inventory
+PASS inventory340 remote reservation is visible
+PASS inventory340 autonomous worker reservation is visible
+PASS inventory340 restored accepted promise is visible without a physical worker
+PASS inventory340 shared promise is counted only once across sources
+PASS inventory340 incoming never becomes usable or changes reservations
+PASS inventory340 reorder advice subtracts free and incoming but not reserved
+PASS inventory340 universal target retains existing minimum five
+PASS inventory340 incoming covers target without negative recommendation
+PASS inventory340 fully reserved on-hand stock can trigger advice
+PASS inventory340 only owned placed pallets contribute units and parcel slots
+PASS inventory340 earned parcel slots can be full with units available
+PASS inventory340 unit headroom and incoming forecast are independent
+PASS inventory340 over-capacity legacy stock is preserved
+PASS inventory340 wide display sums cannot wrap negative
+PASS inventory340 category detail validates selection and labels estimates
+PASS inventory340 all four detail views show their own stock values
+PASS inventory340 browsing repeatedly never saves or mutates cash stock invoice or timer
+PASS inventory340 paused snapshots are read-only
+PASS inventory340 low-stock advice is not a purchase or a second reservation
+inventory340 30/30 PASS; production inventory and reservation projections, native rendering NOT RUN.

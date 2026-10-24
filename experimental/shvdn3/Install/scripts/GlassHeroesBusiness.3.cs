@@ -1922,7 +1922,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.InventoryManagement: return FooterRow("View available inventory and capacity; pending cargo is not stock on hand.",
                 "Build a mixed-category order with one supplier, ETA and invoice after stocking.", "Inspect saved pending order identity and its current delivery stage.",
                 "Choose retail quantities, review unchanged cost-estimate prices, then confirm an atomic sale.", "Inspect owned pallet capacity, explicitly buy or place pallets.", "Supplier physical setup, wholesale vehicle registration and recovery controls.", "Return to management.");
-            case MenuPage.InventoryOverview: return FooterRow("View universal on-hand, reserved, free and incoming units on demand; nothing is sold or purchased.", "Inspect filter stock and the units still promised to repairs.", "Inspect brake stock; incoming parts are not yet available for work.", "Inspect diagnostic supplies and their estimated unit cost.", "Inspect a four-category stock snapshot and shared storage capacity.", "Read low-stock advice without ordering.", "Change reorder advice threshold; no automatic purchase.", "Return to inventory.");
+            case MenuPage.InventoryOverview: return FooterRow("View universal on-hand, reserved, free and incoming units on demand; nothing is sold or purchased.", "Inspect filter stock and the units still promised to repairs.", "Inspect brake stock; incoming parts are not yet available for work.", "Inspect diagnostic supplies and their estimated unit cost.", "Inspect all four stocks, shared unit capacity and remaining parcel slots.", "Read low-stock advice without ordering.", "Change reorder advice threshold; no automatic purchase.", "Return to inventory.");
             case MenuPage.BuildSupplierOrder:
                 if (_selection < 4) return "Set " + label + " quantity with Left/Right or Enter; this edits only the unsent supplier cart.";
                 return FooterRow("", "", "", "", "Choose one supplier for the entire cart; wholesale stays player-only.", "Preview full cost and capacity before placing anything.", "Submit this whole purchase order after funds/capacity checks.", "Fill unsent quantities using low-stock advice; does not submit.", "Clear the unsent supplier draft only.", "Return to inventory.");
@@ -9228,24 +9228,54 @@ public class GlassHeroesBusinessV3Experimental : Script
     private string InventoryAvailabilityRow(int index, int[] onHand, int[] free, int[] incoming)
     {
         int reserved = Math.Max(0, onHand[index] - free[index]);
-        return DeliveryItemName(index - 1) + ": " + onHand[index] + " owned, " +
-            reserved + " reserved, " + free[index] + " free, " + incoming[index] + " incoming";
+        string[] names = { "Universal", "Filters", "Brakes", "Diagnostics" };
+        return names[index] + ": " + onHand[index] + " / " + reserved + " / " +
+            free[index] + " / " + incoming[index];
+    }
+
+    private string[] InventoryStorageRows(int[] onHand, int[] incoming)
+    {
+        // Read-only, bounded by the four existing pallets. Use wide display sums
+        // without changing legacy stock or the authoritative receipt checks.
+        long used = 0, ordered = 0;
+        for (int i = 0; i < 4; i++) { used += onHand[i]; ordered += incoming[i]; }
+        int capacity = TotalStorageCapacity(), slots = 0, slotCapacity = 0;
+        for (int i = 0; i < Math.Min(MaxStoragePallets, _ownedStoragePallets); i++)
+            if (StoragePalletPoint(i).IsSet)
+            {
+                slotCapacity += CratesPerPallet;
+                slots += Math.Max(0, CratesPerPallet - Math.Max(0, _storedDeliveryCrates[i]));
+            }
+        long free = Math.Max(0L, capacity - used);
+        string hold = used > capacity ? "Stored stock exceeds capacity; preserved." :
+            ordered > free ? "Incoming exceeds free unit capacity." :
+            slots == 0 ? "No parcel slot: receipt must wait." : "Incoming is forecast only, not usable stock.";
+        return new string[] {
+            "Shared units " + used + "/" + capacity + " | free " + free,
+            "Incoming " + ordered + " | projected free " + Math.Max(0L, free - ordered),
+            "Free parcel slots " + slots + "/" + slotCapacity + "; earned boxes stay.", hold };
+    }
+
+    private int InventoryReorderSuggestion(int index, int[] free, int[] incoming)
+    {
+        // Preserve existing targets (universal at least five). Advice only:
+        // never edit the supplier cart or promise incoming parts to new work.
+        int target = index == 0 ? Math.Max(5, _reorderThreshold) : _reorderThreshold;
+        return (int)Math.Max(0L, (long)target - free[index] - incoming[index]);
     }
 
     private void ShowInventoryCategoryDetail(int index)
     {
         if (index < 0 || index >= 4) return;
-        // Costly reservation traversal is deliberately ON DEMAND, never per Tick.
         int[] onHand = OnHandInventory();
         int[] free = UnreservedRepairStock(null);
         int[] incoming = PendingSupplierInventory();
-        ShowStatusNotice(DeliveryItemName(index - 1).ToUpperInvariant() + " - INVENTORY",
-            InventoryAvailabilityRow(index, onHand, free, incoming),
-            "Incoming means ordered, not received; it cannot be consumed or sold.",
-            "Estimated acquisition $" + EstimatedUnitAcquisitionCost(index - 1).ToString("N0") +
-                " / unit; historical lot cost not recorded.",
-            "Storage " + StoredPartsTotal() + "/" + TotalStorageCapacity() +
-                " | supplier invoices due $" + _supplierInvoicesDue.ToString("N0"));
+        ShowStatusNotice(DeliveryItemName(index - 1).ToUpperInvariant(),
+            "On hand " + onHand[index] + " | reserved " + Math.Max(0, onHand[index] - free[index]),
+            "Free " + free[index] + " | incoming " + incoming[index],
+            "Estimated cost $" + EstimatedUnitAcquisitionCost(index - 1).ToString("N0") + "/unit",
+            "Reorder advice " + InventoryReorderSuggestion(index, free, incoming) + " units; no purchase.",
+            "Incoming cannot be consumed or sold. Storage Capacity shows shared limits.");
     }
 
     private void ShowDetailedInventory()
@@ -9253,14 +9283,12 @@ public class GlassHeroesBusinessV3Experimental : Script
         int[] onHand = OnHandInventory();
         int[] free = UnreservedRepairStock(null);
         int[] incoming = PendingSupplierInventory();
-        ShowStatusNotice("PARTS INVENTORY - ON DEMAND",
+        ShowStatusNotice("ON HAND / RESERVED / FREE / INCOMING",
             InventoryAvailabilityRow(0, onHand, free, incoming),
             InventoryAvailabilityRow(1, onHand, free, incoming),
             InventoryAvailabilityRow(2, onHand, free, incoming),
             InventoryAvailabilityRow(3, onHand, free, incoming));
-        Notify("Shared storage " + StoredPartsTotal() + "/" + TotalStorageCapacity() +
-            " | supplier invoices due $" + _supplierInvoicesDue.ToString("N0") +
-            " | parts sold " + _partsSalesUnitsSold + ". Incoming stock is NOT available.");
+        ShowStatusNotice("SHARED STORAGE", InventoryStorageRows(onHand, incoming));
     }
 
     private int[] _deliveryLines; // Null means an unchanged legacy single-item order.
@@ -9423,9 +9451,13 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void ShowReorderAdvice()
     {
-        ShowStatusNotice("REORDER ADVICE", "Universal " + _parts + " | Filters " + _specialStock[0],
-            "Brake kits " + _specialStock[1] + " | Diagnostics " + _specialStock[2],
-            "Low stock threshold " + _reorderThreshold, "Pending cargo is excluded from stock on hand.");
+        int[] free = UnreservedRepairStock(null);
+        int[] incoming = PendingSupplierInventory();
+        ShowStatusNotice("REORDER ADVICE - NOT A PURCHASE",
+            "Universal " + InventoryReorderSuggestion(0, free, incoming) + " | Filters " + InventoryReorderSuggestion(1, free, incoming),
+            "Brakes " + InventoryReorderSuggestion(2, free, incoming) + " | Diagnostics " + InventoryReorderSuggestion(3, free, incoming),
+            "Target " + _reorderThreshold + " (Universal at least 5). Free + incoming counted.",
+            "Reserved stock excluded. Confirm capacity in Build Supplier Order.");
     }
 
     private void ExecuteInventorySelection()
