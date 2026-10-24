@@ -17,6 +17,11 @@ class Harness {
  /*<source:ApplySupplierInventory>*/
  /*<source:LoadSupplierOrderLines>*/
  /*<source:WriteSupplierOrderLines>*/
+ /*<source:SupplierOutcome>*/
+ SupplierOutcome _lastSupplierOutcome;long _financeActiveMs=12345;
+ /*<source:CaptureSupplierOutcome>*/
+ /*<source:LoadSupplierOutcome>*/
+ /*<source:WriteSupplierOutcome>*/
  /*<source:CommitSupplierDelivery>*/
  /*<source:TryCancelSupplierOrder>*/
  /*<source:AdjustSupplierCart>*/
@@ -38,11 +43,11 @@ class Harness {
  string SupplierName(int s)=>"supplier";string DeliveryItemName(int k)=>"parts";void Notify(string s){}
  void SetSupplierPickupWaypoint(){}
  void DeleteSupplierVisuals(){cleanups++;}
- bool Save(){saves++;if(saveFail)return false;disk=new ScriptSettings();WriteSupplierOrderLines(disk);return true;}
+ bool Save(){saves++;if(saveFail)return false;disk=new ScriptSettings();WriteSupplierOrderLines(disk);WriteSupplierOutcome(disk);return true;}
  static int passed;static void Check(bool b,string n){if(!b)throw new Exception(n);}
  static void Test(string n,Action a){Game.IsPaused=false;a();passed++;Console.WriteLine("PASS procurement340 "+n);}
  static Harness Pending(int[] lines=null){var h=new Harness();Check(h.TryPlaceSupplierOrder(lines??new[]{2,3,4,1}),"place fixture");return h;}
- Harness Reload(){var h=new Harness{_deliveryKind=_deliveryKind,_deliveryQuantity=_deliveryQuantity,_deliverySupplier=_deliverySupplier,_deliveryCost=_deliveryCost,_deliveryDueUtcTicks=_deliveryDueUtcTicks,_deliveryRemainingGameSeconds=_deliveryRemainingGameSeconds};h.LoadSupplierOrderLines(disk.Copy());return h;}
+ Harness Reload(){var h=new Harness{_deliveryKind=_deliveryKind,_deliveryQuantity=_deliveryQuantity,_deliverySupplier=_deliverySupplier,_deliveryCost=_deliveryCost,_deliveryDueUtcTicks=_deliveryDueUtcTicks,_deliveryRemainingGameSeconds=_deliveryRemainingGameSeconds};h.LoadSupplierOrderLines(disk.Copy());h.LoadSupplierOutcome(disk.Copy());return h;}
  static void Reject(Action a){try{a();throw new Exception("accepted malformed cart");}catch(InvalidDataException){}}
 
  int[] _supplierReviewLines;int _supplierReviewSupplier;long _supplierReviewCost;

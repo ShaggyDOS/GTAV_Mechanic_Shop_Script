@@ -13,7 +13,7 @@ static class Game {internal static bool IsPaused;internal static PlayerState Pla
 class Harness {
  class WorkBay {internal bool IsSet=true;internal Vector3 Position;internal float Heading;}
  const int CratesPerPallet=9,CarefulDrivingStyle=0;
- int _deliveryKind=-1,_deliveryQuantity=5,_deliverySupplier=1,_managerTier=0,_ownedStoragePallets=2,_parts=20,_completedSupplierDeliveries=3;
+ int _deliveryKind=-1,_deliveryQuantity=5,_deliverySupplier=1,_managerTier=0,_ownedStoragePallets=2,_parts=20;long _completedSupplierDeliveries=3;
  int[] _specialStock={10,20,30},_storedDeliveryCrates={1,0},_deliveredPackageMasks={1,0};
  int _storageVisualAttempts=5;DateTime _nextStorageVisualAttempt=DateTime.MaxValue;long _supplierVisualOrderTicks=123;
  long _deliveryDueUtcTicks=123,_deliveryCost=450,_supplierInvoicesDue=200;
@@ -34,6 +34,12 @@ class Harness {
  /*<source:SupplierPlayerAway>*/
  /*<source:SupplierPhysicalRange>*/
  /*<source:AvailableSupplierPallet>*/
+ /*<source:SupplierOutcome>*/
+ SupplierOutcome _lastSupplierOutcome;long _financeActiveMs=12345;
+ /*<source:CaptureSupplierOutcome>*/
+ /*<source:SupplierLineTotal>*/
+ bool _supplierExitRetryIssued;
+ /*<source:UpdateSupplierDriverExit>*/
  /*<source:CommitSupplierDelivery>*/
     /*<source:ApplySupplierInventory>*/
     int[] _deliveryLines;
@@ -78,8 +84,8 @@ class Harness {
  Test("near receipt requires actual pallet arrival",()=>{var h=Near();h._supplierDriver.Position=new Vector3(20,0,0);h.ProcessSupplierDelivery(N);Check(h.saves==0&&h.cleanups==1,"arrival");});
  Test("near receipt durable before visual cleanup",()=>{var h=Near();h.ProcessSupplierDelivery(N);Check(h.durable!=null&&h._parts==25&&h.departures==1&&h.refreshes==1,"near receipt");});
  foreach(int fault in new[]{0,1,2,3}) Test("near missing support/entity/layout "+fault,()=>{var h=Near();if(fault==0)h._storagePalletProps[0]=null;if(fault==1)h._supplierCrate=null;if(fault==2)h.layout=false;if(fault==3)h._supplierDriver.IsDead=true;h.ProcessSupplierDelivery(N);Check(h.saves==0&&h._deliveryKind==-1,"fault");});
- Test("save failure restores every accounting field then retries once",()=>{var h=new Harness{saveFails=true,_wholesaleCargoLoaded=true,_wholesaleCargoUnloaded=true};string before=h.State();Check(!h.CommitSupplierDelivery(0)&&before==h.State(),"rollback");h.saveFails=false;Check(h.CommitSupplierDelivery(0)&&!h.CommitSupplierDelivery(0)&&h.saves==2,"retry");});
- Test("prepaid obeys capacity and never bills twice",()=>{var h=new Harness{_deliveryPrepaid=true,capacity=false};Check(!h.CommitSupplierDelivery(0),"capacity prepaid");h.capacity=true;Check(h.CommitSupplierDelivery(0)&&h._supplierInvoicesDue==200,"prepaid invoice");});
+ Test("save failure restores every accounting field then retries once",()=>{var h=new Harness{saveFails=true,_wholesaleCargoLoaded=true,_wholesaleCargoUnloaded=true};string before=h.State();Check(!h.CommitSupplierDelivery(0,h._deliveryDueUtcTicks)&&before==h.State(),"rollback");h.saveFails=false;Check(h.CommitSupplierDelivery(0,h._deliveryDueUtcTicks)&&!h.CommitSupplierDelivery(0,h._deliveryDueUtcTicks)&&h.saves==2,"retry");});
+ Test("prepaid obeys capacity and never bills twice",()=>{var h=new Harness{_deliveryPrepaid=true,capacity=false};Check(!h.CommitSupplierDelivery(0,h._deliveryDueUtcTicks),"capacity prepaid");h.capacity=true;Check(h.CommitSupplierDelivery(0,h._deliveryDueUtcTicks)&&h._supplierInvoicesDue==200,"prepaid invoice");});
  Test("stream out during route becomes single virtual receipt",()=>{var h=new Harness{_supplierVisualStage=3,_managerSupplierPallet=0};h.ProcessSupplierDelivery(N);Check(h.cleanups==1&&h.saves==1&&h.spawns==0,"stream out");});
  Test("manager removed during route retains order",()=>{var h=Near();h._managerTier=-1;h.ProcessSupplierDelivery(N);Check(h.saves==0&&h._deliveryKind==-1&&h.cleanups==1,"removed");});
  Test("blocked route defers without teleport or stock",()=>{var h=Near();h._supplierVisualStage=3;h._supplierWalkingNodes.Add(new Vector3(20,0,0));h.ProcessSupplierDelivery(N);Check(h.cleanups==1&&h._supplierDriver.Position.X==0&&h.saves==0,"blocked");});
@@ -87,8 +93,8 @@ class Harness {
  Test("spawn attempts rate limited",()=>{var h=Near();h._supplierVisualStage=0;h._managerSupplierPallet=-1;h.ProcessSupplierDelivery(N);h.ProcessSupplierDelivery(N.AddSeconds(1));Check(h.spawns==1,"spawn budget");});
  Test("no manager direct handoff remains",()=>{var h=Near();h._managerTier=-1;h._managerSupplierPallet=-1;h._supplierDirectToPlayer=true;h.ProcessSupplierDelivery(N);Check(h.playerApproaches==1&&h.saves==0,"manual");});
  Test("near incomplete physical configuration retains order",()=>{var h=Near();h._physicalMuleDeliveries=false;h.ProcessSupplierDelivery(N);Check(h.saves==0,"near fallback");});
- Test("invalid pallet commit cannot mutate",()=>{var h=new Harness();string b=h.State();Check(!h.CommitSupplierDelivery(3)&&b==h.State(),"invalid slot");});
- Test("special stock receipt",()=>{var h=new Harness{_deliveryKind=2};Check(h.CommitSupplierDelivery(0)&&h._specialStock[2]==35&&h._parts==20,"special");});
+ Test("invalid pallet commit cannot mutate",()=>{var h=new Harness();string b=h.State();Check(!h.CommitSupplierDelivery(3,h._deliveryDueUtcTicks)&&b==h.State(),"invalid slot");});
+ Test("special stock receipt",()=>{var h=new Harness{_deliveryKind=2};Check(h.CommitSupplierDelivery(0,h._deliveryDueUtcTicks)&&h._specialStock[2]==35&&h._parts==20,"special");});
  Test("atomic disk snapshot preserves original on writer failure",()=>{string d=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString());Directory.CreateDirectory(d);try{string p=Path.Combine(d,"save.ini");File.WriteAllText(p,"old");Check(!TryCommitBusinessSave(p,t=>{File.WriteAllText(t,"partial");throw new IOException("fault");},e=>{}),"failure");Check(File.ReadAllText(p)=="old"&&Directory.GetFiles(d).Length==1,"original snapshot");}finally{Directory.Delete(d,true);}});
  Test("atomic disk snapshot commits receipt and cleared order together",()=>{string d=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString());Directory.CreateDirectory(d);try{string p=Path.Combine(d,"save.ini");File.WriteAllText(p,"pending");Check(TryCommitBusinessSave(p,t=>File.WriteAllText(t,"stock=25;invoice=650;order=-2;unknown=preserved"),e=>{}),"commit");Check(File.ReadAllText(p).Contains("order=-2")&&Directory.GetFiles(d).Length==1,"reloaded snapshot");}finally{Directory.Delete(d,true);}});
  Test("failure before first snapshot leaves no invented receipt",()=>{string d=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString());try{string p=Path.Combine(d,"save.ini");Check(!TryCommitBusinessSave(p,t=>{throw new IOException("fault");},e=>{})&&!File.Exists(p),"new snapshot failure");}finally{Directory.Delete(d,true);}});

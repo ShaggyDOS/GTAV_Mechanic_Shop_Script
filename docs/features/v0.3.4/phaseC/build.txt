@@ -1,0 +1,14 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+/workspace/GlassHeroes-340/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs(157,21): warning CS0649: Field 'GlassHeroesBusinessV3Experimental.CustomerOrder.VehicleTaskIssued' is never assigned to, and will always have its default value false [/workspace/GlassHeroes-340/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+/workspace/GlassHeroes-340/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs(399,17): warning CS0169: The field 'GlassHeroesBusinessV3Experimental._selectedInvoiceMechanicSlot' is never used [/workspace/GlassHeroes-340/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+  GlassHeroesBusiness.V3.Experimental -> /tmp/gh340C/bin/GlassHeroesBusiness.V3.Experimental.dll
+
+Build succeeded.
+
+/workspace/GlassHeroes-340/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs(157,21): warning CS0649: Field 'GlassHeroesBusinessV3Experimental.CustomerOrder.VehicleTaskIssued' is never assigned to, and will always have its default value false [/workspace/GlassHeroes-340/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+/workspace/GlassHeroes-340/experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs(399,17): warning CS0169: The field 'GlassHeroesBusinessV3Experimental._selectedInvoiceMechanicSlot' is never used [/workspace/GlassHeroes-340/experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj]
+    2 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.16

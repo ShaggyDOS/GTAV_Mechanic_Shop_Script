@@ -1,0 +1,117 @@
+PASS supplier away receipt supplier 1
+PASS supplier away receipt supplier 2
+PASS supplier ETA pending
+PASS supplier manager eligibility gate 0
+PASS supplier manager eligibility gate 1
+PASS supplier manager eligibility gate 2
+PASS supplier pause prevents ready receipt and route work
+PASS supplier wholesale remains player only prepaid False
+PASS supplier wholesale remains player only prepaid True
+PASS supplier wholesale missing pickup does not auto-credit
+PASS supplier aggregate capacity blocks then recovers
+PASS supplier full and missing pallets block
+PASS supplier player carrying is never stolen
+PASS supplier near receipt requires actual pallet arrival
+PASS supplier near receipt durable before visual cleanup
+PASS supplier near missing support/entity/layout 0
+PASS supplier near missing support/entity/layout 1
+PASS supplier near missing support/entity/layout 2
+PASS supplier near missing support/entity/layout 3
+PASS supplier save failure restores every accounting field then retries once
+PASS supplier prepaid obeys capacity and never bills twice
+PASS supplier stream out during route becomes single virtual receipt
+PASS supplier manager removed during route retains order
+PASS supplier blocked route defers without teleport or stock
+PASS supplier failed save virtual retries are rate limited
+PASS supplier spawn attempts rate limited
+PASS supplier no manager direct handoff remains
+PASS supplier near incomplete physical configuration retains order
+PASS supplier invalid pallet commit cannot mutate
+PASS supplier special stock receipt
+PASS supplier atomic disk snapshot preserves original on writer failure
+PASS supplier atomic disk snapshot commits receipt and cleared order together
+PASS supplier failure before first snapshot leaves no invented receipt
+PASS supplier manager driver route ends at selected pallet and ignores player chase
+PASS supplier manager route capacity loss retains order
+PASS supplier stale visual order identity cannot settle another order
+PASS supplier virtual receipt grants a fresh finite visual budget
+supplier 37/37 PASS; production receipt/policy/route methods with deterministic world stubs; GTA testing NOT RUN
+PASS cart four items one order ETA and consolidated price
+PASS cart submission copies draft without aliasing
+PASS cart one receipt applies all inventory once
+PASS cart pending cart roundtrip no offline catchup
+PASS cart completed snapshot clears additive payload
+PASS cart capacity blocks whole cart at ordering and receipt
+PASS cart failed receipt restores four buckets and original cart
+PASS cart failed placement retains no pending order and no savings drift
+PASS cart second order cannot replace pending
+PASS cart wholesale assignment remains required
+PASS cart legacy pending single item loads unchanged
+PASS cart legacy pending survives additive empty payload
+PASS cart cancel clears all lines without stock or invoice
+PASS cart failed cancel restores cart and prepaid refund exactly
+PASS cart pause blocks placement and cancellation
+PASS cart reject invalid/empty cart null
+PASS cart reject invalid/empty cart 1
+PASS cart reject invalid/empty cart -1,0,0,0
+PASS cart reject invalid/empty cart 101,0,0,0
+PASS cart reject invalid/empty cart 50,50,1,0
+PASS cart reject invalid/empty cart 2147483647,0,0,0
+PASS cart reject invalid/empty cart 0,0,0,0
+PASS cart malformed/mismatching payload Version
+PASS cart malformed/mismatching payload Line0
+PASS cart malformed/mismatching payload Line1
+PASS cart malformed/mismatching payload OrderTicks
+PASS cart malformed/mismatching payload Cost
+PASS cart malformed/mismatching payload Supplier
+PASS cart legacy downgrade cleared order cannot replay stale lines
+PASS cart quantity edits clamp and never write stock or disk
+PASS cart roundtrip preserves unknown keys
+PASS cart stale physical identity rejects whole mixed receipt
+cart 32/32 PASS; production submission/serialization/receipt/cancel against deterministic INI adapter; GTA NOT RUN
+PASS procurement340 review copies all four lines without saving or receiving
+PASS procurement340 empty and oversized cart cannot enter review
+PASS procurement340 pending order cannot be overwritten by review
+PASS procurement340 Back retains draft and posts no invoice
+PASS procurement340 explicit confirmation places single mixed order only
+PASS procurement340 changed supplier requires fresh review
+PASS procurement340 changed current quote requires fresh review
+PASS procurement340 capacity revalidated after review
+PASS procurement340 wholesale assigned vehicle required at final confirmation
+PASS procurement340 failed save retains reviewed order and original draft
+PASS procurement340 paused confirmation cannot create order
+PASS procurement340 details explicitly distinguish invoice from cash
+procurement340 12/12 PASS; production review/confirmation, native input/rendering NOT RUN.
+PASS receipt340 mixed receipt stores identity lines invoice and active timestamp
+PASS receipt340 last outcome survives completion and reload without recredit
+PASS receipt340 new pending order does not erase last completed outcome
+PASS receipt340 old callback A cannot receive newly placed B
+PASS receipt340 zero legacy identity remains guarded rather than wildcard
+PASS receipt340 failed receipt preserves previous terminal record
+PASS receipt340 actual atomic writer failure preserves file stock liabilities and pending lines
+PASS receipt340 after durable replacement an interruption cannot repeat receipt
+PASS receipt340 failed cancellation restores prior receipt history and prepaid cash
+PASS receipt340 unpaid cancellation records identity without refund or invoice
+PASS receipt340 prepaid cancellation refunds once and roundtrips its record
+PASS receipt340 prepaid receipt creates no second supplier liability
+PASS receipt340 missing history leaves legacy pending stock and order intact
+PASS receipt340 malformed optional history does not discard valid pending order
+PASS receipt340 receipt rejects paused or invalid mixed accounting
+PASS receipt340 invoice overflow leaves whole mixed order pending
+PASS receipt340 refund overflow preserves prepaid order
+PASS receipt340 capacity arithmetic cannot wrap for extreme stored counters
+PASS receipt340 full historical slots block despite free unit space
+PASS receipt340 wholesale cannot commit before player unload checkpoint
+PASS receipt340 failed wholesale loading restores player ownership and flags
+PASS receipt340 successful load unload checkpoints never post inventory or invoices
+PASS receipt340 failed unload preserves vehicle cargo ownership
+PASS receipt340 stale wholesale cargo identity cannot change ownership
+PASS receipt340 failed pallet purchase restores cash spend and owned count
+PASS receipt340 successful pallet purchase pays once within cap
+PASS receipt340 blocked exit submits one normal and one fallback task then defers
+PASS receipt340 confirmed exit advances once caller leaves exit stage
+PASS receipt340 outcome writer preserves unrelated existing keys
+PASS receipt340 negative receipt cost cannot mutate or produce malformed history
+PASS receipt340 failed recovery retains cargo checkpoint and original pending identity
+PASS receipt340 successful recovery resets cargo only without new order or liability
+receipt340 32/32 PASS; production guarded receipt, outcome, cargo checkpoints and atomic file helper, GTA NOT RUN.
