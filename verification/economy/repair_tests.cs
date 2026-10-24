@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 struct Vector3 {internal float X,Y,Z;}
 class Ped {internal bool alive=true;internal Vector3 Position;internal bool Exists()=>alive;}
-class Vehicle {internal Vector3 Position;}
+class Vehicle {internal Vector3 Position;internal bool IsDead;internal bool Exists()=>true;}
 class Blip {}
 class ScriptSettings {
  internal Dictionary<string,long> values=new Dictionary<string,long>();
@@ -12,6 +12,8 @@ class ScriptSettings {
 }
 static class Game {internal static bool IsPaused;internal static int GameTime=100;internal static PlayerState Player=new PlayerState();internal class PlayerState {internal Ped Character=new Ped();}}
 class Harness {
+    bool TeleportAttemptDue(CustomerOrder o)=>true;
+    bool TeleportTargetAvailable(CustomerOrder o,WorkBay b,bool pickup)=>true;
     /*<source:SavedRepairPromise>*/
     /*<source:RepairQuoteHasStock>*/
     /*<source:TrySettleRepair>*/
@@ -55,7 +57,7 @@ class Harness {
     int[] _specialStock={10,10,10},_specialUnitCosts={90,160,125};
     readonly long[] _unitCostEstimates=new long[4];ScriptSettings _configuration=new ScriptSettings();
     int _partCost=100,_jobRevenue=500,_wagePerEmployee=250,_jobSeconds=120,_betweenJobsSeconds=10,_wagePeriodSeconds=300;
-    bool _toolSetPurchased,_diagnosticScannerPurchased,_automaticLotMode,_vehicleTransfersEnabled,_remoteMode,_clockedIn=true,_placed,_customerServiceEnabled,_receptionistHired;
+    bool _toolSetPurchased,_diagnosticScannerPurchased,_automaticLotMode,_vehicleTransfersEnabled=true,_remoteMode,_clockedIn=true,_placed,_customerServiceEnabled,_receptionistHired;
     int _managerTier=-1,_spawnDistance=65,_receptionistWage,_receptionistWageBonus,_overheadPeriodSeconds=600,_rentAndUtilities,_payrollDueSeconds=300;
     long _receptionWagesDue,_managerWagesDue,_rentUtilitiesDue;double _receptionWageUnpaidSeconds,_managerWageAgeSeconds,_rentUnpaidSeconds,_payrollClock,_overheadClock;
     bool _receptionOverdueNotified;HashSet<int> _mechanicOverdueNotified=new HashSet<int>();Vector3 _location;

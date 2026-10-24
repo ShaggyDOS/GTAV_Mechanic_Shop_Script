@@ -1,0 +1,34 @@
+{
+  "profile": "bays",
+  "parent": "12fbbf7",
+  "parent_source_sha256": "0b14e8f9402007912b8316ecfc345a7ff9043ff866072d0429f00cc6ee76109b",
+  "candidate_source_sha256": "8d6ddb213fe69105bbbbc10b6d7746f36c8851912bebfcd5ebd002e643532d6b",
+  "changed_methods": [
+    "AssignCustomerMechanic",
+    "ExecuteSelection",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetSelectedDescription",
+    "GlassHeroesBusinessV3Experimental",
+    "IntakeInProgress",
+    "NavigateBack",
+    "NeedsDropoffSoon",
+    "ProcessOneCustomerRepair",
+    "UpdateOneCustomerOrder"
+  ],
+  "new_helpers": [
+    "ExecuteServiceBayProfile",
+    "OpenServiceBayProfile",
+    "ProcessTeleportOrder",
+    "TeleportAttemptDue",
+    "TeleportTargetAvailable"
+  ],
+  "unchanged_methods": 347,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": true,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}
+PASS scope and preservation checks

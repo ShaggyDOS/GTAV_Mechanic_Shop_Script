@@ -1,0 +1,18 @@
+{
+  "reviewed_heads": {
+    "origin/main": "e13e977744f373a218d02215a193878bf95db252",
+    "origin/qa/v0.3.3.1-final-review-r2": "7693ed2167405f475dd4d36392c5df1f257fe178",
+    "origin/experimental/shvdn3-economy-pallets-wages-review": "aad2dff55866efc2a17dadcfbf4738b6931b6992",
+    "origin/feature/shvdn3-financial-transparency": "0fefcf8798da54b53fae505f488d3b3d41fae985",
+    "origin/investigation/shvdn3-financial-startup-audit": "12fbbf74b08ee7fdd68460e2559fa601ae8833cf",
+    "investigation/shvdn3-waypoint-editor-diagnostics": "7deff80c897433287fc7a8ab4018e75502615d14",
+    "feature/shvdn3-finance-waypoint-delivery-integration": "a5c70f204b27fbce3bdc933550702e2261b92128",
+    "integration/shvdn3-v0.3.3.4": "12fbbf74b08ee7fdd68460e2559fa601ae8833cf"
+  },
+  "selected_base": "12fbbf74b08ee7fdd68460e2559fa601ae8833cf",
+  "feature": "feature/shvdn3-29-service-bay-integration",
+  "main_is_old_v2_scaffold": true,
+  "held_work_preserved_not_included": true,
+  "live_data_accessed": false,
+  "new_release_published": false
+}

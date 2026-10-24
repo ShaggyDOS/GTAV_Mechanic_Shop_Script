@@ -1,0 +1,11 @@
+{
+  "source_sha256": "8d6ddb213fe69105bbbbc10b6d7746f36c8851912bebfcd5ebd002e643532d6b",
+  "source_diff_reproduced": true,
+  "word_pdf_verified": true,
+  "behavior_tests": 467,
+  "static_checks": 21,
+  "gta_testing": "NOT RUN",
+  "release_published": false,
+  "new_release_zip": false,
+  "live_installation_modified": false
+}

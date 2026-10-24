@@ -52,6 +52,10 @@ for pth,sha in profile['protected_v2'].items():assert hashlib.sha256((repo/pth).
 for bad in ['ForensicProbe','ForensicsEnabled','WholesalePackageBlip','GlassHeroesV3Probe']:assert bad not in current,bad
 assert 'private const string SaveFile = @"scripts\\GlassHeroesBusiness\\Save.ini";' in current
 assert 'private const string SettingsFile = @"scripts\\GlassHeroesBusiness\\Settings.ini";' in current
+if args.profile == 'bays':
+ assert after['UpdateOneCustomerOrder'].replace('        if (order.VehicleTeleport && ProcessTeleportOrder(order)) return;\n','').replace(' ||\n            ((!_vehicleTransfersEnabled || order.VehicleTeleport) && order.Vehicle.IsDead)', '') == before['UpdateOneCustomerOrder'], 'Physical customer switch changed'
+ for name in ['Save','LoadFinanceBook','WriteFinanceBook','TryCommitBusinessSave','TrySettleRepair','OnTick','OnAborted','TryInitializeGameplayModels','ProcessRemoteOperations','ProcessEconomy','BeginVehicleWalk','ProgressVehicleWalk','BeginEnterVehicle','BeginVehicleDrive','StartValetDeparture','UpdateVehicleApproach','UpdateVehicleParking','ReleaseCustomerForPickup','ComputeAutomaticBay']:
+  assert before[name] == after[name], name+' changed in Issue29'
 if args.profile == 'finance':
  restored = after['OnTick'].replace('            _financeActiveMs = checked(_financeActiveMs + (long)Math.Round(activeGameSeconds * 1000d));\n', '').replace('if (_clockedIn && activeGameSeconds > 0) ProcessEconomy(activeGameSeconds);','if (_clockedIn && seconds > 0) ProcessEconomy(seconds);')
  assert restored == before['OnTick'], 'Out-of-scope tick/clock change'

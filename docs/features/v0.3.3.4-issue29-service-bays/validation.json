@@ -1,0 +1,95 @@
+{
+  "label": "issue29-service-bays",
+  "profile": "bays",
+  "created_utc": "2026-10-24T00:46:40.056586+00:00",
+  "reference": "ScriptHookVDotNet3 3.6.0",
+  "target": "net48 / C# 7.3",
+  "sdk": "8.0.426",
+  "build": "PASS",
+  "build_errors": 0,
+  "warnings": [
+    "CS0169",
+    "CS0649"
+  ],
+  "inherited_behavior": {
+    "corrective": 54,
+    "logger": 9,
+    "migration": 22,
+    "total": 85
+  },
+  "feature_suites": {
+    "repair": {
+      "passed": 32,
+      "total": 32
+    },
+    "sales": {
+      "passed": 29,
+      "total": 29
+    },
+    "pallets": {
+      "passed": 25,
+      "total": 25
+    },
+    "wages": {
+      "passed": 22,
+      "total": 22
+    },
+    "reload": {
+      "passed": 41,
+      "total": 41
+    },
+    "supplier": {
+      "passed": 37,
+      "total": 37
+    },
+    "range": {
+      "passed": 40,
+      "total": 40
+    },
+    "menu": {
+      "passed": 13,
+      "total": 13
+    },
+    "cart": {
+      "passed": 32,
+      "total": 32
+    },
+    "pause": {
+      "passed": 9,
+      "total": 9
+    },
+    "focus": {
+      "passed": 8,
+      "total": 8
+    },
+    "finance": {
+      "passed": 33,
+      "total": 33
+    },
+    "startup": {
+      "passed": 18,
+      "total": 18
+    },
+    "hardening": {
+      "passed": 9,
+      "total": 9
+    },
+    "bays": {
+      "passed": 34,
+      "total": 34
+    }
+  },
+  "behavior_total": 467,
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "source_sha256": "8d6ddb213fe69105bbbbc10b6d7746f36c8851912bebfcd5ebd002e643532d6b",
+  "clock_source_unchanged": true,
+  "v2_and_protected_baseline_unchanged": true,
+  "live_installation_or_saves_touched": false,
+  "gta_testing": "NOT RUN",
+  "crash_cause": "UNATTRIBUTED",
+  "enhanced_runtime_compatibility": "NOT VERIFIED",
+  "review_status": "DRAFT / PENDING"
+}
