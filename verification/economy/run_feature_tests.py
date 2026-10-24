@@ -12,6 +12,7 @@ def member(name):
  return s[m.start():end]
 for suite in sys.argv[1:] or ['repair']:
  template=(Path(__file__).parent/(suite+'_tests.cs')).read_text()
+ template=re.sub(r'/\*<include:(\w+)>\*/',lambda m:(repo/'verification/placement37'/(m[1]+'.cs.txt')).read_text(),template)
  text=re.sub(r'/\*<source:(\w+)>\*/',lambda m:member(m[1]),template)
  def selected_cases(match):
   body=member(match[1]);plain,_=ns['strip_literals'](body);marks=list(re.finditer(r'^            (?:case MenuPage\.(\w+):|default:)',plain,re.M));wanted=match[2].split(',');out=''

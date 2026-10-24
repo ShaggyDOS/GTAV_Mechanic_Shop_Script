@@ -1,0 +1,61 @@
+using System;using System.Collections.Generic;using System.IO;using System.Linq;using System.Drawing;using System.Globalization;
+struct Vector3 {internal float X,Y,Z;internal Vector3(float x,float y,float z){X=x;Y=y;Z=z;}}
+class Ped {internal Vector3 Position;internal float Heading;internal bool Exists()=>true;}
+class Vehicle {} class Prop {}
+enum MarkerType {Placeholder}
+static class Game {internal static bool IsPaused;internal static PlayerState Player=new PlayerState();internal class PlayerState {internal Ped Character=new Ped();}}
+static class World {internal static List<Vector3> markers=new List<Vector3>();internal static void DrawMarker(MarkerType t,Vector3 p,Vector3 d,Vector3 r,Vector3 s,Color c){markers.Add(p);}}
+namespace GTA.Native {enum Hash {DRAW_LINE}static class Function {internal static int lines;internal static void Call(Hash h,params object[] a){lines++;}}}
+class ScriptSettings {
+ internal Dictionary<string,string> values=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);string file;internal static bool Fail;
+ internal static ScriptSettings Load(string p){var d=new ScriptSettings{file=p};string section="";if(File.Exists(p))foreach(string line in File.ReadAllLines(p)){string v=line.Trim();if(v.StartsWith("[")&&v.EndsWith("]"))section=v.Substring(1,v.Length-2);else if(!v.StartsWith(";")&&!v.StartsWith("#")){int i=v.IndexOf('=');if(i>=0)d.values[section+"|"+v.Substring(0,i).Trim()]=v.Substring(i+1).Trim();}}return d;}
+ internal T GetValue<T>(string s,string k,T fallback){try{return values.TryGetValue(s+"|"+k,out string v)?(T)Convert.ChangeType(v,typeof(T),CultureInfo.InvariantCulture):fallback;}catch{return fallback;}}
+ internal void SetValue<T>(string s,string k,T value){values[s+"|"+k]=Convert.ToString(value,CultureInfo.InvariantCulture);}
+ internal bool Save(){if(Fail)return false;var lines=new List<string>();foreach(var group in values.GroupBy(x=>x.Key.Split('|')[0])){lines.Add("["+group.Key+"]");foreach(var item in group)lines.Add(item.Key.Split('|')[1]+"="+item.Value);}File.WriteAllLines(file,lines);return true;}
+}
+partial class Harness {
+ /*<source:MenuPage>*/
+ /*<source:WorkBay>*/
+ /*<source:PlacementVisual>*/
+ /*<source:PlacementDisplayMode>*/
+ /*<source:PlacementVisuals>*/
+ /*<source:PlacementCategoryFor>*/
+ /*<source:PlacementCategoryVisible>*/
+ /*<source:LoadPlacementDisplayPreferences>*/
+ /*<source:SetPlacementDisplay>*/
+ /*<source:TryCommitBusinessSave>*/
+ /*<source:OpenMarkerDisplay>*/
+ /*<source:OpenPlacementMenu>*/
+ /*<source:FocusedPlacementPoint>*/
+ /*<source:DrawPlacementVisual>*/
+ /*<source:DrawComputedBayPreviews>*/
+ /*<source:DrawPlacementMarkers>*/
+ /*<source:ParkingOutlineVertices>*/
+ /*<source:MarkPoint>*/
+ /*<source:MarkCustomerHandoffZone>*/
+ /*<source:ExecuteMarkerSelection>*/
+ static string DataDirectory=Path.Combine(Path.GetTempPath(),"gh-issue37-fixture-"+Guid.NewGuid().ToString("N"));
+ static string PlacementDisplayFile=>Path.Combine(DataDirectory,"PlacementDisplay.v1.ini");
+ static string SaveFile=>Path.Combine(DataDirectory,"Save.ini");
+ static string SettingsFile=>Path.Combine(DataDirectory,"Settings.ini");
+ PlacementDisplayMode _placementDisplayMode;int _activeMarkerCategories=31,_customMarkerCategories=31,_markerFocusCategory=-1;
+ bool _placementDisplayWritable=true,_showPlacementMarkers,_autoLotPreview,_automaticLotMode,_placed=true,_showMenu=true;
+ WorkBay _markerFocusPoint,_editingPoint;MenuPage _menuPage;int _selection,_serviceBaySlot;Vector3 _location;
+ List<PlacementVisual> _placementVisuals;PlacementVisual[] _computedBayVisuals=new PlacementVisual[3];WorkBay[] _computedBayInputs=new WorkBay[3];
+ static readonly Color[] _placementColors={Color.Blue,Color.Yellow,Color.Teal,Color.Pink,Color.Green};
+ bool _autoLotRightSide=true;float _autoLotOffsetMeters=4;const int VisualBayCount=3;
+ Dictionary<MenuPage,KeyValuePair<MenuPage,int>> _placementMenuReturns=new Dictionary<MenuPage,KeyValuePair<MenuPage,int>>();
+ WorkBay _customerDriveSpawn=new WorkBay(),_customerDropoff=new WorkBay(),_customerApproach=new WorkBay(),_customerQueue=new WorkBay(),_queueCar2=new WorkBay(),_queueCar3=new WorkBay();
+ WorkBay _employeeEntrance=new WorkBay(),_breakArea=new WorkBay(),_walkCheckpoint=new WorkBay(),_receptionDesk=new WorkBay(),_receptionApproach=new WorkBay(),_managerWorkstation=new WorkBay(),_managerApproach=new WorkBay();
+ WorkBay _supplierTruckSpawn=new WorkBay(),_supplierTruckPark=new WorkBay(),_supplierHandoff=new WorkBay(),_supplierPartsPallet=new WorkBay(),_officeDeskLocation=new WorkBay(),_toolSetLocation=new WorkBay(),_scannerLocation=new WorkBay();
+ WorkBay[] _bays=Points(3),_vehicleParkingBays=Points(3),_bayApproaches=Points(3),_customerWalkingRoute=Points(3),_supplierDriverWaypoints=Points(3),_extraStoragePallets=Points(3),_arrivalRoute=Points(5),_serviceRoute=Points(5),_receptionRoute=Points(5),_managerRoute=Points(5);
+ static WorkBay[] Points(int n){var r=new WorkBay[n];for(int i=0;i<n;i++)r[i]=new WorkBay();return r;}
+ List<string> notices=new List<string>();int backs,computed;
+ void Notify(string s){notices.Add(s);}void Log(string s,Exception e){notices.Add(s+e?.Message);}void NavigateBack(){backs++;}
+ string Status(WorkBay p)=>p!=null&&p.IsSet?"SET":"NOT SET";
+ WorkBay ComputeAutomaticBay(int i){computed++;return new WorkBay{IsSet=true,Position=new Vector3(_bays[i].Position.X+_autoLotOffsetMeters,_bays[i].Position.Y,_bays[i].Position.Z),Heading=_bays[i].Heading};}
+ static float DistanceSquared(Vector3 a,Vector3 b){float x=a.X-b.X,y=a.Y-b.Y,z=a.Z-b.Z;return x*x+y*y+z*z;}
+ static int passed;
+ static void Check(bool b,string why){if(!b)throw new Exception(why);}
+ static void Test(string name,Action action){try{if(Directory.Exists(DataDirectory))Directory.Delete(DataDirectory,true);ScriptSettings.Fail=false;Game.IsPaused=false;Game.Player.Character=new Ped();World.markers.Clear();GTA.Native.Function.lines=0;action();passed++;Console.WriteLine("PASS "+name);}finally{if(Directory.Exists(DataDirectory))Directory.Delete(DataDirectory,true);}}
+}

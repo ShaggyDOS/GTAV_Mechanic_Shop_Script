@@ -1,0 +1,34 @@
+PASS all display modes x masks x categories x focus obey policy
+PASS new users start hidden and do not write defaults
+PASS Hide All gates explicit auto preview and selected highlight
+PASS Focused draws only actual selected physical waypoint
+PASS Custom category visibility wins over selected-point highlighting
+PASS Show All can inspect inactive custom walking coordinates
+PASS unset selected coordinates do not invent a marker
+PASS preferences and remembered custom mask survive reload
+PASS Hide All preserves last custom mask and preview toggle
+PASS Show Current Category does not overwrite remembered custom
+PASS category toggles are explicit and update custom selection
+PASS preference write failure retains previous visible state and file
+PASS future preferences fail closed and remain byte-identical
+PASS preference keys do not touch business Save or Settings
+PASS mask high bits are bounded on reload
+PASS world marker rendering performs no preference file IO
+PASS paused and far-away previews issue no draw natives
+PASS parking outlines are cached until position or heading changes
+PASS computed auto bay previews avoid repeated placement calculations
+PASS Custom service-bay switch also filters computed preview
+PASS marker page retains exact physical context and caller
+PASS registry point identities and save-section names are unique
+PASS marker identity command never changes coordinates
+markers37 23/23 PASS; real mode/registry/preferences/render-cache methods with synthetic files/native adapters; GTA NOT RUN
+PASS each physical spawn-break coordinate resolves by identity
+PASS each shared bay coordinate resolves from editor and per-mechanic selection
+PASS point editor preserves the exact selected reference
+PASS role and customer driver lists select their own coordinates
+PASS Back rows and negative selections never highlight another point
+PASS closing menu removes physical focus
+PASS saved status and mechanic use are independent
+PASS preview and value lookup do not mutate geometry or either mask
+PASS all/none commands are not physical coordinate references
+focus37 9/9 PASS; actual physical-focus and independent use/saved menu arms; GTA NOT RUN

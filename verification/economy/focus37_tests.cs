@@ -5,7 +5,7 @@ class Harness {
  class WorkBay {internal bool IsSet;internal int X;}
  class Mechanic {internal int JobOutboundMask=31,JobReturnMask;}
  WorkBay[] _arrivalRoute=Points(5),_serviceRoute=Points(5),_bayApproaches=Points(3),_receptionRoute=Points(5),_managerRoute=Points(5),_customerWalkingRoute=Points(3),_supplierDriverWaypoints=Points(3);
- WorkBay _editingPoint;bool _showMenu=true;MenuPage _menuPage;int _selection,_routeConfigSlot;bool _routeConfigReturning;
+ WorkBay _editingPoint,_customerDropoff=new WorkBay(),_customerDriveSpawn=new WorkBay(),_customerApproach=new WorkBay(),_customerQueue=new WorkBay(),_queueCar2=new WorkBay(),_queueCar3=new WorkBay(); WorkBay[] _bays=Points(3),_vehicleParkingBays=Points(3);int _serviceBaySlot;bool _showMenu=true;MenuPage _menuPage;int _selection,_routeConfigSlot;bool _routeConfigReturning;
  List<Mechanic> _mechanics=new List<Mechanic>{new Mechanic()};
  static WorkBay[] Points(int n){var p=new WorkBay[n];for(int i=0;i<n;i++)p[i]=new WorkBay{IsSet=true,X=i};return p;}
  string GetMenuItemValue(int index){switch(_menuPage){
