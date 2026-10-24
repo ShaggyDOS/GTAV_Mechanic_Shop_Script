@@ -81,7 +81,7 @@ class Harness {
  void NavigateBack(){backs++;}
  void OpenPointEditor(WorkBay p,string label,int bay,bool route){editedPoint=p;editorBay=bay;}
  string Status(WorkBay p)=>p.IsSet?"SET":"UNSET";string FormatPosition(Vector3 p)=>p.X.ToString();
- void ShowStatusNotice(string title,params string[] lines){}
+ void ShowStatusNotice(string title,params string[] lines){foreach(string line in lines)notices.Add(line);}
 
     /*<source:TeleportAttemptDue>*/
     /*<source:TeleportTargetAvailable>*/
@@ -245,6 +245,7 @@ void StartReturnVehicleWalk(CustomerOrder o){}
     class Reception {internal Ped Worker;internal bool AtDesk;}
     Reception _receptionist=new Reception();Ped _managerWorker;bool _managerAtPost;string _managerName="manager";
     static void StatusTests(){
+ BayTest("full staff summary cannot reuse stale receptionist desk flag",()=>{var h=RecoveryFixture();h._receptionistHired=true;h._receptionist.AtDesk=true;h._receptionist.Worker=null;h.ShowEmployeeStatus();Check(h.notices.Contains("Reception NOT STREAMED")&&!h.notices.Contains("Reception AT DESK")&&h.saves==0,"stale summary");});
  foreach(bool config in new[]{false,true})foreach(bool legacy in new[]{false,true}){bool current=config,old=legacy;BayTest("Settings.ini controller precedence "+current+"/"+old,()=>{var settings=new ScriptSettings();settings.SetValue("Gamepad","Enabled",current);var prior=new ScriptSettings();prior.SetValue("Gamepad","Enabled",old);Check(ResolveControllerEnabled(settings,prior,!current)==current,"legacy overrode settings");});}
  BayTest("missing setting retains legacy controller enable",()=>{var legacy=new ScriptSettings();legacy.SetValue("Gamepad","Enabled",true);Check(ResolveControllerEnabled(new ScriptSettings(),legacy,false),"silent disable");});
  BayTest("missing all settings retains supplied default",()=>{Check(ResolveControllerEnabled(new ScriptSettings(),new ScriptSettings(),true),"default changed");});

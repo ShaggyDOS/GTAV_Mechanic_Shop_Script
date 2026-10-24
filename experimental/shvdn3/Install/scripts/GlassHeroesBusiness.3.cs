@@ -3762,6 +3762,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     private void ExecuteEmployeeStatusSelection()
     {
         if (_selection == 6) { NavigateBack(); return; }
+        if (_selection == 5) { ShowEmployeeStatus(); return; }
         RefreshEmployeeStatus();
         if (_selection < 3)
         {
@@ -3806,11 +3807,12 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void ShowEmployeeStatus()
     {
+        RefreshEmployeeStatus();
         ShowStatusNotice("EMPLOYEE STATUS",
             "Business " + (_clockedIn ? "OPEN" : "CLOSED") + " | " + (_remoteMode ? "REMOTE" : "ONSITE"),
-            "Reception " + (_receptionistHired ? (_receptionist.AtDesk ? "AT DESK" : "EN ROUTE / UNAVAILABLE") : "NOT HIRED"),
+            "Reception " + _employeeStatusRows[3],
             "Pickup walks reverse Arrival stops; work masks do not control collection.",
-            "Manager " + (_managerTier < 0 ? "NOT HIRED" : _managerName) + " | wages $" + _managerWagesDue.ToString("N0"));
+            "Manager " + _employeeStatusRows[4] + " | wages $" + _managerWagesDue.ToString("N0"));
         for (int i = 0; i < _mechanics.Count && i < VisualBayCount; i++)
         {
             Mechanic m = _mechanics[i];
