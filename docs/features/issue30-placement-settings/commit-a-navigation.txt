@@ -1,0 +1,12 @@
+PASS one finance path; expenses and equipment retained
+PASS management routing 0
+PASS management routing 1
+PASS management routing 2
+PASS management routing 3
+PASS management routing 4
+PASS management routing 5
+PASS management routing 6
+PASS management routing 7
+PASS management routing 8
+placement 10/10 PASS; production menu routing, GTA NOT RUN
+

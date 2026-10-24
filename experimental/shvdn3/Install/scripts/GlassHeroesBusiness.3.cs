@@ -1205,7 +1205,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.Customers: _menuPage = MenuPage.BusinessManagement; _selection = 1; break;
             case MenuPage.Finances:
                 if (_financesFromExpenses) _financesFromExpenses = false;
-                _menuPage = MenuPage.BusinessManagement; _selection = 4; break;
+                _menuPage = MenuPage.BusinessManagement; _selection = 3; break;
             case MenuPage.FinancialOverview: _menuPage = MenuPage.Finances; _selection = 0; break;
             case MenuPage.IncomeSales: _menuPage = MenuPage.Finances; _selection = 1; break;
             case MenuPage.BusinessExpenses: _menuPage = MenuPage.Finances; _selection = 2; break;
@@ -1218,7 +1218,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ActiveDeliveries: _menuPage = MenuPage.InventoryManagement; _selection = 2; break;
             case MenuPage.InventoryManagement: _menuPage = MenuPage.BusinessManagement; _selection = 2; break;
             case MenuPage.EquipmentManagement: _menuPage = MenuPage.BusinessExpenses; _selection = 7; break;
-            case MenuPage.ControllerSettings: _menuPage = MenuPage.BusinessManagement; _selection = 5; break;
+            case MenuPage.ControllerSettings: _menuPage = MenuPage.BusinessManagement; _selection = 4; break;
             case MenuPage.MechanicRouteRoster:
                 _menuPage = _mechanicRosterFromManagement ? MenuPage.MechanicManagement : MenuPage.MechanicWalkingPaths;
                 _selection = _mechanicRosterFromManagement ? 2 : 6;
@@ -1324,7 +1324,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             case MenuPage.BusinessManagement:
                 return new string[] { "Employees >", "Customers >", "Inventory & Suppliers >",
-                    "Expenses & Bills >", "Finances & Accounting >", "Controller Controls >",
+                    "Finances & Accounting >", "Controller Controls >",
                     "Deposit $1,000", "Withdraw $1,000", "Set Shop Location",
                     "< Back to Main" };
             case MenuPage.Employees:
@@ -1637,7 +1637,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 }
                 return ">";
             case MenuPage.BusinessManagement:
-                return index == 9 ? "BACK" : index == 8 ? "SET" : index < 6 ? "OPEN" : "TRANSFER";
+                return index == 8 ? "BACK" : index == 7 ? "SET" : index < 5 ? "OPEN" : "TRANSFER";
             case MenuPage.Business:
                 if (index == 0) return _clockedIn ? "OPEN" : "CLOSED";
                 if (index == 1) return "SAVE";
@@ -1914,13 +1914,12 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Recruit employees, review mechanic profiles and receptionist queue skill.",
                     "Customer requests, queue spaces, arrivals and vehicle transfers.",
                     "Order parts, select suppliers and configure Mule deliveries.",
-                    "Settle wage/rent bills and purchase or place shop equipment.",
                     "Review sales, wage liabilities, supplier costs and shift profit.",
                     "Change controller support and inspect the active button map.",
                     "Move personal funds into business cash (not recorded as revenue).",
                     "Withdraw available business cash to the player account.",
                     "Set the shop's permanent location while it is closed.",
-                    "Return to the four-item main menu." }[Math.Min(_selection, 9)];
+                    "Return to the four-item main menu." }[Math.Min(_selection, 8)];
             case MenuPage.BusinessExpenses: return _selection == 9 ?
                 "Pay only the outstanding manager wage invoice; no manager rebate on their own wages." :
                 "Settle wages, rent and delivered supplier invoices; restock and equipment are separate.";
@@ -2271,12 +2270,11 @@ public class GlassHeroesBusinessV3Experimental : Script
             case 0: _menuPage = MenuPage.Employees; _selection = 0; break;
             case 1: _menuPage = MenuPage.Customers; _selection = 0; break;
             case 2: _menuPage = MenuPage.InventoryManagement; _selection = 0; break;
-            case 3: _menuPage = MenuPage.BusinessExpenses; _selection = 0; break;
-            case 4: _financesFromExpenses = false; _menuPage = MenuPage.Finances; _selection = 0; break;
-            case 5: _menuPage = MenuPage.ControllerSettings; _selection = 0; break;
-            case 6: TransferPlayerMoney(true); break;
-            case 7: TransferPlayerMoney(false); break;
-            case 8: SetShopLocationFromPlayer(); break;
+            case 3: _financesFromExpenses = false; _menuPage = MenuPage.Finances; _selection = 0; break;
+            case 4: _menuPage = MenuPage.ControllerSettings; _selection = 0; break;
+            case 5: TransferPlayerMoney(true); break;
+            case 6: TransferPlayerMoney(false); break;
+            case 7: SetShopLocationFromPlayer(); break;
             default: NavigateBack(); break;
         }
     }
