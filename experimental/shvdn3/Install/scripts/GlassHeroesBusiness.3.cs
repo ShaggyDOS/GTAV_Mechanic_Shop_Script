@@ -38,7 +38,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         MechanicRouteDirection, MechanicRoutePoints, SupplierDeliverySetup, SupplierDriverWaypoints,
         HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints,
         PlacementSettings, DeliveryPlacements, PlacementWalkingRoutes,
-        MechanicPlacementRoutes, ReceptionPlacementRoutes, ManagerPlacementRoutes, CustomerPlacementRoutes, SupplierPlacementRoutes
+        MechanicPlacementRoutes, ReceptionPlacementRoutes, ManagerPlacementRoutes, CustomerPlacementRoutes, SupplierPlacementRoutes, OwnerTransferReview
     }
     private const int VisibleMenuRows = 10;
     // Compact F2 menu (75% of the previous layout), anchored to upper-left.
@@ -1227,6 +1227,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ProfitLoss: _menuPage = MenuPage.Finances; _selection = 3; break;
             case MenuPage.TransactionHistory: _menuPage = MenuPage.Finances; _selection = 4; break;
             case MenuPage.OwnerTransfers: _menuPage = MenuPage.Finances; _selection = 5; break;
+            case MenuPage.OwnerTransferReview: _menuPage = MenuPage.OwnerTransfers; _selection = _ownerTransferDeposit ? 1 : 2; break;
             case MenuPage.PartsSales: _menuPage = MenuPage.InventoryManagement; _selection = 3; break;
             case MenuPage.InventoryOverview: _menuPage = MenuPage.InventoryManagement; _selection = 0; break;
             case MenuPage.BuildSupplierOrder: _menuPage = MenuPage.InventoryManagement; _selection = 1; break;
@@ -1359,7 +1360,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.BusinessManagement:
                 return new string[] { "Employees >", "Customers >", "Inventory & Suppliers >",
                     "Finances & Accounting >", "Placement Settings >", "Controller Controls >",
-                    "Deposit $1,000", "Withdraw $1,000", "Set Shop Location",
+                    "Set Shop Location",
                     "< Back to Main" };
             case MenuPage.Employees:
                 return new string[] { "Employee Status", "Mechanics >", "Receptionist >",
@@ -1498,7 +1499,9 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return new string[] { "Reporting Period: Toggle", "Gross Revenue", "Cash Expense Payments", "Expenses Incurred", "Accounting Profit", "Accounting Basis / Notes", "< Back to Accounting" };
             case MenuPage.TransactionHistory: return FinanceHistoryItems();
             case MenuPage.OwnerTransfers:
-                return new string[] { "Deposit Owner Funds", "Withdraw Owner Funds", "Recorded Owner Deposits", "Recorded Owner Withdrawals", "Reporting Period: Toggle", "< Back to Accounting" };
+                return new string[] { "Transfer Amount: Change", "Review Owner Deposit >", "Review Owner Withdrawal >", "Recorded Owner Deposits", "Recorded Owner Withdrawals", "Reporting Period: Toggle", "< Back to Accounting" };
+            case MenuPage.OwnerTransferReview:
+                return new string[] { "Review Amount / Business Cash", "Confirm Transfer", "< Back to Owner Transfers" };
             case MenuPage.SupplierDeliverySetup:
                 return new string[] { "Physical Mule Delivery", "Mule Road Spawn >", "Truck Unloading Spot >",
                     "Driver Box Handoff >", "Pallet Storage & Capacity >", "Driver Walk Stops (0-3) >",
@@ -1680,8 +1683,10 @@ public class GlassHeroesBusinessV3Experimental : Script
                     return ((mask & (1 << index)) != 0 ? "USE" : "SKIP") + (_serviceRoute[index].IsSet ? " / SET" : " / UNSET");
                 }
                 return ">";
+            case MenuPage.OwnerTransferReview:
+                return index == 0 ? "$" + _ownerTransferAmount.ToString("N0") + " / $" + _cash.ToString("N0") : index == 1 ? "CONFIRM" : "BACK";
             case MenuPage.BusinessManagement:
-                return index == 9 ? "BACK" : index == 8 ? "SET" : index < 6 ? "OPEN" : "TRANSFER";
+                return index == 7 ? "BACK" : index == 6 ? "SET" : "OPEN";
             case MenuPage.Business:
                 if (index == 0) return _clockedIn ? "OPEN" : "CLOSED";
                 if (index == 1) return "SAVE";
@@ -1967,10 +1972,8 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Review sales, wage liabilities, supplier costs and shift profit.",
                     "Set existing locations, service bays, routes and visual marker display.",
                     "Change controller support and inspect the active button map.",
-                    "Move personal funds into business cash (not recorded as revenue).",
-                    "Withdraw available business cash to the player account.",
                     "Set the shop's permanent location while it is closed.",
-                    "Return to the four-item main menu." }[Math.Min(_selection, 9)];
+                    "Return to the four-item main menu." }[Math.Min(_selection, 7)];
             case MenuPage.BusinessExpenses: return _selection == 9 ?
                 "Pay only the outstanding manager wage invoice; no manager rebate on their own wages." :
                 "Settle wages, rent and delivered supplier invoices; restock and equipment are separate.";
@@ -2133,6 +2136,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ProfitLoss: return "PROFIT & LOSS";
             case MenuPage.TransactionHistory: return "TRANSACTION HISTORY";
             case MenuPage.OwnerTransfers: return "OWNER CASH TRANSFERS";
+            case MenuPage.OwnerTransferReview: return _ownerTransferDeposit ? "CONFIRM OWNER DEPOSIT" : "CONFIRM OWNER WITHDRAWAL";
             case MenuPage.BusinessExpenses: return "EXPENSES & BILLS";
             case MenuPage.PartsSales: return "PARTS SALES - ONE UNIT";
             case MenuPage.InventoryManagement: return "INVENTORY & SUPPLIERS";
@@ -2288,6 +2292,10 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.Customers: ExecuteCustomerSelection(); break;
             case MenuPage.VehicleDriveOptions: ExecuteVehicleDriveOptionSelection(); break;
             case MenuPage.VehicleAutoLotOptions: ExecuteVehicleAutoLotSelection(); break;
+            case MenuPage.OwnerTransferReview:
+                if (_selection == 0) ShowStatusNotice("OWNER TRANSFER REVIEW", (_ownerTransferDeposit ? "Deposit $" : "Withdraw $") + _ownerTransferAmount.ToString("N0"), "Business cash $" + _cash.ToString("N0"), "Wallet/model/funds/limits are validated on confirmation. No revenue or expense.");
+                else if (_selection == 1) { TransferPlayerMoney(_ownerTransferDeposit); NavigateBack(); }
+                else NavigateBack(); break;
             case MenuPage.Finances: ExecuteFinancesSelection(); break;
             case MenuPage.FinancialOverview: case MenuPage.IncomeSales: case MenuPage.ProfitLoss:
             case MenuPage.TransactionHistory: case MenuPage.OwnerTransfers: ExecuteFinancePage(); break;
@@ -2412,9 +2420,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case 3: _financesFromExpenses = false; _menuPage = MenuPage.Finances; _selection = 0; break;
             case 4: OpenPlacementMenu(MenuPage.PlacementSettings); break;
             case 5: _menuPage = MenuPage.ControllerSettings; _selection = 0; break;
-            case 6: TransferPlayerMoney(true); break;
-            case 7: TransferPlayerMoney(false); break;
-            case 8: SetShopLocationFromPlayer(); break;
+            case 6: SetShopLocationFromPlayer(); break;
             default: NavigateBack(); break;
         }
     }
@@ -2735,7 +2741,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         else if (page == MenuPage.ProfitLoss)
         { if (index == 1) value = FinanceSnapshot.Sales(delta); else if (index == 2) value = FinanceSnapshot.Paid(delta); else if (index == 3) value = checked(FinanceSnapshot.Paid(delta) + FinanceSnapshot.Due(delta)); else if (index == 4) value = FinanceSnapshot.Profit(delta); else return ">"; }
         else if (page == MenuPage.OwnerTransfers)
-        { if (index == 2) value = delta.V[14]; else if (index == 3) value = delta.V[15]; else return index < 2 ? "$1,000" : index == 4 ? FinancePeriodLabel() : "BACK"; }
+        { if (index == 3) value = delta.V[14]; else if (index == 4) value = delta.V[15]; else return index == 0 ? "$" + _ownerTransferAmount.ToString("N0") : index < 3 ? "REVIEW" : index == 5 ? FinancePeriodLabel() : "BACK"; }
         else
         {
             if (index == 5)
@@ -2801,9 +2807,10 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         if (_menuPage == MenuPage.OwnerTransfers)
         {
-            if (_selection < 2) TransferPlayerMoney(_selection == 0);
-            else if (_selection == 4) _financeLifetime = !_financeLifetime;
-            else if (_selection == 5) NavigateBack();
+            if (_selection == 0) _ownerTransferAmount = _ownerTransferAmount == 1000 ? 10000 : _ownerTransferAmount == 10000 ? 100000 : 1000;
+            else if (_selection == 1 || _selection == 2) { _ownerTransferDeposit = _selection == 1; _menuPage = MenuPage.OwnerTransferReview; _selection = 0; }
+            else if (_selection == 5) _financeLifetime = !_financeLifetime;
+            else if (_selection == 6) NavigateBack();
             else Notify("Owner transfers are capital movements, never sales or profit. Totals before the audit upgrade are unknown.");
             return;
         }
@@ -4821,6 +4828,9 @@ public class GlassHeroesBusinessV3Experimental : Script
         DismissVisualManager();
     }
 
+    private int _ownerTransferAmount = 1000;
+    private bool _ownerTransferDeposit;
+
     private void TransferPlayerMoney(bool deposit)
     {
         // SHVDN Player.Money works only for the three stock Story Mode protagonists.
@@ -4839,17 +4849,20 @@ public class GlassHeroesBusinessV3Experimental : Script
             return;
         }
         if (!_bootGameplayActivated || Game.IsPaused) return;
+        int amount = _ownerTransferAmount;
+        if (amount != 1000 && amount != 10000 && amount != 100000) return;
         int wallet = Game.Player.Money;
-        if (deposit && wallet < 1000 || !deposit && (_cash < 1000 || wallet > int.MaxValue - 1000))
+        if (deposit && wallet < amount || !deposit && (_cash < amount || wallet > int.MaxValue - amount))
         { Notify("Transfer unavailable: insufficient funds or wallet limit."); return; }
-        if (deposit && _cash > long.MaxValue - 1000) return;
+        if (deposit && _cash > long.MaxValue - amount) return;
+        if (deposit ? _financeOwnerDeposits > long.MaxValue - amount : _financeOwnerWithdrawals > long.MaxValue - amount) return;
         long cash = _cash, deposits = _financeOwnerDeposits, withdrawals = _financeOwnerWithdrawals;
         bool saved = false;
         try
         {
-            Game.Player.Money = deposit ? wallet - 1000 : wallet + 1000;
-            _cash += deposit ? 1000 : -1000;
-            if (deposit) _financeOwnerDeposits += 1000; else _financeOwnerWithdrawals += 1000;
+            Game.Player.Money = deposit ? wallet - amount : wallet + amount;
+            _cash += deposit ? amount : -amount;
+            if (deposit) _financeOwnerDeposits += amount; else _financeOwnerWithdrawals += amount;
             saved = Save();
         }
         catch (Exception ex) { Log("Owner cash transfer", ex); }
@@ -4859,7 +4872,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             try { Game.Player.Money = wallet; } catch (Exception ex) { Log("Owner wallet rollback requires review", ex); }
             Notify("Transfer failed; business state restored. Check wallet if an external mod intervened."); return;
         }
-        Notify(deposit ? "Owner deposit $1,000 committed (not sales)." : "Owner withdrawal $1,000 committed (not an expense).");
+        Notify((deposit ? "Owner deposit $" : "Owner withdrawal $") + amount.ToString("N0") + " committed (capital movement, not sales/expense).");
     }
 
     private bool CustomerConfigurationReady()

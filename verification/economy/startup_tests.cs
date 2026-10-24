@@ -29,6 +29,7 @@ class Harness {
  /*<source:PayInvoice>*/
  /*<source:GiveManagerPayrollRebate>*/
  /*<source:MechanicWagesDue>*/
+ int _ownerTransferAmount=1000;
  /*<source:TransferPlayerMoney>*/
  class Mechanic {internal long UnpaidWages;internal double WageUnpaidSeconds;}
  List<Mechanic> _mechanics=new List<Mechanic>();HashSet<int> _mechanicOverdueNotified=new HashSet<int>();
