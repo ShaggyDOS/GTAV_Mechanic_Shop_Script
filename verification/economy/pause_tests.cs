@@ -4,6 +4,7 @@ namespace GTA { enum Control { OpenModifier, OpenButton, Up, Down, Accept, Back,
 static class Game { internal static bool IsPaused; }
 class Harness
 {
+    readonly Dictionary<MenuPage,KeyValuePair<MenuPage,int>> _placementMenuReturns=new Dictionary<MenuPage,KeyValuePair<MenuPage,int>>();
     MenuPage _serviceBayParent;int _serviceBaySlot;
     enum Keys { None, Up, Down, Left, Right, Enter, Return=Enter, Escape, Back, F2, E }
     class KeyEventArgs { internal Keys KeyCode; internal bool Control; internal KeyEventArgs(Keys k) { KeyCode=k; } }

@@ -1,0 +1,29 @@
+{
+  "source_sha256": "4aba9e70bdc6c29a551cd4feb257c03d5bec7bf7218eedf7b32a1e3888a28e71",
+  "files": {
+    "experimental/shvdn3/Install/scripts/GlassHeroesBusiness.3.cs": "4aba9e70bdc6c29a551cd4feb257c03d5bec7bf7218eedf7b32a1e3888a28e71",
+    "experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj": "f9edbab65dffee88b2fdebcbe7aec1787b2624a086d9ed49877bfea69c6e0a7e",
+    "docs/features/issue30-placement-settings/CHANGELOG.md": "8492915791a7d31af804895058ae60f76417b3e40ddac0f6aa57739167022c7d",
+    "docs/features/issue30-placement-settings/COMMIT_A.md": "8c1dec23ee7475bcdc552da022dc9336c55a6ba7aa8aa0bdf8c9aaf98dabbec0",
+    "docs/features/issue30-placement-settings/DEVELOPER_GUIDE.md": "53b3adb05af5499aa87cc540f13a767d3185c9e7ab95d6606822205ac72675b2",
+    "docs/features/issue30-placement-settings/GlassHeroesBusiness_v0.3.3.4_Issue30_Placement_Settings_Development_Report.docx": "7dd808aa75ab3d62d0e8327b8423598d911fd8778398bfac44f04849bd4768ae",
+    "docs/features/issue30-placement-settings/GlassHeroesBusiness_v0.3.3.4_Issue30_Placement_Settings_Development_Report.pdf": "1cfa1d3d63cb3ef44d0cd757f4dc41596edcf8e7e97a4845a8f3893e2b832fc6",
+    "docs/features/issue30-placement-settings/PR_BODY.md": "7e383ca63b26df27c2c18938aad91af7277838fa0b4dca2bec039c4fdb08c31f",
+    "docs/features/issue30-placement-settings/REVIEW_HANDOFF.md": "7e35af265cdfdc4771dc9cc41c0210ed1ecc8de25b1fb3f09c58d15a33ef1afa",
+    "docs/features/issue30-placement-settings/SOURCE_SHA256.txt": "58b50a040a788c318278c62a24f4bfe6116cb70f637f2bf46f71c57af6bf682b",
+    "docs/features/issue30-placement-settings/StaticVerification.json": "aaa042923c71e63ae396fecd145dccd371028366aaf933e7013419b5b447b583",
+    "docs/features/issue30-placement-settings/build.txt": "ce91701dc99c1856aa779b9f6d75d2e512c107d5284c224500a8f9cbf578a029",
+    "docs/features/issue30-placement-settings/commit-a-build.txt": "bb1180bdd1bcc494995de8701ee6e84952a1ca4e14379865b62e9a414015638a",
+    "docs/features/issue30-placement-settings/commit-a-navigation.txt": "2b4054cbc8745babfda8446e2bf681242868e8c50a7b84f2bd225481c02f1b42",
+    "docs/features/issue30-placement-settings/feature-tests.txt": "2c38b0fb30f973db5e7bb4b5854aefb0848f287871cef1dedc785e1d7511b297",
+    "docs/features/issue30-placement-settings/inherited-behavior.txt": "c3381ea7be783468c4d735396ca92ace9b53357f05619cf83b1361c42f924e6b",
+    "docs/features/issue30-placement-settings/logger-tests.txt": "c51ea511c0922abd65b2d3b65c247beb0032ef7591e5090f9b8f01fd3fac64ab",
+    "docs/features/issue30-placement-settings/migration-tests.txt": "a92f9aadb87beeac2749e659f802a8e458389e90a065f5f9fefb96fa3691ebf6",
+    "docs/features/issue30-placement-settings/navigation-tests.txt": "f14f59d2807a03c6b0bab5686e2c4fc78aa65c44babd5289b26295faec9d3897",
+    "docs/features/issue30-placement-settings/preservation.json": "0301ccf313cec65082c83c8a8cbcaac63b3402d878c0083d4f9c1c4a809e994d",
+    "docs/features/issue30-placement-settings/preservation.txt": "5904b747ae881f78327cc88d08cee9dff910b541091f4a8d271abb0e18b33982",
+    "docs/features/issue30-placement-settings/source.diff": "de2620e46adae33a765b89d439a6be5681414a30cb576387e1053d5b1a5c94e6",
+    "docs/features/issue30-placement-settings/static-tests.txt": "a696d1d1381a3a69fa9288848a6ab8620ea376e09894ead2b4069a5e2e84c950",
+    "docs/features/issue30-placement-settings/validation.json": "389a567c5ede239e0663ddd58b0b09f821a8cd6e157fbb28a0fb9ab3b82db47d"
+  }
+}

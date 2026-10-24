@@ -1,0 +1,28 @@
+{
+  "profile": "placement",
+  "parent": "d980be89f387588c02596e8f1ed7732a05ede9d8",
+  "parent_source_sha256": "8d6ddb213fe69105bbbbc10b6d7746f36c8851912bebfcd5ebd002e643532d6b",
+  "candidate_source_sha256": "4aba9e70bdc6c29a551cd4feb257c03d5bec7bf7218eedf7b32a1e3888a28e71",
+  "changed_methods": [
+    "ExecuteCustomerSelection",
+    "ExecuteEmployeeSettingsSelection",
+    "ExecuteManagementSelection",
+    "ExecuteSelection",
+    "GetMenuItemValue",
+    "GetMenuItems",
+    "GetMenuTitle",
+    "GetSelectedDescription",
+    "NavigateBack"
+  ],
+  "new_helpers": [
+    "ExecutePlacementSelection",
+    "OpenPlacementMenu"
+  ],
+  "unchanged_methods": 355,
+  "clocks_and_startup_game_gate_unchanged": true,
+  "original_v2_source_project_unchanged": true,
+  "supplier_receipt_accounting_unchanged": true,
+  "out_of_scope_forensics_and_blip_features_absent": true,
+  "gta_testing": "NOT RUN"
+}
+PASS scope and preservation checks

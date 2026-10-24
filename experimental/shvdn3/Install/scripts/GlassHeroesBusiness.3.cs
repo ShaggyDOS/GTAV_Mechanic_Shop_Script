@@ -36,7 +36,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         PartsSales, VehicleAutoLotOptions, BusinessExpenses, MechanicInvoices, CustomerWalkingRoutes,
         InventoryManagement, InventoryOverview, BuildSupplierOrder, ActiveDeliveries, EquipmentManagement, ControllerSettings, MechanicRouteRoster,
         MechanicRouteDirection, MechanicRoutePoints, SupplierDeliverySetup, SupplierDriverWaypoints,
-        HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints
+        HireMechanicRoster, HireReceptionistRoster, MechanicManagement, ReceptionistManagement, ReceptionistProfile, SupplierPalletStorage, ManagerManagement, HireManagerRoster, ManagerProfile, ManagerWalkingPaths, ManagerWaypoints,
+        PlacementSettings, DeliveryPlacements, PlacementWalkingRoutes
     }
     private const int VisibleMenuRows = 10;
     // Compact F2 menu (75% of the previous layout), anchored to upper-left.
@@ -315,6 +316,9 @@ public class GlassHeroesBusinessV3Experimental : Script
     private int _diagnosticDelaySeconds = 30;
     private bool _showMenu;
     private MenuPage _menuPage = MenuPage.Business;
+    // Session-only return context for shared pages entered through Placement Settings.
+    private readonly Dictionary<MenuPage, KeyValuePair<MenuPage, int>> _placementMenuReturns =
+        new Dictionary<MenuPage, KeyValuePair<MenuPage, int>>();
     private MenuPage _editorReturnPage = MenuPage.EmployeeSettings;
     private int _editorReturnSelection;
     private WorkBay _editingPoint;
@@ -1151,6 +1155,13 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private void NavigateBack()
     {
+        KeyValuePair<MenuPage, int> placementReturn;
+        if (_placementMenuReturns.TryGetValue(_menuPage, out placementReturn))
+        {
+            _placementMenuReturns.Remove(_menuPage);
+            _menuPage = placementReturn.Key; _selection = placementReturn.Value;
+            return;
+        }
         switch (_menuPage)
         {
             case MenuPage.Business: _showMenu = false; break;
@@ -1218,7 +1229,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ActiveDeliveries: _menuPage = MenuPage.InventoryManagement; _selection = 2; break;
             case MenuPage.InventoryManagement: _menuPage = MenuPage.BusinessManagement; _selection = 2; break;
             case MenuPage.EquipmentManagement: _menuPage = MenuPage.BusinessExpenses; _selection = 7; break;
-            case MenuPage.ControllerSettings: _menuPage = MenuPage.BusinessManagement; _selection = 4; break;
+            case MenuPage.ControllerSettings: _menuPage = MenuPage.BusinessManagement; _selection = 5; break;
             case MenuPage.MechanicRouteRoster:
                 _menuPage = _mechanicRosterFromManagement ? MenuPage.MechanicManagement : MenuPage.MechanicWalkingPaths;
                 _selection = _mechanicRosterFromManagement ? 2 : 6;
@@ -1322,9 +1333,19 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         switch (_menuPage)
         {
+            case MenuPage.PlacementSettings:
+                return new string[] { "Customer Locations >", "Employee Locations >", "Service Bays >",
+                    "Delivery & Stockroom >", "Walking Routes & Approaches >", "Marker Display Settings >", "< Back to Management" };
+            case MenuPage.DeliveryPlacements:
+                return new string[] { "Mule Road Spawn >", "Truck Unloading Spot >", "Driver Box Handoff >",
+                    "Pallet Storage & Placement >", "Supplier Driver Stops >", "Equipment Placement & Upgrades >", "< Back to Placement Settings" };
+            case MenuPage.PlacementWalkingRoutes:
+                return new string[] { "Mechanic Spawn -> Break Stops >", "Mechanic Break -> Bay Stops >", "Final Bay Approaches >",
+                    "Receptionist Walking Stops >", "Manager Walking Stops >", "Customer Walking Stops >", "Supplier Driver Stops >",
+                    "Mechanic Job Route Selection >", "Legacy Staff Checkpoint >", "< Back to Placement Settings" };
             case MenuPage.BusinessManagement:
                 return new string[] { "Employees >", "Customers >", "Inventory & Suppliers >",
-                    "Finances & Accounting >", "Controller Controls >",
+                    "Finances & Accounting >", "Placement Settings >", "Controller Controls >",
                     "Deposit $1,000", "Withdraw $1,000", "Set Shop Location",
                     "< Back to Main" };
             case MenuPage.Employees:
@@ -1338,11 +1359,11 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Pay Manager Wage Invoice", "Dismiss Manager", "< Back to Manager" };
             case MenuPage.ManagerWalkingPaths:
                 return new string[] { "Manager Walking Mode", "Spawn -> Workstation Waypoints >",
-                    "Final Workstation Approach >", "< Back to Walking Paths" };
+                    "Final Workstation Approach >", "< Back" };
             case MenuPage.ManagerWaypoints:
                 return new string[] { "Manager Stop 1 / 5 >", "Manager Stop 2 / 5 >",
                     "Manager Stop 3 / 5 >", "Manager Stop 4 / 5 >",
-                    "Manager Stop 5 / 5 >", "< Back to Manager Paths" };
+                    "Manager Stop 5 / 5 >", "< Back" };
             case MenuPage.HireManagerRoster:
                 return new string[] { "Assistant Manager — 3% discount",
                     "Experienced Manager — 6% discount", "General Manager — 10% discount",
@@ -1357,35 +1378,35 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return new string[] { "Profile & Queue Skill", "Train Receptionist (+1 Capacity)",
                     "Increase Period Wage (+$25)", "Dismiss Receptionist", "< Back to Receptionists" };
             case MenuPage.EmployeeSettings:
-                return new string[] { "Employee Placement Settings >", "Employee Walking Paths >",
+                return new string[] { "Placement Settings >", "Employee Walking Paths >",
                     "Blocked Path Recovery >", "Placement Markers >", "Break-Time Animations", "< Back to Employees" };
             case MenuPage.EmployeePlacements:
                 return new string[] { "Staff Break Area >", "Service Bays >",
                     "Receptionist Desk >", "Receptionist Desk Approach >", "Manager Workstation >",
-                    "Manager Workstation Approach >", "Staff Spawn / Entry >", "< Back to Employee Settings" };
+                    "Manager Workstation Approach >", "Staff Spawn / Entry >", "< Back" };
             case MenuPage.EmployeePaths:
                 return new string[] { "Mechanic Walking Paths >", "Receptionist Walking Paths >",
-                    "Manager Walking Paths >", "< Back to Employee Settings" };
+                    "Manager Walking Paths >", "< Back" };
             case MenuPage.MechanicWalkingPaths:
                 return new string[] { "Mechanic Walking Mode", "Pickup + Return Exit Route",
                     "Spawn -> Break Waypoints >", "Break -> Bay Waypoints >",
                     "Final Bay Approaches >", "Legacy Staff Checkpoint (MLO) >",
                     "Choose Job Waypoints by Mechanic >", "Smooth Through-Waypoints",
-                    "Teleport Stuck Pedestrians", "Advanced Break <-> Bay Routes", "< Back to Walking Paths" };
+                    "Teleport Stuck Pedestrians", "Advanced Break <-> Bay Routes", "< Back" };
             case MenuPage.ReceptionWalkingPaths:
                 return new string[] { "Receptionist Walking Mode", "Spawn -> Desk Waypoints >",
-                    "Final Desk Approach >", "< Back to Walking Paths" };
+                    "Final Desk Approach >", "< Back" };
             case MenuPage.ReceptionWaypoints:
                 return new string[] { "Reception Stop 1 / 5 >", "Reception Stop 2 / 5 >",
                     "Reception Stop 3 / 5 >", "Reception Stop 4 / 5 >",
-                    "Reception Stop 5 / 5 >", "< Back to Reception Paths" };
+                    "Reception Stop 5 / 5 >", "< Back" };
             case MenuPage.ArrivalWaypoints:
                 return new string[] { "Arrival Point 1 / 5 >", "Arrival Point 2 / 5 >",
                     "Arrival Point 3 / 5 >", "Arrival Point 4 / 5 >",
-                    "Arrival Point 5 / 5 >", "< Back to Walking Paths" };
+                    "Arrival Point 5 / 5 >", "< Back" };
             case MenuPage.MechanicBays:
                 return new string[] { "Service Bay 1 >", "Service Bay 2 >",
-                    "Service Bay 3 >", "< Back to Placements" };
+                    "Service Bay 3 >", "< Back" };
             case MenuPage.ServiceBayProfile:
                 return new string[] { "Set Vehicle Position (CUSTOM)", "Set Mechanic Work Position", "Mechanic Assignment", "View Current Configuration", "< Back to Service Bays" };
             case MenuPage.ServiceVehicleBays:
@@ -1401,10 +1422,10 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.ServiceWaypoints:
                 return new string[] { "Work Route 1 / 5 >", "Work Route 2 / 5 >",
                     "Work Route 3 / 5 >", "Work Route 4 / 5 >",
-                    "Work Route 5 / 5 >", "< Back to Walking Paths" };
+                    "Work Route 5 / 5 >", "< Back" };
             case MenuPage.BayApproaches:
                 return new string[] { "Bay 1 Final Turn >", "Bay 2 Final Turn >",
-                    "Bay 3 Final Turn >", "< Back to Walking Paths" };
+                    "Bay 3 Final Turn >", "< Back" };
             case MenuPage.PointEditor:
                 return new string[] { "Set / Save Position + Facing", "Clear Saved Position",
                     "Marker Preview", "Show Saved Coordinates", "< Back" };
@@ -1437,7 +1458,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return new string[] { "Equipment Status", "Buy Tool Set", "Buy Diagnostic Scanner",
                     "Buy Desk + Laptop", "Place Tool Chest", "Remove Tool Chest",
                     "Place Diagnostic Trolley", "Remove Diagnostic Trolley",
-                    "Place Desk in Front", "Remove Placed Desk", "Office PC Status", "< Back to Expenses" };
+                    "Place Desk in Front", "Remove Placed Desk", "Office PC Status", "< Back" };
             case MenuPage.ControllerSettings:
                 return new string[] { "Controller Menu Controls (ENTER)", "View Controller Key Map", "Controller Input Diagnostics", "< Back to Business Management" };
             case MenuPage.MechanicRouteRoster:
@@ -1474,10 +1495,10 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.SupplierPalletStorage:
                 return new string[] { "Storage Capacity Status", "Purchase Additional Pallet ($750)",
                     "Place / Move Pallet 1 >", "Place / Move Pallet 2 >", "Place / Move Pallet 3 >",
-                    "Place / Move Pallet 4 >", "< Back to Inventory" };
+                    "Place / Move Pallet 4 >", "< Back" };
             case MenuPage.SupplierDriverWaypoints:
                 return new string[] { "Driver Stop 1 / 3 >", "Driver Stop 2 / 3 >", "Driver Stop 3 / 3 >",
-                    "< Back to Delivery Setup" };
+                    "< Back" };
             case MenuPage.HireMechanicRoster:
                 return new string[] { "Junior General Mechanic", "Skilled Brake Technician",
                     "Experienced Diagnostic Technician", "< Back to Mechanics" };
@@ -1486,7 +1507,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Senior Service Advisor (3 queue)", "< Back to Receptionist" };
             case MenuPage.Customers:
                 return new string[] { "Customer Order Status", "Customer Queue >",
-                    "Customer Placement Settings >", "Vehicle Driving Options >",
+                    "Placement Settings >", "Vehicle Driving Options >",
                     "Customer Arrivals", "Schedule Next Customer", "Customer Blips",
                     "Placement Markers", "< Back to Business Management" };
             case MenuPage.CustomerQueueSettings:
@@ -1495,12 +1516,12 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.CustomerWalkingRoutes:
                 return new string[] { "Customer Walking Stop 1 / 3 >",
                     "Customer Walking Stop 2 / 3 >", "Customer Walking Stop 3 / 3 >",
-                    "< Back to Customer Placements" };
+                    "< Back" };
             case MenuPage.CustomerPlacements:
                 return new string[] { "Customer Drop-off Parking >", "Customer Road Spawn >",
                     "Customer Reception Approach >", "Customer Check-in Position >",
                     "Waiting Car 2 Position >", "Waiting Car 3 Position >",
-                    "Service Vehicle Parking Bays >", "Customer Walking Route (0-3) >", "< Back to Customers" };
+                    "Service Vehicle Parking Bays >", "Customer Walking Route (0-3) >", "< Back" };
             default:
                 return new string[] {
                     _clockedIn ? "Close Business" : "Open Business",
@@ -1512,6 +1533,11 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         switch (_menuPage)
         {
+            case MenuPage.PlacementSettings:
+            case MenuPage.PlacementWalkingRoutes: return ">";
+            case MenuPage.DeliveryPlacements:
+                return index == 0 ? Status(_supplierTruckSpawn) : index == 1 ? Status(_supplierTruckPark) :
+                    index == 2 ? Status(_supplierHandoff) : ">";
             case MenuPage.ManagerManagement:
                 if (index == 0) return _managerTier < 0 ? "VACANT" : _managerName;
                 if (index == 1) return _managerTier < 0 ? "OPEN" : "EMPLOYED";
@@ -1637,7 +1663,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 }
                 return ">";
             case MenuPage.BusinessManagement:
-                return index == 8 ? "BACK" : index == 7 ? "SET" : index < 5 ? "OPEN" : "TRANSFER";
+                return index == 9 ? "BACK" : index == 8 ? "SET" : index < 6 ? "OPEN" : "TRANSFER";
             case MenuPage.Business:
                 if (index == 0) return _clockedIn ? "OPEN" : "CLOSED";
                 if (index == 1) return "SAVE";
@@ -1658,7 +1684,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 if (index == 4) return "$" + MechanicWagesDue().ToString("N0");
                 return ">";
             case MenuPage.EmployeeSettings:
-                if (index == 0) return CountSet(_bays) + "/3 BAYS";
+                if (index == 0) return "OPEN";
                 if (index == 1) return _customEmployeeWalkingPaths ? "CUSTOM" : "DIRECT";
                 if (index == 2) return _routeRecoveryEnabled ? "ON" : "OFF";
                 if (index == 3) return _showPlacementMarkers ? "ON" : "OFF";
@@ -1839,6 +1865,9 @@ public class GlassHeroesBusinessV3Experimental : Script
 
     private string GetSelectedDescription()
     {
+        if (_menuPage == MenuPage.PlacementSettings) return "Existing saved points and separate vehicle/work positions. Walk to the point, face the heading, then Save Position + Facing.";
+        if (_menuPage == MenuPage.DeliveryPlacements) return "Reuse supplier and pallet editors. Equipment links to existing purchases/placement; browsing never orders or buys.";
+        if (_menuPage == MenuPage.PlacementWalkingRoutes) return "Edit optional saved stops and approaches; route modes and operating toggles remain in their existing menus.";
         switch (_menuPage)
         {
             case MenuPage.PointEditor:
@@ -1915,11 +1944,12 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Customer requests, queue spaces, arrivals and vehicle transfers.",
                     "Order parts, select suppliers and configure Mule deliveries.",
                     "Review sales, wage liabilities, supplier costs and shift profit.",
+                    "Set existing locations, service bays, routes and visual marker display.",
                     "Change controller support and inspect the active button map.",
                     "Move personal funds into business cash (not recorded as revenue).",
                     "Withdraw available business cash to the player account.",
                     "Set the shop's permanent location while it is closed.",
-                    "Return to the four-item main menu." }[Math.Min(_selection, 8)];
+                    "Return to the four-item main menu." }[Math.Min(_selection, 9)];
             case MenuPage.BusinessExpenses: return _selection == 9 ?
                 "Pay only the outstanding manager wage invoice; no manager rebate on their own wages." :
                 "Settle wages, rent and delivered supplier invoices; restock and equipment are separate.";
@@ -2036,6 +2066,9 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             case MenuPage.Business: return "GLASS HEROES";
             case MenuPage.BusinessManagement: return "BUSINESS MANAGEMENT";
+            case MenuPage.PlacementSettings: return "PLACEMENT SETTINGS";
+            case MenuPage.DeliveryPlacements: return "DELIVERY & STOCKROOM LOCATIONS";
+            case MenuPage.PlacementWalkingRoutes: return "WALKING ROUTES & APPROACHES";
             case MenuPage.Employees: return "EMPLOYEES";
             case MenuPage.ManagerManagement: return "BUSINESS MANAGER";
             case MenuPage.ManagerProfile: return "MANAGER PROFILE";
@@ -2184,6 +2217,9 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             case MenuPage.Business: ExecuteBusinessSelection(); break;
             case MenuPage.BusinessManagement: ExecuteManagementSelection(); break;
+            case MenuPage.PlacementSettings:
+            case MenuPage.DeliveryPlacements:
+            case MenuPage.PlacementWalkingRoutes: ExecutePlacementSelection(); break;
             case MenuPage.Employees: ExecuteEmployeeSelection(); break;
             case MenuPage.ManagerManagement: ExecuteManagerManagement(); break;
             case MenuPage.ManagerProfile: ExecuteManagerProfile(); break;
@@ -2263,18 +2299,58 @@ public class GlassHeroesBusinessV3Experimental : Script
     }
 
     // Former main-menu actions now live exclusively inside Business Management.
+    private void OpenPlacementMenu(MenuPage page)
+    {
+        if (page == MenuPage.PlacementSettings) _placementMenuReturns.Clear();
+        _placementMenuReturns[page] = new KeyValuePair<MenuPage, int>(_menuPage, _selection);
+        _menuPage = page; _selection = 0;
+    }
+
+    private void ExecutePlacementSelection()
+    {
+        if (_menuPage == MenuPage.PlacementSettings)
+        {
+            MenuPage[] pages = { MenuPage.CustomerPlacements, MenuPage.EmployeePlacements,
+                MenuPage.MechanicBays, MenuPage.DeliveryPlacements,
+                MenuPage.PlacementWalkingRoutes, MenuPage.PlacementMarkers };
+            if (_selection >= 0 && _selection < pages.Length) OpenPlacementMenu(pages[_selection]);
+            else NavigateBack();
+        }
+        else if (_menuPage == MenuPage.DeliveryPlacements)
+        {
+            if (_selection == 0) OpenPointEditor(_supplierTruckSpawn, "Mule Truck Road Spawn", -1, true);
+            else if (_selection == 1) OpenPointEditor(_supplierTruckPark, "Mule Unloading Parking", -1, true);
+            else if (_selection == 2) OpenPointEditor(_supplierHandoff, "Driver Box Handoff", -1, true);
+            else if (_selection == 3) OpenPlacementMenu(MenuPage.SupplierPalletStorage);
+            else if (_selection == 4) OpenPlacementMenu(MenuPage.SupplierDriverWaypoints);
+            else if (_selection == 5) OpenPlacementMenu(MenuPage.EquipmentManagement);
+            else NavigateBack();
+        }
+        else if (_menuPage == MenuPage.PlacementWalkingRoutes)
+        {
+            MenuPage[] pages = { MenuPage.ArrivalWaypoints, MenuPage.ServiceWaypoints,
+                MenuPage.BayApproaches, MenuPage.ReceptionWaypoints, MenuPage.ManagerWaypoints,
+                MenuPage.CustomerWalkingRoutes, MenuPage.SupplierDriverWaypoints, MenuPage.MechanicRouteRoster };
+            if (_selection >= 0 && _selection < pages.Length) OpenPlacementMenu(pages[_selection]);
+            else if (_selection == 8) OpenPointEditor(_walkCheckpoint, "Legacy Mechanic Arrival Checkpoint", -1, true);
+            else NavigateBack();
+        }
+    }
+
     private void ExecuteManagementSelection()
     {
+        _placementMenuReturns.Clear(); // A fresh management entry cannot inherit a closed hub path.
         switch (_selection)
         {
             case 0: _menuPage = MenuPage.Employees; _selection = 0; break;
             case 1: _menuPage = MenuPage.Customers; _selection = 0; break;
             case 2: _menuPage = MenuPage.InventoryManagement; _selection = 0; break;
             case 3: _financesFromExpenses = false; _menuPage = MenuPage.Finances; _selection = 0; break;
-            case 4: _menuPage = MenuPage.ControllerSettings; _selection = 0; break;
-            case 5: TransferPlayerMoney(true); break;
-            case 6: TransferPlayerMoney(false); break;
-            case 7: SetShopLocationFromPlayer(); break;
+            case 4: OpenPlacementMenu(MenuPage.PlacementSettings); break;
+            case 5: _menuPage = MenuPage.ControllerSettings; _selection = 0; break;
+            case 6: TransferPlayerMoney(true); break;
+            case 7: TransferPlayerMoney(false); break;
+            case 8: SetShopLocationFromPlayer(); break;
             default: NavigateBack(); break;
         }
     }
@@ -2845,7 +2921,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             case 0: ShowCustomerOrderStatus(); break;
             case 1: _menuPage = MenuPage.CustomerQueueSettings; _selection = 0; break;
-            case 2: _menuPage = MenuPage.CustomerPlacements; _selection = 0; break;
+            case 2: OpenPlacementMenu(MenuPage.PlacementSettings); break;
             case 3: _menuPage = MenuPage.VehicleDriveOptions; _selection = 0; break;
             case 4:
                 if (!_customerServiceEnabled && !CustomerConfigurationReady())
@@ -3198,7 +3274,7 @@ public class GlassHeroesBusinessV3Experimental : Script
     {
         switch (_selection)
         {
-            case 0: _menuPage = MenuPage.EmployeePlacements; _selection = 0; break;
+            case 0: OpenPlacementMenu(MenuPage.PlacementSettings); break;
             case 1: _menuPage = MenuPage.EmployeePaths; _selection = 0; break;
             case 2: _menuPage = MenuPage.RouteRecovery; _selection = 0; break;
             case 3: _menuPage = MenuPage.PlacementMarkers; _selection = 0; break;
