@@ -1922,7 +1922,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.InventoryManagement: return FooterRow("View available inventory and capacity; pending cargo is not stock on hand.",
                 "Build a mixed-category order with one supplier, ETA and invoice after stocking.", "Inspect saved pending order identity and its current delivery stage.",
                 "Choose retail quantities, review unchanged cost-estimate prices, then confirm an atomic sale.", "Inspect owned pallet capacity, explicitly buy or place pallets.", "Supplier physical setup, wholesale vehicle registration and recovery controls.", "Return to management.");
-            case MenuPage.InventoryOverview: return FooterRow("Universal stock on hand; promised repair stock remains reserved.", "Service-filter stock on hand.", "Brake-kit stock on hand.", "Diagnostic supplies on hand.", "Inspect total storage capacity; delivery must fit before receipt.", "Read low-stock advice without ordering.", "Change reorder advice threshold; no automatic purchase.", "Return to inventory.");
+            case MenuPage.InventoryOverview: return FooterRow("View universal on-hand, reserved, free and incoming units on demand; nothing is sold or purchased.", "Inspect filter stock and the units still promised to repairs.", "Inspect brake stock; incoming parts are not yet available for work.", "Inspect diagnostic supplies and their estimated unit cost.", "Inspect a four-category stock snapshot and shared storage capacity.", "Read low-stock advice without ordering.", "Change reorder advice threshold; no automatic purchase.", "Return to inventory.");
             case MenuPage.BuildSupplierOrder:
                 if (_selection < 4) return "Set " + label + " quantity with Left/Right or Enter; this edits only the unsent supplier cart.";
                 return FooterRow("", "", "", "", "Choose one supplier for the entire cart; wholesale stays player-only.", "Preview full cost and capacity before placing anything.", "Submit this whole purchase order after funds/capacity checks.", "Fill unsent quantities using low-stock advice; does not submit.", "Clear the unsent supplier draft only.", "Return to inventory.");
@@ -2097,7 +2097,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.PartsSaleReview: return _selection == 0 ? "Inspect quantities, free stock, unchanged unit estimates and total proceeds." : _selection == 1 ? "Sell this draft atomically after current stock and ledger checks; failed save rolls back all lines." : "Return to the draft without selling.";
             case MenuPage.InventoryManagement:
                 return new string[] { "Inspect stock on hand and shared storage capacity.", "Choose supplier and build an order; invoiced only after stocking.", "Track ETA, inspect contents, recover or cancel the original shipment.", "Sell one unreserved unit; see availability and fixed sale estimate below.", "Buy or position pallets and inspect the stockroom.", "Configure supplier fleet, road route and pickup vehicle.", "Return to Business Management." }[Math.Min(_selection, 6)];
-            case MenuPage.InventoryOverview: return "Stock on hand excludes pending cargo. Repair-reserved stock cannot be sold. Capacity is shared by all four items.";
+            case MenuPage.InventoryOverview: return "Select a part for an on-demand ON HAND / RESERVED / FREE / INCOMING breakdown. Unreceived supplier cargo is never available to spend.";
             case MenuPage.BuildSupplierOrder: return _selection < 4 ? "LEFT subtracts 1; RIGHT or ENTER adds 1. Maximum 100 total units. Draft saves only on Place Purchase Order." : "Preview total/capacity before Place Purchase Order. Fill Low-stock prepares a draft only. Wholesale remains player pickup.";
             case MenuPage.ActiveDeliveries: return "Inspect the original pending order. Recover retains its contents; cancel requires a second confirmation and adds no stock.";
             case MenuPage.EquipmentManagement:
@@ -2390,9 +2390,11 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.MechanicInvoices: ExecuteMechanicInvoicesSelection(); break;
             case MenuPage.InventoryManagement: ExecuteInventorySelection(); break;
             case MenuPage.InventoryOverview:
-                if (_selection == 5) ShowReorderAdvice();
+                if (_selection >= 0 && _selection < 4) ShowInventoryCategoryDetail(_selection);
+                else if (_selection == 4) ShowDetailedInventory();
+                else if (_selection == 5) ShowReorderAdvice();
                 else if (_selection == 6) { _reorderThreshold = _reorderThreshold == 3 ? 5 : _reorderThreshold == 5 ? 10 : 3; Save(); }
-                else if (_selection == 7) NavigateBack(); else ShowDetailedInventory(); break;
+                else NavigateBack(); break;
             case MenuPage.BuildSupplierOrder: ExecuteSupplierCart(); break;
             case MenuPage.ActiveDeliveries:
                 if (_selection == 0) ShowSupplierDeliveryStatus();
@@ -9198,16 +9200,67 @@ public class GlassHeroesBusinessV3Experimental : Script
         else NavigateBack();
     }
 
+    // v0.3.4 Phase A: a read-only snapshot. Incoming inventory stays separate
+    // from stocked parts and is NEVER used to satisfy live repair reservations.
+    // This mirrors the original legacy single-item and SupplierOrderV1 cart forms.
+    // The view does not alter the order, inventory, journal, or Save.ini schema.
+    private int[] PendingSupplierInventory()
+    {
+        int[] pending = new int[4];
+        if (_deliveryKind == -2) return pending;
+        if (_deliveryLines != null)
+        {
+            if (_deliveryLines.Length == 4)
+                for (int i = 0; i < 4; i++) pending[i] = Math.Max(0, _deliveryLines[i]);
+            return pending;
+        }
+        if (_deliveryKind >= -1 && _deliveryKind <= 2 && _deliveryQuantity > 0)
+            pending[_deliveryKind + 1] = _deliveryQuantity;
+        return pending;
+    }
+
+    private int[] OnHandInventory()
+    {
+        return new int[] { Math.Max(0, _parts), Math.Max(0, _specialStock[0]),
+            Math.Max(0, _specialStock[1]), Math.Max(0, _specialStock[2]) };
+    }
+
+    private string InventoryAvailabilityRow(int index, int[] onHand, int[] free, int[] incoming)
+    {
+        int reserved = Math.Max(0, onHand[index] - free[index]);
+        return DeliveryItemName(index - 1) + ": " + onHand[index] + " owned, " +
+            reserved + " reserved, " + free[index] + " free, " + incoming[index] + " incoming";
+    }
+
+    private void ShowInventoryCategoryDetail(int index)
+    {
+        if (index < 0 || index >= 4) return;
+        // Costly reservation traversal is deliberately ON DEMAND, never per Tick.
+        int[] onHand = OnHandInventory();
+        int[] free = UnreservedRepairStock(null);
+        int[] incoming = PendingSupplierInventory();
+        ShowStatusNotice(DeliveryItemName(index - 1).ToUpperInvariant() + " - INVENTORY",
+            InventoryAvailabilityRow(index, onHand, free, incoming),
+            "Incoming means ordered, not received; it cannot be consumed or sold.",
+            "Estimated acquisition $" + EstimatedUnitAcquisitionCost(index - 1).ToString("N0") +
+                " / unit; historical lot cost not recorded.",
+            "Storage " + StoredPartsTotal() + "/" + TotalStorageCapacity() +
+                " | supplier invoices due $" + _supplierInvoicesDue.ToString("N0"));
+    }
+
     private void ShowDetailedInventory()
     {
-        ShowStatusNotice("PARTS INVENTORY",
-            "Universal " + _parts + " | Filters " + _specialStock[0],
-            "Brake kits " + _specialStock[1] + " | Diagnostics " + _specialStock[2],
-            "Storage " + StoredPartsTotal() + "/" + TotalStorageCapacity() +
-                " | Supplier invoices $" + _supplierInvoicesDue.ToString("N0"),
-            "Order: " + (_deliveryKind == -2 ? "NONE" : _deliveryQuantity + " " + (_deliveryLines == null ? DeliveryItemName(_deliveryKind) : "mixed parts") + " PENDING"));
-        Notify("Manual parts sales $" + _partsSalesRevenue.ToString("N0") + " | " +
-            _partsSalesUnitsSold + " units; stock reserved for repairs cannot be sold.");
+        int[] onHand = OnHandInventory();
+        int[] free = UnreservedRepairStock(null);
+        int[] incoming = PendingSupplierInventory();
+        ShowStatusNotice("PARTS INVENTORY - ON DEMAND",
+            InventoryAvailabilityRow(0, onHand, free, incoming),
+            InventoryAvailabilityRow(1, onHand, free, incoming),
+            InventoryAvailabilityRow(2, onHand, free, incoming),
+            InventoryAvailabilityRow(3, onHand, free, incoming));
+        Notify("Shared storage " + StoredPartsTotal() + "/" + TotalStorageCapacity() +
+            " | supplier invoices due $" + _supplierInvoicesDue.ToString("N0") +
+            " | parts sold " + _partsSalesUnitsSold + ". Incoming stock is NOT available.");
     }
 
     private int[] _deliveryLines; // Null means an unchanged legacy single-item order.
