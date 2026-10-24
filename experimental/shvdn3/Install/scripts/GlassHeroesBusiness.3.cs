@@ -1380,12 +1380,12 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Business Manager >", "Employee Settings >", "< Back to Business Management" };
             case MenuPage.ManagerManagement:
                 return new string[] { "Manager Profile >", "Hire Business Manager >",
-                    "Manager Walking Paths >", "< Back to Employees" };
+                    "Manager Walk Route >", "< Back to Employees" };
             case MenuPage.ManagerProfile:
                 return new string[] { "Profile & Business Reports", "Train Manager (+40 XP)",
                     "Pay Manager Wage Invoice", "Dismiss Manager", "< Back to Manager" };
             case MenuPage.ManagerWalkingPaths:
-                return new string[] { "Manager Walking Mode", "Spawn -> Workstation Waypoints >",
+                return new string[] { "Manager Walking Mode", "Entry-to-Workstation Stops >",
                     "Final Workstation Approach >", "< Back" };
             case MenuPage.ManagerWaypoints:
                 return new string[] { "Manager Stop 1 / 5 >", "Manager Stop 2 / 5 >",
@@ -1400,7 +1400,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Work Stop Selections >", "Mechanic Walking Paths >", "< Back to Employees" };
             case MenuPage.ReceptionistManagement:
                 return new string[] { "Receptionist Profile >", "Hire Receptionist >",
-                    "Receptionist Walking Paths >", "< Back to Employees" };
+                    "Receptionist Walk Route >", "< Back to Employees" };
             case MenuPage.ReceptionistProfile:
                 return new string[] { "Profile & Queue Skill", "Train Receptionist (+1 Capacity)",
                     "Increase Period Wage (+$25)", "Dismiss Receptionist", "< Back to Receptionists" };
@@ -1412,8 +1412,8 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Receptionist Desk >", "Receptionist Desk Approach >", "Manager Workstation >",
                     "Manager Workstation Approach >", "Staff Spawn / Entry >", "< Back" };
             case MenuPage.EmployeePaths:
-                return new string[] { "Mechanic Walking Paths >", "Receptionist Walking Paths >",
-                    "Manager Walking Paths >", "< Back" };
+                return new string[] { "Mechanic Walking Paths >", "Receptionist Walk Route >",
+                    "Manager Walk Route >", "< Back" };
             case MenuPage.MechanicWalkingPaths:
                 return new string[] { "Mechanic Walking Mode", "Car Walks: Entry Corridor",
                     "Shared Entry Corridor >", "Shared Work Stops >",
@@ -1421,7 +1421,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                     "Selections by Mechanic >", "Smooth Through-Waypoints",
                     "Teleport Stuck Pedestrians", "Custom Work Stop Routes", "< Back" };
             case MenuPage.ReceptionWalkingPaths:
-                return new string[] { "Receptionist Walking Mode", "Spawn -> Desk Waypoints >",
+                return new string[] { "Receptionist Walking Mode", "Entry-to-Desk Stops >",
                     "Final Desk Approach >", "< Back" };
             case MenuPage.ReceptionWaypoints:
                 return new string[] { "Reception Stop 1 / 5 >", "Reception Stop 2 / 5 >",
@@ -1951,6 +1951,12 @@ public class GlassHeroesBusinessV3Experimental : Script
                 "Edit five shared work stops; separate from car pickup/return and vehicle driving.", "Edit the final walking approach to each separate mechanic work position.",
                 "Choose shared work-stop use per mechanic/direction. USE / UNSET means selected but unsaved.",
                 "Edit the legacy arrival checkpoint; not silently inserted into car pickup.", "Open existing walking-mode/recovery toggles without duplicating saved settings.", "Return to role list.");
+            case MenuPage.ReceptionWalkingPaths: return FooterRow("Choose DIRECT or CUSTOM receptionist walking; close shop before changing mode.",
+                "Edit the same five receptionist-only entry-to-desk stops from either menu shortcut.",
+                "Edit the existing receptionist final desk approach; no duplicate route settings.", "Return to the calling menu.");
+            case MenuPage.ManagerWalkingPaths: return FooterRow("Choose DIRECT or CUSTOM manager walking; close shop before changing mode.",
+                "Edit the same five manager-only entry-to-workstation stops from either shortcut.",
+                "Edit the existing manager final workstation approach; no duplicate settings.", "Return to the calling menu.");
             case MenuPage.ReceptionPlacementRoutes: return FooterRow("Edit five optional receptionist-only spawn-to-desk stops.", "Edit the final receptionist desk approach.", "Choose existing receptionist walking mode.", "Return to roles.");
             case MenuPage.ManagerPlacementRoutes: return FooterRow("Edit five optional manager-only spawn-to-workstation stops.", "Edit the final manager workstation approach.", "Choose existing manager walking mode.", "Return to roles.");
             case MenuPage.CustomerPlacementRoutes: return _selection == 0 ? "Edit customer-only walking stops; reverse traversal is reused at pickup." : "Edit the existing customer reception approach; does not change car parking.";
@@ -2047,9 +2053,9 @@ public class GlassHeroesBusinessV3Experimental : Script
                 return "USE / SKIP saved points; unset points are always skipped.";
             case MenuPage.ReceptionWalkingPaths:
                 return _selection == 0 ? "DIRECT goes straight to desk; CUSTOM follows saved route." :
-                    "Receptionist-only 0/5 route and desk approach.";
+                    "One receptionist route editor: existing five entry stops and final desk approach.";
             case MenuPage.ReceptionWaypoints: return "OPTIONAL receptionist-only stops, staff entry to desk.";
-            case MenuPage.ManagerWalkingPaths: return "DIRECT follows navmesh; CUSTOM visits saved manager stops and final approach.";
+            case MenuPage.ManagerWalkingPaths: return "One manager route editor: existing walking mode, five entry stops and final workstation approach.";
             case MenuPage.ManagerWaypoints: return "Optional 0-5 manager-only route stops from staff entrance to workstation.";
             case MenuPage.EmployeePlacements: return "Set spawn, mechanic bays, receptionist and manager workstations and approaches.";
             case MenuPage.CustomerPlacements: return "Road spawn, two waiting-car spaces, drop-off and optional customer path.";
@@ -2231,7 +2237,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.EmployeeStatus: return "EMPLOYEE STATUS SNAPSHOT";
             case MenuPage.ManagerManagement: return "BUSINESS MANAGER";
             case MenuPage.ManagerProfile: return "MANAGER PROFILE";
-            case MenuPage.ManagerWalkingPaths: return "MANAGER WALKING";
+            case MenuPage.ManagerWalkingPaths: return "MANAGER WALK ROUTE";
             case MenuPage.ManagerWaypoints: return "MANAGER ROUTE (0-5)";
             case MenuPage.HireManagerRoster: return "MANAGEMENT CANDIDATES";
             case MenuPage.MechanicManagement: return "MECHANIC MANAGEMENT";
@@ -2246,7 +2252,7 @@ public class GlassHeroesBusinessV3Experimental : Script
             case MenuPage.CustomerWalkingRoutes: return "CUSTOMER WALK (0-3)";
             case MenuPage.CustomerQueueSettings: return "CUSTOMER QUEUE";
             case MenuPage.MechanicWalkingPaths: return "MECHANIC WALKING";
-            case MenuPage.ReceptionWalkingPaths: return "RECEPTION WALKING";
+            case MenuPage.ReceptionWalkingPaths: return "RECEPTIONIST WALK ROUTE";
             case MenuPage.ReceptionWaypoints: return "RECEPTION ROUTE (0-5)";
             case MenuPage.ArrivalWaypoints: return "SHARED ENTRY CORRIDOR";
             case MenuPage.MechanicBays: return "SERVICE BAYS";
@@ -2566,8 +2572,8 @@ public class GlassHeroesBusinessV3Experimental : Script
         }
         else if (_menuPage == MenuPage.PlacementWalkingRoutes)
         {
-            MenuPage[] roles = { MenuPage.MechanicPlacementRoutes, MenuPage.ReceptionPlacementRoutes,
-                MenuPage.ManagerPlacementRoutes, MenuPage.CustomerPlacementRoutes, MenuPage.SupplierPlacementRoutes };
+            MenuPage[] roles = { MenuPage.MechanicPlacementRoutes, MenuPage.ReceptionWalkingPaths,
+                MenuPage.ManagerWalkingPaths, MenuPage.CustomerPlacementRoutes, MenuPage.SupplierPlacementRoutes };
             if (_selection >= 0 && _selection < roles.Length) OpenPlacementMenu(roles[_selection]);
             else NavigateBack();
         }
@@ -3324,7 +3330,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             case 0: _menuPage = MenuPage.ReceptionistProfile; _selection = 0; break;
             case 1: _menuPage = MenuPage.HireReceptionistRoster; _selection = 0; break;
-            case 2: _receptionPathsFromManagement = true; _menuPage = MenuPage.ReceptionWalkingPaths; _selection = 0; break;
+            case 2: OpenPlacementMenu(MenuPage.ReceptionWalkingPaths); break;
             default: NavigateBack(); break;
         }
     }
@@ -3585,8 +3591,8 @@ public class GlassHeroesBusinessV3Experimental : Script
     private void ExecuteEmployeePathsSelection()
     {
         if (_selection == 0) { _mechanicPathsFromManagement = false; _menuPage = MenuPage.MechanicWalkingPaths; _selection = 0; }
-        else if (_selection == 1) { _receptionPathsFromManagement = false; _menuPage = MenuPage.ReceptionWalkingPaths; _selection = 0; }
-        else if (_selection == 2) { _managerPathsFromManagement = false; _menuPage = MenuPage.ManagerWalkingPaths; _selection = 0; }
+        else if (_selection == 1) OpenPlacementMenu(MenuPage.ReceptionWalkingPaths);
+        else if (_selection == 2) OpenPlacementMenu(MenuPage.ManagerWalkingPaths);
         else NavigateBack();
     }
 
@@ -3693,7 +3699,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 Notify("Receptionist walking: " + (_customReceptionWalkingPaths ?
                     "CUSTOM MLO (0-5 points)" : "AUTO DIRECT") + ".");
                 break;
-            case 1: _menuPage = MenuPage.ReceptionWaypoints; _selection = 0; break;
+            case 1: OpenPlacementMenu(MenuPage.ReceptionWaypoints); break;
             case 2: OpenPointEditor(_receptionApproach, "Receptionist Final Desk Approach", -1, true); break;
             default: NavigateBack(); break;
         }
@@ -3708,7 +3714,7 @@ public class GlassHeroesBusinessV3Experimental : Script
                 _customManagerWalkingPaths = !_customManagerWalkingPaths;
                 Save(); Notify("Manager walking: " + (_customManagerWalkingPaths ? "CUSTOM MLO" : "AUTO DIRECT") + ".");
                 break;
-            case 1: _menuPage = MenuPage.ManagerWaypoints; _selection = 0; break;
+            case 1: OpenPlacementMenu(MenuPage.ManagerWaypoints); break;
             case 2: OpenPointEditor(_managerApproach, "Manager Final Workstation Approach", -1, true); break;
             default: NavigateBack(); break;
         }
@@ -7540,7 +7546,7 @@ public class GlassHeroesBusinessV3Experimental : Script
         {
             case 0: _menuPage = MenuPage.ManagerProfile; _selection = 0; break;
             case 1: _menuPage = MenuPage.HireManagerRoster; _selection = 0; break;
-            case 2: _managerPathsFromManagement = true; _menuPage = MenuPage.ManagerWalkingPaths; _selection = 0; break;
+            case 2: OpenPlacementMenu(MenuPage.ManagerWalkingPaths); break;
             default: NavigateBack(); break;
         }
     }

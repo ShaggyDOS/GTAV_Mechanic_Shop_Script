@@ -57,6 +57,10 @@ def point_calls_without_labels(text):
  return tokens(text)
 assert point_calls_without_labels(after['ExecutePointListSelection'])==point_calls_without_labels(before['ExecutePointListSelection']),'Point editor changed beyond labels'
 assert tokens(after['ExecuteMechanicWalkingSelection'])==tokens(before['ExecuteMechanicWalkingSelection']),'Walking controls changed beyond notices'
+# Canonical role routing changes only destinations/context; existing mode guards/mutations are byte-identical.
+for method,page in [('ExecuteReceptionWalkingSelection','ReceptionWaypoints'),('ExecuteManagerWalkingSelection','ManagerWaypoints')]:
+ restored=after[method].replace('case 1: OpenPlacementMenu(MenuPage.'+page+'); break;', 'case 1: _menuPage = MenuPage.'+page+'; _selection = 0; break;')
+ assert restored==before[method],method+' changed beyond child navigation'
 for path in ['Install/scripts/GlassHeroesBusiness.2.cs','VisualStudio/scripts/GlassHeroesBusiness.2.cs','VisualStudio/GlassHeroesBusiness.csproj','VisualStudio/GlassHeroesBusiness.sln','experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.csproj','experimental/shvdn3/VisualStudio/GlassHeroesBusiness.V3.Experimental.sln','AGENTS.md']:
  assert (ROOT/path).read_bytes()==subprocess.check_output(['git','show',BASE+':'+path],cwd=ROOT),path+' changed'
 report={'base_commit':BASE,'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'changed_methods':changed,'new_members':added,'unchanged_members':len(before)-len(changed),'all_other_methods_and_existing_declarations_unchanged':True,'route_ai_geometry_and_bay_assignment_unchanged':True,'save_settings_expressions_and_schema_unchanged':True,'input_arbitration_and_controller_precedence_unchanged':True,'financial_transactions_and_active_clocks_unchanged':True,'protected_sources_projects_unchanged':True,'approval_gate_1':'YES — owner chat','approval_gate_2':'PENDING YES/NO','gta_testing':'NOT RUN'}

@@ -1,0 +1,7 @@
+# D — v0.3.3.6 Issue #36 canonical staff walking-route editors
+
+Placement Settings > Walking Routes now opens the existing ReceptionWalkingPaths/ManagerWalkingPaths pages directly. Role-management and Employee Walking Paths shortcuts open those same pages through existing OpenPlacementMenu context tracking. Their five-stop child lists also use that context, overwriting stale child returns. PointEditor and NavigateBack themselves are unchanged.
+
+The canonical pages retain existing mode, five role-specific points, final approach and Back; labels/titles/help identify a single role route. Redundant visible wrapper steps are bypassed. Internal enum aliases remain, without duplicating saved settings. Back restores the real caller/row for placement, role management and older staff-settings shortcuts, including after F2 reopen. Existing mode guards and explicit Save/Clear behavior are identical; all saved coordinates, headings, modes, masks, schema, AI and accounting remain unchanged.
+
+The original 180-case navigation coverage is retained with only approved role destinations, stop-list row 1 and final-approach row 2 updated. It is extended to 208 cases with both roles/all callers, all five Save/Clear points, approach/Back chains, mode guards, mixed input/repeat suppression, controller navigation, stale contexts and pause. Actual targeted navigation: 208/208 PASS. Fresh full D-stage build/regression evidence is stored separately. GTA menu/controller/path testing NOT RUN; no installation or acceptance.
