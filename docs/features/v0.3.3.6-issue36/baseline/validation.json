@@ -1,0 +1,118 @@
+{
+  "stage": "baseline",
+  "base_commit": "c8617aed5cda492214bbbe1907042bcafbfa0dc1",
+  "branch": "maintenance/v0.3.3.6-issue36",
+  "utc": "2026-10-24T07:03:20.194707+00:00",
+  "source_sha256": "7fff30978e2dc4c3235656f6ca6865506d5cea53387b7eb6d83654d71c8a9d6b",
+  "sdk": "8.0.426",
+  "target": "net48 / C# 7.3",
+  "reference": "ScriptHookVDotNet3 3.6.0",
+  "build": "PASS",
+  "errors": 0,
+  "warnings": [
+    "CS0169",
+    "CS0649"
+  ],
+  "inherited": 85,
+  "feature_suites": {
+    "repair": {
+      "passed": 32,
+      "total": 32
+    },
+    "sales": {
+      "passed": 29,
+      "total": 29
+    },
+    "pallets": {
+      "passed": 25,
+      "total": 25
+    },
+    "wages": {
+      "passed": 22,
+      "total": 22
+    },
+    "reload": {
+      "passed": 41,
+      "total": 41
+    },
+    "supplier": {
+      "passed": 37,
+      "total": 37
+    },
+    "range": {
+      "passed": 40,
+      "total": 40
+    },
+    "menu": {
+      "passed": 13,
+      "total": 13
+    },
+    "cart": {
+      "passed": 32,
+      "total": 32
+    },
+    "pause": {
+      "passed": 9,
+      "total": 9
+    },
+    "focus": {
+      "passed": 8,
+      "total": 8
+    },
+    "finance": {
+      "passed": 33,
+      "total": 33
+    },
+    "startup": {
+      "passed": 18,
+      "total": 18
+    },
+    "hardening": {
+      "passed": 9,
+      "total": 9
+    },
+    "bays": {
+      "passed": 34,
+      "total": 34
+    },
+    "workflow335": {
+      "passed": 38,
+      "total": 38
+    },
+    "recovery336": {
+      "passed": 21,
+      "total": 21
+    },
+    "owner336": {
+      "passed": 13,
+      "total": 13
+    },
+    "retail336": {
+      "passed": 15,
+      "total": 15
+    },
+    "status336": {
+      "passed": 15,
+      "total": 15
+    },
+    "demand336": {
+      "passed": 13,
+      "total": 13
+    }
+  },
+  "navigation": {
+    "passed": 180,
+    "total": 180
+  },
+  "behavior_total": 762,
+  "static": {
+    "passed": 21,
+    "total": 21
+  },
+  "gta_testing": "NOT RUN",
+  "windows_execution": "NOT RUN",
+  "owner_implementation_approval": "YES \u2014 current chat",
+  "owner_final_acceptance": "PENDING YES/NO",
+  "v034_integration": "NOT PERFORMED \u2014 separate instance owns integration",
+  "live_installation_or_user_saves_accessed": false
+}
